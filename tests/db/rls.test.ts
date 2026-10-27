@@ -189,6 +189,28 @@ describe("decisiones del 27-oct", () => {
   });
 });
 
+describe("alta de prospectos", () => {
+  it("un vendedor da de alta persona y caso en una transacción y ve lo que creó", async () => {
+    await db.query("BEGIN");
+    try {
+      await db.query("SELECT set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: U.vendedor2, aal: "aal2" })]);
+      await db.query("SET LOCAL ROLE authenticated");
+      const p = await db.query("INSERT INTO personas (nombre, origen, owner_id) VALUES ('Nueva', 'whatsapp', $1) RETURNING id", [U.vendedor2]);
+      const c = await db.query(
+        "INSERT INTO casos (persona_id, tipo_servicio, owner_id, vendedor_id) VALUES ($1, 'RETIRO_DESEMPLEO', $2, $2) RETURNING folio",
+        [p.rows[0].id, U.vendedor2]);
+      await db.query("INSERT INTO datos_imss (caso_id, fecha_baja) SELECT id, '2026-10-01' FROM casos WHERE folio = $1", [c.rows[0].folio]);
+      expect(c.rows[0].folio).toMatch(/^RP-\d{4}$/);
+    } finally {
+      await db.query("ROLLBACK");
+    }
+  });
+  it("un vendedor no puede dar de alta personas a nombre de otro", async () => {
+    await expect(como(U.vendedor, "INSERT INTO personas (nombre, origen, owner_id) VALUES ('X', 'web', $1)", [U.vendedor2]))
+      .rejects.toThrow(/row-level security/);
+  });
+});
+
 describe("folio", () => {
   it("un vendedor crea su caso y recibe folio; anon no puede generar folios", async () => {
     const nuevo = await como<{ folio: string }>(U.vendedor,
