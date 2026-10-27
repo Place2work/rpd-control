@@ -1,0 +1,70 @@
+@import "tailwindcss";
+
+/* Sistema de diseño (sección 11). El azul dirige, el verde confirma,
+   el ámbar y el rojo solo avisan. */
+:root {
+  --brand-blue: #004aad;
+  --brand-blue-dark: #00357d;
+  --brand-blue-tint: #e8f0fb;
+  --brand-green: #5e9e3a;
+  --brand-green-text: #3f7a24; /* verde para texto: el #5E9E3A no da AA en texto chico */
+  --brand-green-tint: #eef6e9;
+  --warning: #b45309;
+  --warning-tint: #fef3c7;
+  --critical: #b91c1c;
+  --critical-tint: #fee2e2;
+  --ink: #0f172a;
+  --ink-muted: #64748b;
+  --surface: #ffffff;
+  --background: #f6f8fb;
+  --border: #e2e8f0;
+}
+
+@theme inline {
+  --color-brand: var(--brand-blue);
+  --color-brand-dark: var(--brand-blue-dark);
+  --color-brand-tint: var(--brand-blue-tint);
+  --color-exito: var(--brand-green);
+  --color-exito-texto: var(--brand-green-text);
+  --color-exito-tint: var(--brand-green-tint);
+  --color-aviso: var(--warning);
+  --color-aviso-tint: var(--warning-tint);
+  --color-critico: var(--critical);
+  --color-critico-tint: var(--critical-tint);
+  --color-ink: var(--ink);
+  --color-ink-muted: var(--ink-muted);
+  --color-surface: var(--surface);
+  --color-fondo: var(--background);
+  --color-borde: var(--border);
+  /* Alias que usan los componentes de shadcn/ui */
+  --color-background: var(--background);
+  --color-foreground: var(--ink);
+  --color-primary: var(--brand-blue);
+  --color-primary-foreground: #ffffff;
+  --color-muted-foreground: var(--ink-muted);
+  --color-ring: var(--brand-blue);
+  --font-sans: var(--font-inter);
+  --font-display: var(--font-poppins);
+  --radius-tarjeta: 12px;
+  --radius-boton: 8px;
+  --shadow-tarjeta: 0 1px 2px rgb(15 23 42 / 0.06);
+}
+
+body {
+  background: var(--background);
+  color: var(--ink);
+  font-family: var(--font-inter), system-ui, sans-serif;
+  font-size: 14px;
+}
+
+/* Cifras de dinero y semanas: alineadas y del mismo ancho */
+.cifra {
+  font-variant-numeric: tabular-nums;
+  font-weight: 500;
+}
+
+/* Foco visible en azul (11.6) */
+:focus-visible {
+  outline: 2px solid var(--brand-blue);
+  outline-offset: 2px;
+}

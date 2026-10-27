@@ -1,0 +1,970 @@
+// RPD Control — esquema propuesto (Fase 0, paso 1). PENDIENTE DE APROBACIÓN.
+// Fuente de verdad: docs/ESPECIFICACION.md, sección 5.
+//
+// Convenciones:
+// - Nombres de tablas y columnas en snake_case y en español, igual que la especificación.
+// - Toda tabla de negocio lleva id, created_at, updated_at, created_by y archivado_at.
+// - Dinero en Decimal(14,2); nunca Float.
+// - NSS, CURP y CLABE se guardan cifrados (AES-256-GCM en la app) como Bytes, más un
+//   hash HMAC ("índice ciego") para buscar y detectar duplicados sin descifrar.
+// - RLS, triggers de auditoría, secuencia de folios y pg_cron van en migraciones SQL
+//   (prisma/sql/), porque Prisma no los modela.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+// Las URLs de conexión viven en prisma.config.ts (Prisma 7).
+datasource db {
+  provider = "postgresql"
+  schemas  = ["public", "auditoria"]
+}
+
+// ───────────────────────────── Enums ─────────────────────────────
+
+enum Rol {
+  director
+  asesor
+  vendedor
+  socio
+
+  @@schema("public")
+}
+
+enum Origen {
+  web
+  whatsapp
+  llamada
+  referido
+  vendedor
+  facebook
+  google
+  otro
+
+  @@schema("public")
+}
+
+enum EstadoCivil {
+  soltero
+  casado
+  union_libre
+  divorciado
+  viudo
+
+  @@schema("public")
+}
+
+enum SiNoNoSabe {
+  si
+  no
+  no_sabe
+
+  @@schema("public")
+}
+
+enum Embudo {
+  retiro
+  pension
+
+  @@schema("public")
+}
+
+// Unión de las etapas de 6.1 (retiro) y 6.2 (pensión y cuota fija).
+// Cada tipo de servicio declara su embudo; la máquina de estados (lib/reglas/etapas.ts)
+// valida que la etapa pertenezca al embudo del caso.
+enum Etapa {
+  // Comunes
+  PROSPECTO
+  CONTRATO
+  CERRADO
+  BLOQUEADO
+  PERDIDO
+  // Retiro (6.1)
+  PRECALIFICADO
+  EN_ESPERA
+  EXPEDIENTE
+  INGRESADA
+  RESOLUCION
+  PAGADO
+  // Pensión (6.2)
+  DIAGNOSTICO
+  PLAN_ENTREGADO
+  ESTRATEGIA_EN_EJECUCION
+  SOLICITUD_PENSION
+  RESOLUCION_IMSS
+  PENSION_OTORGADA
+  SEGUIMIENTO
+
+  @@schema("public")
+}
+
+enum ResultadoPrecalificacion {
+  NO_ELEGIBLE_DEFINITIVO
+  NO_ELEGIBLE_DESVIO
+  NO_TODAVIA
+  APTO_BLOQUEADO
+  CALIFICA_NO_CONVIENE
+  APTO
+
+  @@schema("public")
+}
+
+// Decisión manual del asesor o del Director sobre la elegibilidad (p. ej. cuenta con menos
+// de 3 años). Si existe, prevalece sobre el resultado automático y queda en bitácora.
+enum DictamenManual {
+  APTO
+  NO_APTO
+
+  @@schema("public")
+}
+
+// "Fecha de último retiro" vacía tenía dos significados; ahora son tres estados explícitos.
+enum EstadoUltimoRetiro {
+  por_verificar // nadie lo ha revisado en el estado de cuenta de la Afore
+  nunca_retiro // verificado: no hay retiros previos
+  con_retiro // verificado: hay fecha_ultimo_retiro
+
+  @@schema("public")
+}
+
+enum Prioridad {
+  alta
+  normal
+  baja
+
+  @@schema("public")
+}
+
+enum ResultadoAfore {
+  aprobado
+  rechazado
+  requiere_cita
+
+  @@schema("public")
+}
+
+enum MotivoPerdida {
+  no_elegible
+  no_conviene
+  precio
+  no_contesta
+  lo_hizo_solo
+  otro
+
+  @@schema("public")
+}
+
+enum Regimen {
+  L73
+  L97
+  por_definir
+
+  @@schema("public")
+}
+
+enum TipoCuentaAfore {
+  registrada
+  asignada
+
+  @@schema("public")
+}
+
+enum Modalidad {
+  A
+  B
+  AB
+  ninguna
+
+  @@schema("public")
+}
+
+enum EstadoDocumento {
+  pendiente
+  recibido
+  validado
+  rechazado
+  vencido
+
+  @@schema("public")
+}
+
+enum TipoEvento {
+  nota
+  llamada
+  whatsapp
+  correo
+  cambio_etapa
+  documento
+  pago
+  sistema
+
+  @@schema("public")
+}
+
+enum Severidad {
+  info
+  aviso
+  critica
+
+  @@schema("public")
+}
+
+enum EstadoAlerta {
+  activa
+  pospuesta
+  atendida
+  descartada
+
+  @@schema("public")
+}
+
+enum MetodoPago {
+  transferencia
+  efectivo
+  tarjeta
+
+  @@schema("public")
+}
+
+enum EstadoCobro {
+  por_cobrar
+  cobrado
+  cancelado
+
+  @@schema("public")
+}
+
+enum TipoComision {
+  vendedor
+  referido
+  socio
+
+  @@schema("public")
+}
+
+enum BeneficiarioTipo {
+  usuario
+  referidor
+  socio
+
+  @@schema("public")
+}
+
+enum EstadoComision {
+  estimada
+  devengada
+  pagada
+  cancelada
+
+  @@schema("public")
+}
+
+enum TipoArco {
+  acceso
+  rectificacion
+  cancelacion
+  oposicion
+
+  @@schema("public")
+}
+
+// ───────────────────── Usuarios y terceros ─────────────────────
+
+// Perfil 1─1 con auth.users de Supabase (mismo id). La contraseña y el 2FA viven en Supabase Auth.
+model Usuario {
+  id           String    @id @db.Uuid
+  nombre       String
+  email        String    @unique
+  telefono     String?
+  rol          Rol
+  socio_id     String?   @db.Uuid // si rol = socio, su licenciatario
+  activo       Boolean   @default(true)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by   String?   @db.Uuid
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  socio           Socio?    @relation(fields: [socio_id], references: [id])
+  personas_owner  Persona[] @relation("PersonaOwner")
+  casos_asignados Caso[]    @relation("CasoAsignado")
+  casos_vendidos  Caso[]    @relation("CasoVendedor")
+  alertas         Alerta[]
+  eventos         Evento[]
+
+  @@map("usuarios")
+  @@schema("public")
+}
+
+model Referidor {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre         String
+  telefono       String?
+  email          String?
+  banco          String?
+  clabe_cifrada  Bytes?
+  clabe_ultimos4 String?   @db.Char(4)
+  notas          String?
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by     String?   @db.Uuid
+  archivado_at   DateTime? @db.Timestamptz(6)
+
+  personas Persona[]
+  casos    Caso[]
+
+  @@map("referidores")
+  @@schema("public")
+}
+
+model Socio {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre               String
+  razon_social         String?
+  rfc                  String?
+  telefono             String?
+  email                String?
+  banco                String?
+  clabe_cifrada        Bytes?
+  clabe_ultimos4       String?   @db.Char(4)
+  porcentaje_socio     Decimal   @default(0.40) @db.Decimal(5, 4)
+  costo_administrativo Decimal   @default(500) @db.Decimal(14, 2)
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at           DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by           String?   @db.Uuid
+  archivado_at         DateTime? @db.Timestamptz(6)
+
+  usuarios Usuario[]
+  casos    Caso[]
+
+  @@map("socios")
+  @@schema("public")
+}
+
+// ───────────────────────── Catálogos ─────────────────────────
+
+model TipoServicio {
+  clave                   String   @id // RETIRO_DESEMPLEO, PENSION_L73, ...
+  nombre                  String
+  embudo                  Embudo
+  forma_cobro             String // descripción legible
+  honorario_pct           Decimal? @db.Decimal(5, 4) // 0.30 para retiro; null si es fijo
+  honorario_fijo_sugerido Decimal? @db.Decimal(14, 2)
+  notas                   String?
+  activo                  Boolean  @default(true)
+  orden                   Int      @default(0)
+
+  casos             Caso[]
+  tipos_documento   TipoDocumentoServicio[]
+  esquemas_comision EsquemaComision[]
+
+  @@map("tipos_servicio")
+  @@schema("public")
+}
+
+model Afore {
+  clave  String  @id // AZTECA, BANORTE, COPPEL, INBURSA, INVERCAP, PENSIONISSSTE, PRINCIPAL, PROFUTURO, SURA, XXI_BANORTE...
+  nombre String
+  activo Boolean @default(true)
+
+  datos_afore DatosAfore[]
+
+  @@map("afores")
+  @@schema("public")
+}
+
+model TipoDocumento {
+  id                String  @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre            String  @unique
+  obligatorio       Boolean @default(true)
+  vigencia_dias     Int? // domicilio 90, estado de cuenta bancario DSSV 60
+  requiere_original Boolean @default(false)
+  instrucciones     String? // "Foto a color, mínimo 256 KB, sin tachaduras"
+  orden             Int     @default(0)
+  activo            Boolean @default(true)
+
+  servicios  TipoDocumentoServicio[]
+  documentos Documento[]
+
+  @@map("tipos_documento")
+  @@schema("public")
+}
+
+// servicios_aplica (5.6) normalizado como tabla puente
+model TipoDocumentoServicio {
+  tipo_documento_id String  @db.Uuid
+  tipo_servicio     String
+  obligatorio       Boolean @default(true)
+
+  tipo_documento TipoDocumento @relation(fields: [tipo_documento_id], references: [id])
+  servicio       TipoServicio  @relation(fields: [tipo_servicio], references: [clave])
+
+  @@id([tipo_documento_id, tipo_servicio])
+  @@map("tipos_documento_servicio")
+  @@schema("public")
+}
+
+// ───────────────────────── Personas y casos ─────────────────────────
+
+model Persona {
+  id                       String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre                   String
+  apellido_paterno         String?
+  apellido_materno         String?
+  curp_cifrada             Bytes?
+  curp_hash                String?      @unique // HMAC-SHA256 para buscar / deduplicar
+  curp_parcial             String? // "GOMJ••••••••••••01" para vendedor
+  nss_cifrado              Bytes?
+  nss_hash                 String?      @unique
+  nss_ultimos4             String?      @db.Char(4)
+  rfc                      String?
+  fecha_nacimiento         DateTime?    @db.Date
+  sexo                     String?      @db.Char(1)
+  telefono                 String?
+  whatsapp                 String? // E.164
+  email                    String?
+  municipio                String?
+  estado                   String?
+  estado_civil             EstadoCivil?
+  origen                   Origen
+  referidor_id             String?      @db.Uuid
+  owner_id                 String       @db.Uuid
+  privacidad_aceptada_at   DateTime?    @db.Timestamptz(6)
+  privacidad_version       String?
+  privacidad_ip            String?
+  beneficiarios_designados SiNoNoSabe   @default(no_sabe)
+  anonimizada_at           DateTime?    @db.Timestamptz(6)
+  created_at               DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at               DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by               String?      @db.Uuid
+  archivado_at             DateTime?    @db.Timestamptz(6)
+  motivo_archivo           String?
+
+  referidor Referidor?      @relation(fields: [referidor_id], references: [id])
+  owner     Usuario         @relation("PersonaOwner", fields: [owner_id], references: [id])
+  casos     Caso[]
+  arco      SolicitudArco[]
+
+  @@index([telefono])
+  @@index([whatsapp])
+  @@map("personas")
+  @@schema("public")
+}
+
+model Caso {
+  id                         String                    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  folio                      String                    @unique @default(dbgenerated("app.siguiente_folio()"))
+  persona_id                 String                    @db.Uuid
+  tipo_servicio              String
+  etapa                      Etapa                     @default(PROSPECTO)
+  etapa_desde                DateTime                  @default(now()) @db.Timestamptz(6)
+  resultado_precalificacion  ResultadoPrecalificacion?
+  dictamen_manual            DictamenManual? // solo asesor o Director (trigger)
+  dictamen_manual_motivo     String? // obligatorio si hay dictamen (CHECK)
+  dictamen_manual_por        String?                   @db.Uuid
+  dictamen_manual_at         DateTime?                 @db.Timestamptz(6)
+  fecha_elegibilidad         DateTime?                 @db.Date // NO_TODAVIA: la más lejana
+  asignado_a                 String?                   @db.Uuid
+  owner_id                   String                    @db.Uuid
+  vendedor_id                String?                   @db.Uuid
+  socio_id                   String?                   @db.Uuid
+  referidor_id               String?                   @db.Uuid
+  prioridad                  Prioridad                 @default(normal)
+  fecha_primer_contacto      DateTime?                 @db.Date
+  fecha_contrato             DateTime?                 @db.Date
+  dias_suspendidos           Int                       @default(0) // suma de suspensiones_contrato
+  fecha_vencimiento_contrato DateTime?                 @db.Date // calculada por lib/reglas
+  fecha_expediente_completo  DateTime?                 @db.Date
+  fecha_limite_ingreso       DateTime?                 @db.Date
+  fecha_ingreso_solicitud    DateTime?                 @db.Date
+  acuse_afore                String?
+  fecha_limite_resolucion    DateTime?                 @db.Date
+  fecha_resolucion           DateTime?                 @db.Date
+  resultado_afore            ResultadoAfore?
+  honorario_fijo             Decimal?                  @db.Decimal(14, 2)
+  motivo_perdida             MotivoPerdida?
+  motivo_perdida_texto       String?
+  motivo_bloqueo             String?
+  analisis_impacto_ok        Boolean                   @default(false)
+  analisis_impacto_texto     String?
+  cliente_entendio_costo     Boolean                   @default(false) // casilla de 2.5
+  caso_origen_id             String?                   @db.Uuid // desvío: caso que lo originó
+  created_at                 DateTime                  @default(now()) @db.Timestamptz(6)
+  updated_at                 DateTime                  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by                 String?                   @db.Uuid
+  archivado_at               DateTime?                 @db.Timestamptz(6)
+  motivo_archivo             String?
+
+  persona     Persona      @relation(fields: [persona_id], references: [id])
+  servicio    TipoServicio @relation(fields: [tipo_servicio], references: [clave])
+  asignado    Usuario?     @relation("CasoAsignado", fields: [asignado_a], references: [id])
+  vendedor    Usuario?     @relation("CasoVendedor", fields: [vendedor_id], references: [id])
+  socio       Socio?       @relation(fields: [socio_id], references: [id])
+  referidor   Referidor?   @relation(fields: [referidor_id], references: [id])
+  caso_origen Caso?        @relation("Desvio", fields: [caso_origen_id], references: [id])
+  desvios     Caso[]       @relation("Desvio")
+
+  datos_imss   DatosImss?
+  datos_afore  DatosAfore?
+  calculos     Calculo[]
+  documentos   Documento[]
+  eventos      Evento[]
+  historial    HistorialEtapa[]
+  suspensiones SuspensionContrato[]
+  alertas      Alerta[]
+  pagos_afore  PagoAfore[]
+  cobros       Cobro[]
+  comisiones   Comision[]
+  pagos_m40    PagoM40[]
+
+  @@index([etapa])
+  @@index([asignado_a])
+  @@index([vendedor_id])
+  @@index([socio_id])
+  @@map("casos")
+  @@schema("public")
+}
+
+// Alimenta el reporte de tiempo por etapa (6.3) sin tener que parsear eventos.
+model HistorialEtapa {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id     String   @db.Uuid
+  etapa_antes Etapa?
+  etapa_nueva Etapa
+  motivo      String?
+  usuario_id  String?  @db.Uuid
+  fecha       DateTime @default(now()) @db.Timestamptz(6)
+
+  caso Caso @relation(fields: [caso_id], references: [id])
+
+  @@index([caso_id, fecha])
+  @@map("historial_etapas")
+  @@schema("public")
+}
+
+// Periodos en que la vigencia de 90 días se detiene por causa del cliente (2.4, 6.3).
+model SuspensionContrato {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id      String    @db.Uuid
+  inicio       DateTime  @db.Date
+  fin          DateTime? @db.Date // null = sigue suspendido
+  motivo       String
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by   String?   @db.Uuid
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  caso Caso @relation(fields: [caso_id], references: [id])
+
+  @@map("suspensiones_contrato")
+  @@schema("public")
+}
+
+model DatosImss {
+  id                    String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id               String    @unique @db.Uuid
+  regimen               Regimen   @default(por_definir)
+  regimen_justificacion String? // si se edita contra la regla de 1997-07-01
+  fecha_primera_alta    DateTime? @db.Date
+  fecha_constancia      DateTime? @db.Date
+  semanas_cotizadas     Decimal?  @db.Decimal(8, 1)
+  semanas_descontadas   Decimal?  @db.Decimal(8, 1)
+  semanas_reintegradas  Decimal?  @db.Decimal(8, 1)
+  semanas_totales       Decimal?  @db.Decimal(8, 1) // calculado: cotizadas − descontadas + reintegradas
+  bimestres_cotizados   Int?
+  fecha_baja            DateTime? @db.Date
+  sbc_ultimo            Decimal?  @db.Decimal(12, 2)
+  sbc_promedio_250      Decimal?  @db.Decimal(12, 2)
+  ultimo_patron         String?
+  cotiza_actualmente    Boolean   @default(false)
+  created_at            DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at            DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by            String?   @db.Uuid
+  archivado_at          DateTime? @db.Timestamptz(6)
+
+  caso Caso @relation(fields: [caso_id], references: [id])
+
+  @@map("datos_imss")
+  @@schema("public")
+}
+
+model DatosAfore {
+  id                           String             @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id                      String             @unique @db.Uuid
+  afore                        String?
+  tipo_cuenta                  TipoCuentaAfore?
+  fecha_apertura_cuenta        DateTime?          @db.Date
+  fecha_estado_cuenta          DateTime?          @db.Date
+  saldo_rcv                    Decimal?           @db.Decimal(14, 2)
+  saldo_sar92                  Decimal?           @db.Decimal(14, 2) // excluido del 11.5%
+  saldo_vivienda               Decimal?           @db.Decimal(14, 2) // solo informativo
+  saldo_voluntarias            Decimal?           @db.Decimal(14, 2)
+  estado_ultimo_retiro         EstadoUltimoRetiro @default(por_verificar)
+  fecha_ultimo_retiro          DateTime?          @db.Date // obligatoria solo si estado = con_retiro (CHECK)
+  ultimo_retiro_verificado_at  DateTime?          @db.Timestamptz(6)
+  ultimo_retiro_verificado_por String?            @db.Uuid
+  ide_vigente                  Boolean            @default(false)
+  ide_verificado_at            DateTime?          @db.Timestamptz(6)
+  banco                        String?
+  clabe_cifrada                Bytes?
+  clabe_ultimos4               String?            @db.Char(4)
+  cuenta_nivel4                Boolean            @default(false)
+  cuenta_solo_digital          Boolean            @default(false)
+  created_at                   DateTime           @default(now()) @db.Timestamptz(6)
+  updated_at                   DateTime           @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by                   String?            @db.Uuid
+  archivado_at                 DateTime?          @db.Timestamptz(6)
+  // Por diseño NO hay campos de usuario/contraseña de AforeWeb, IMSS Digital ni Infonavit.
+
+  caso      Caso   @relation(fields: [caso_id], references: [id])
+  afore_ref Afore? @relation(fields: [afore], references: [clave])
+
+  @@map("datos_afore")
+  @@schema("public")
+}
+
+// Historial inmutable: cada corrida es un renglón nuevo (5.5). Sin updated_at a propósito.
+model Calculo {
+  id                    String                   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id               String                   @db.Uuid
+  version_reglas        String
+  fecha_calculo         DateTime                 @db.Date // el "hoy" con que se corrió
+  entradas              Json // copia de los datos usados, para reproducirlo
+  uma_diaria            Decimal                  @db.Decimal(10, 2)
+  uma_mensual           Decimal                  @db.Decimal(12, 2)
+  modalidad_a_monto     Decimal?                 @db.Decimal(14, 2)
+  modalidad_a_semanas   Decimal?                 @db.Decimal(8, 1)
+  modalidad_b_90dias    Decimal?                 @db.Decimal(14, 2)
+  modalidad_b_115pct    Decimal?                 @db.Decimal(14, 2)
+  modalidad_b_monto     Decimal?                 @db.Decimal(14, 2)
+  modalidad_b_semanas   Decimal?                 @db.Decimal(8, 1)
+  modalidad_elegible    Modalidad
+  modalidad_elegida     Modalidad?
+  monto_estimado        Decimal?                 @db.Decimal(14, 2)
+  semanas_perdidas      Decimal?                 @db.Decimal(8, 1)
+  pct_saldo_retirado    Decimal?                 @db.Decimal(7, 4)
+  semanas_despues       Decimal?                 @db.Decimal(8, 1)
+  impacto_pension       Json? // incrementos antes/después, mínimo L97, conservación de derechos
+  severidad_impacto     Severidad?
+  honorario_estimado    Decimal?                 @db.Decimal(14, 2)
+  neto_cliente_estimado Decimal?                 @db.Decimal(14, 2)
+  resultado_automatico  ResultadoPrecalificacion // lo que dio el motor
+  resultado             ResultadoPrecalificacion // final: automático o dictamen manual
+  dictamen_manual       DictamenManual? // copia del dictamen vigente al correr
+  fecha_elegibilidad    DateTime?                @db.Date
+  servicio_sugerido     String? // NO_ELEGIBLE_DESVIO
+  explicacion           String
+  created_at            DateTime                 @default(now()) @db.Timestamptz(6)
+  created_by            String?                  @db.Uuid
+
+  caso Caso @relation(fields: [caso_id], references: [id])
+
+  @@index([caso_id, created_at])
+  @@map("calculos")
+  @@schema("public")
+}
+
+model Documento {
+  id                String          @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id           String          @db.Uuid
+  tipo_id           String          @db.Uuid
+  estado            EstadoDocumento @default(pendiente)
+  archivo_path      String? // {caso_id}/{uuid}.jpg en el bucket privado "expedientes"
+  archivo_bytes     Int?
+  archivo_mime      String?
+  fecha_emision     DateTime?       @db.Date
+  fecha_vencimiento DateTime?       @db.Date // emisión + vigencia_dias
+  motivo_rechazo    String?
+  validado_por      String?         @db.Uuid
+  validado_at       DateTime?       @db.Timestamptz(6)
+  created_at        DateTime        @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime        @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by        String?         @db.Uuid
+  archivado_at      DateTime?       @db.Timestamptz(6)
+
+  caso Caso          @relation(fields: [caso_id], references: [id])
+  tipo TipoDocumento @relation(fields: [tipo_id], references: [id])
+
+  @@index([caso_id])
+  @@index([fecha_vencimiento])
+  @@map("documentos")
+  @@schema("public")
+}
+
+// ───────────────────── Operación y seguimiento ─────────────────────
+
+model Evento {
+  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id    String     @db.Uuid
+  tipo       TipoEvento
+  texto      String
+  datos      Json?
+  usuario_id String?    @db.Uuid
+  fecha      DateTime   @default(now()) @db.Timestamptz(6)
+  created_at DateTime   @default(now()) @db.Timestamptz(6)
+
+  caso    Caso     @relation(fields: [caso_id], references: [id])
+  usuario Usuario? @relation(fields: [usuario_id], references: [id])
+
+  @@index([caso_id, fecha])
+  @@map("eventos")
+  @@schema("public")
+}
+
+model Alerta {
+  id              String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  regla           String // DIA46_HOY, SLA_15_VENCIDO, ... (catálogo 8.1)
+  caso_id         String?      @db.Uuid // null para alertas sin caso (COMISION_POR_PAGAR agregada)
+  severidad       Severidad
+  mensaje         String
+  fecha_disparo   DateTime     @db.Date
+  estado          EstadoAlerta @default(activa)
+  pospuesta_hasta DateTime?    @db.Date
+  motivo_descarte String?
+  asignado_a      String       @db.Uuid
+  clave_dedup     String // regla + caso + fecha (+ destinatario)
+  atendida_por    String?      @db.Uuid
+  atendida_at     DateTime?    @db.Timestamptz(6)
+  created_at      DateTime     @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime     @default(now()) @updatedAt @db.Timestamptz(6)
+
+  caso    Caso?   @relation(fields: [caso_id], references: [id])
+  usuario Usuario @relation(fields: [asignado_a], references: [id])
+
+  @@unique([clave_dedup, asignado_a])
+  @@index([asignado_a, estado, severidad])
+  @@map("alertas")
+  @@schema("public")
+}
+
+model PagoM40 {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id          String    @db.Uuid
+  mes              DateTime  @db.Date // primer día del mes cubierto
+  monto            Decimal   @db.Decimal(14, 2)
+  fecha_limite     DateTime  @db.Date
+  fecha_pago       DateTime? @db.Date
+  comprobante_path String?
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at       DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by       String?   @db.Uuid
+  archivado_at     DateTime? @db.Timestamptz(6)
+
+  caso Caso @relation(fields: [caso_id], references: [id])
+
+  @@unique([caso_id, mes])
+  @@map("pagos_m40")
+  @@schema("public")
+}
+
+// ───────────────────────────── Dinero ─────────────────────────────
+
+model PagoAfore {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id        String    @db.Uuid
+  numero         Int // 1 a 6 (CHECK en SQL)
+  fecha_deposito DateTime  @db.Date
+  monto_bruto    Decimal   @db.Decimal(14, 2)
+  isr_retenido   Decimal   @default(0) @db.Decimal(14, 2)
+  monto_neto     Decimal   @db.Decimal(14, 2)
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at     DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by     String?   @db.Uuid
+  archivado_at   DateTime? @db.Timestamptz(6)
+
+  caso       Caso       @relation(fields: [caso_id], references: [id])
+  cobros     Cobro[]
+  comisiones Comision[]
+
+  @@unique([caso_id, numero])
+  @@map("pagos_afore")
+  @@schema("public")
+}
+
+model Cobro {
+  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id         String      @db.Uuid
+  pago_afore_id   String?     @db.Uuid
+  base_calculo    Decimal?    @db.Decimal(14, 2) // monto sobre el que se aplicó el 30%
+  honorario_total Decimal     @db.Decimal(14, 2)
+  subtotal        Decimal     @db.Decimal(14, 2)
+  iva             Decimal     @db.Decimal(14, 2) // = honorario_total − subtotal
+  fecha_cobro     DateTime?   @db.Date
+  metodo          MetodoPago?
+  referencia      String?
+  factura_folio   String?
+  estado          EstadoCobro @default(por_cobrar)
+  created_at      DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by      String?     @db.Uuid
+  archivado_at    DateTime?   @db.Timestamptz(6)
+
+  caso       Caso       @relation(fields: [caso_id], references: [id])
+  pago_afore PagoAfore? @relation(fields: [pago_afore_id], references: [id])
+  comisiones Comision[]
+
+  @@index([estado, fecha_cobro])
+  @@map("cobros")
+  @@schema("public")
+}
+
+model EsquemaComision {
+  id            String       @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  nombre        String // "Vendedor estándar", "Referidor", "Socio licenciatario"
+  tipo          TipoComision
+  tipo_servicio String? // null = cualquiera (referidor)
+  version       Int
+  reglas        Json // ver docs/PROPUESTA_FASE0.md §4
+  vigente_desde DateTime     @db.Date
+  vigente_hasta DateTime?    @db.Date
+  created_at    DateTime     @default(now()) @db.Timestamptz(6)
+  created_by    String?      @db.Uuid
+
+  servicio   TipoServicio? @relation(fields: [tipo_servicio], references: [clave])
+  comisiones Comision[]
+
+  @@unique([nombre, tipo_servicio, version])
+  @@map("esquemas_comision")
+  @@schema("public")
+}
+
+model Comision {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id           String           @db.Uuid
+  esquema_id        String           @db.Uuid
+  pago_afore_id     String?          @db.Uuid // modalidad B: una por mensualidad
+  cobro_id          String?          @db.Uuid
+  tipo              TipoComision
+  componente        String? // fallecimiento: pago_inicial | recuperado | primera_mensualidad
+  beneficiario_tipo BeneficiarioTipo
+  beneficiario_id   String           @db.Uuid
+  base              Decimal          @db.Decimal(14, 2)
+  regla_aplicada    String // texto legible: "5% de $10,000.00"
+  monto             Decimal          @db.Decimal(14, 2)
+  estado            EstadoComision   @default(estimada)
+  periodo           DateTime?        @db.Date // mes de cálculo (referidores)
+  fecha_devengo     DateTime?        @db.Date
+  fecha_pago        DateTime?        @db.Date
+  metodo_pago       MetodoPago?
+  referencia_pago   String?
+  created_at        DateTime         @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by        String?          @db.Uuid
+  archivado_at      DateTime?        @db.Timestamptz(6)
+
+  caso       Caso            @relation(fields: [caso_id], references: [id])
+  esquema    EsquemaComision @relation(fields: [esquema_id], references: [id])
+  pago_afore PagoAfore?      @relation(fields: [pago_afore_id], references: [id])
+  cobro      Cobro?          @relation(fields: [cobro_id], references: [id])
+
+  @@index([beneficiario_tipo, beneficiario_id, estado])
+  @@map("comisiones")
+  @@schema("public")
+}
+
+// ───────────────────── Configuración y control ─────────────────────
+
+model Parametro {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clave         String // UMA_DIARIA, UMA_MENSUAL, HONORARIO_RETIRO_PCT, IVA, ...
+  valor         String // se interpreta según `tipo`
+  tipo          String    @default("decimal") // decimal | entero | texto | json
+  descripcion   String?
+  vigente_desde DateTime  @db.Date
+  vigente_hasta DateTime? @db.Date
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  created_by    String?   @db.Uuid
+
+  @@unique([clave, vigente_desde])
+  @@map("parametros")
+  @@schema("public")
+}
+
+// Una fila por tarea y día de CDMX: evita que la tarea diaria corra dos veces.
+model EjecucionTarea {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tarea        String // ALERTAS_DIARIAS | CORREO_RESUMEN
+  fecha_cdmx   DateTime  @db.Date
+  iniciada_at  DateTime  @default(now()) @db.Timestamptz(6)
+  terminada_at DateTime? @db.Timestamptz(6)
+  resultado    Json?
+
+  @@unique([tarea, fecha_cdmx])
+  @@map("ejecuciones_tarea")
+  @@schema("public")
+}
+
+model DiaInhabil {
+  fecha       DateTime @id @db.Date
+  descripcion String
+  origen      String   @default("oficial") // oficial | afore
+
+  @@map("dias_inhabiles")
+  @@schema("public")
+}
+
+model PlantillaMensaje {
+  clave      String   @id // BIENVENIDA, DOCS_PENDIENTES, YA_PUEDES_RETIRAR, ...
+  nombre     String
+  canal      String   @default("whatsapp") // whatsapp | correo
+  cuerpo     String // con variables {nombre}, {folio}, {fecha}
+  activo     Boolean  @default(true)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  @@map("plantillas_mensaje")
+  @@schema("public")
+}
+
+model PlantillaContrato {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  tipo_servicio String?
+  version       Int
+  cuerpo        String // HTML/Markdown con variables
+  vigente_desde DateTime  @db.Date
+  vigente_hasta DateTime? @db.Date
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+
+  @@map("plantillas_contrato")
+  @@schema("public")
+}
+
+model SolicitudArco {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  persona_id      String    @db.Uuid
+  tipo            TipoArco
+  fecha_recepcion DateTime  @db.Date
+  fecha_limite    DateTime  @db.Date // +20 días
+  fecha_respuesta DateTime? @db.Date
+  descripcion     String
+  respuesta       String?
+  evidencia_path  String?
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+
+  persona Persona @relation(fields: [persona_id], references: [id])
+
+  @@map("solicitudes_arco")
+  @@schema("public")
+}
+
+// Esquema separado: la app (rol authenticated) solo tiene SELECT; escribe el trigger SECURITY DEFINER.
+model Auditoria {
+  id               BigInt   @id @default(autoincrement())
+  tabla            String
+  registro_id      String // uuid o clave del catálogo
+  accion           String // INSERT | UPDATE | ARCHIVE | DELETE | VER_SENSIBLE
+  campo            String? // VER_SENSIBLE: nss | curp | clabe | documento
+  campos_cambiados String[]
+  resaltado        Boolean  @default(false) // tocó SBC, semanas, saldos, montos o comisiones
+  antes            Json?
+  despues          Json?
+  usuario_id       String?  @db.Uuid
+  ip               String?
+  fecha            DateTime @default(now()) @db.Timestamptz(6)
+
+  @@index([tabla, registro_id])
+  @@index([usuario_id, fecha])
+  @@map("auditoria")
+  @@schema("auditoria")
+}
