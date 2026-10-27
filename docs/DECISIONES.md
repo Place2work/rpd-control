@@ -8,6 +8,7 @@
 | 2026-10-27 | Último retiro con tres estados: `por_verificar`, `nunca_retiro`, `con_retiro` (este exige fecha). Se guarda quién verificó y cuándo | Irving | `datos_afore.estado_ultimo_retiro`, trigger `tg_ultimo_retiro` |
 | 2026-10-27 | Tareas programadas en **horario de CDMX** (07:00 alertas, 07:15 correo), no en UTC fijo | Irving | `app.tareas_pendientes_hoy()`, parámetros `HORA_*_CDMX` |
 | 2026-10-27 | **Next.js 16** (16.4.3) en lugar de 15, a criterio del desarrollo. Prisma 7.10 | Irving → Claude | `package.json` |
+| 2026-10-28 | Mientras no exista la calculadora (fase 2), el **dictamen manual «Apto»** habilita pasar a Precalificado y a Contrato | Irving | `lib/reglas/etapas.ts` |
 | 2026-10-27 | Se mantiene Prisma; RLS se aplica con `conUsuario()` (transacción con claims + rol `authenticated`) | Claude (recomendación aprobada) | `lib/db/prisma.ts` |
 
 ## Pendientes de la sección 14.3 (con su valor por defecto ya cargado)

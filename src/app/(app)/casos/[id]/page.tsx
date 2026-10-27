@@ -1,26 +1,19 @@
-import { CalendarCheck, CheckCircle2, MessageCircle, Phone } from "lucide-react";
+import { CheckCircle2, MessageCircle, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import { Badge } from "@/components/ui/badge";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { EstadoVacio } from "@/components/rpd/estado-vacio";
-import { formatoFecha, isoDe } from "@/components/rpd/insignia-dia46";
-import { LigasConsulta } from "@/components/rpd/ligas-consulta";
 import { obtenerSesion } from "@/lib/auth/sesion";
-import { ligasConsulta, parametrosFechas } from "@/lib/parametros";
-import { nombreCompleto, obtenerCaso, type CasoDetalle } from "@/lib/prospectos/consultas";
-import { ORIGENES } from "@/lib/prospectos/validacion";
-import { fechaElegibleDesempleo, fechaFinCandado } from "@/lib/reglas/fechas";
-import { enmascararNss } from "@/lib/reglas/identificadores";
-import { hoyCDMX } from "@/lib/tiempo";
+import { nombreCompleto, obtenerCaso } from "@/lib/prospectos/consultas";
 import { cn } from "@/lib/utils";
-import { DatoSensible } from "./dato-sensible";
-import { NotaRapida } from "./nota-rapida";
+import { PestanaDatos } from "./pestanas/datos";
+import { PestanaImss } from "./pestanas/imss";
+import { PestanaResumen } from "./pestanas/resumen";
+import { PestanaSeguimiento } from "./pestanas/seguimiento";
 
 export const metadata: Metadata = { title: "Expediente" };
 
-// 10.4. En esta entrega: Resumen, Datos personales y Seguimiento. El resto llega en las siguientes.
+// 10.4. Pestañas listas: Resumen, Datos personales, IMSS y Afore, Seguimiento. El resto llega en las siguientes.
 const PESTANAS = [
   ["resumen", "Resumen"],
   ["datos", "Datos personales"],
@@ -31,7 +24,7 @@ const PESTANAS = [
   ["dinero", "Dinero"],
   ["contrato", "Contrato"],
 ] as const;
-const LISTAS = new Set(["resumen", "datos", "seguimiento"]);
+const LISTAS = new Set(["resumen", "datos", "imss", "seguimiento"]);
 
 const ETAPA: Record<string, { texto: string; tono: "prospecto" | "espera" | "tramite" | "pagado" | "perdido" | "critico" }> = {
   PROSPECTO: { texto: "Prospecto", tono: "prospecto" },
@@ -46,7 +39,6 @@ const ETAPA: Record<string, { texto: string; tono: "prospecto" | "espera" | "tra
   BLOQUEADO: { texto: "Bloqueado", tono: "critico" },
   PERDIDO: { texto: "Perdido", tono: "perdido" },
 };
-const ETIQUETA_ORIGEN = Object.fromEntries(ORIGENES) as Record<string, string>;
 const REGIMEN: Record<string, string> = { L73: "Ley 73", L97: "Ley 97", por_definir: "Régimen por definir" };
 
 type Props = { params: Promise<{ id: string }>; searchParams: Promise<{ tab?: string; nuevo?: string }> };
@@ -121,144 +113,10 @@ export default async function Expediente({ params, searchParams }: Props) {
         </ul>
       </nav>
 
-      {pestana === "resumen" && <Resumen caso={caso} />}
-      {pestana === "datos" && <Datos caso={caso} puedeVer={sesion.usuario.rol !== "vendedor"} />}
-      {pestana === "seguimiento" && <Seguimiento caso={caso} />}
+      {pestana === "resumen" && <PestanaResumen caso={caso} sesion={sesion} />}
+      {pestana === "datos" && <PestanaDatos caso={caso} puedeVer={sesion.usuario.rol !== "vendedor"} />}
+      {pestana === "imss" && <PestanaImss caso={caso} sesion={sesion} />}
+      {pestana === "seguimiento" && <PestanaSeguimiento caso={caso} />}
     </>
-  );
-}
-
-async function Resumen({ caso }: { caso: CasoDetalle }) {
-  const hoy = hoyCDMX();
-  const p = await parametrosFechas(hoy);
-  const baja = isoDe(caso.datos_imss?.fecha_baja);
-  const dia46 = baja ? fechaElegibleDesempleo(baja, hoy, p) : null;
-  const candado = caso.datos_afore
-    ? fechaFinCandado(caso.datos_afore.estado_ultimo_retiro, isoDe(caso.datos_afore.fecha_ultimo_retiro), hoy, p)
-    : { estado: "por_verificar" as const };
-  const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
-
-  return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      {esRetiro && (
-        <Card className="lg:col-span-1">
-          <CardContent className="flex flex-col items-center gap-1 py-8 text-center">
-            {!dia46 ? (
-              <>
-                <p className="font-display text-lg font-semibold text-ink">Falta la fecha de baja</p>
-                <p className="text-sm text-ink-muted">Con ella calculamos cuándo puede retirar (día {p.DIAS_ESPERA_DESEMPLEO}).</p>
-              </>
-            ) : dia46.yaPuede ? (
-              <>
-                <CalendarCheck className="size-10 text-exito" aria-hidden />
-                <p className="font-display text-[28px] font-semibold text-exito-texto">Ya puede retirar</p>
-                <p className="text-sm text-ink-muted">Desde el {formatoFecha(dia46.fecha, { dateStyle: "long" })}</p>
-              </>
-            ) : (
-              <>
-                <p className="cifra font-display text-[56px] font-semibold leading-none text-ink">{dia46.diasFaltan}</p>
-                <p className="text-sm text-ink-muted">{dia46.diasFaltan === 1 ? "día" : "días"} para poder retirar</p>
-                <p className="mt-2 text-sm font-medium text-ink">{formatoFecha(dia46.fecha, { dateStyle: "full" })}</p>
-              </>
-            )}
-          </CardContent>
-        </Card>
-      )}
-      <Card className={esRetiro ? "lg:col-span-2" : "lg:col-span-3"}>
-        <CardHeader><CardTitle>Fechas clave</CardTitle></CardHeader>
-        <CardContent>
-          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Dato titulo="Primer contacto" valor={isoDe(caso.fecha_primer_contacto) ? formatoFecha(isoDe(caso.fecha_primer_contacto)!, { dateStyle: "long" }) : "—"} />
-            <Dato titulo="Fecha de baja" valor={baja ? formatoFecha(baja, { dateStyle: "long" }) : "Sin capturar"} />
-            {esRetiro && (
-              <Dato titulo="Candado de 5 años (art. 191-II)" valor={
-                candado.estado === "por_verificar" ? "Por verificar en el estado de cuenta Afore"
-                  : candado.estado === "libre" ? "Libre: nunca ha retirado"
-                  : candado.estado === "vencido" ? `Libre desde el ${formatoFecha(candado.fecha, { dateStyle: "long" })}`
-                  : `Bloqueado hasta el ${formatoFecha(candado.fecha, { dateStyle: "long" })}`
-              } />
-            )}
-            <Dato titulo="Origen" valor={ETIQUETA_ORIGEN[caso.persona.origen] ?? caso.persona.origen} />
-            <Dato titulo="Vendedor" valor={caso.vendedor?.nombre ?? "—"} />
-            <Dato titulo="Referidor" valor={caso.referidor?.nombre ?? "—"} />
-          </dl>
-          <p className="mt-4 text-xs text-ink-muted">Todas las fechas son estimadas hasta que se verifiquen con los documentos del cliente.</p>
-        </CardContent>
-      </Card>
-    </div>
-  );
-}
-
-async function Datos({ caso, puedeVer }: { caso: CasoDetalle; puedeVer: boolean }) {
-  const ligas = await ligasConsulta();
-  const p = caso.persona;
-  return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-2">
-        <CardHeader><CardTitle>Datos personales</CardTitle></CardHeader>
-        <CardContent>
-          <dl className="grid gap-x-6 gap-y-3 text-sm sm:grid-cols-2">
-            <Dato titulo="Nombre" valor={nombreCompleto(p)} />
-            <Dato titulo="WhatsApp" valor={p.whatsapp ?? "—"} />
-            <div>
-              <dt className="text-xs text-ink-muted">CURP</dt>
-              <dd className="mt-0.5"><DatoSensible personaId={p.id} campo="curp" enmascarado={p.curp_parcial} puedeVer={puedeVer} /></dd>
-            </div>
-            <div>
-              <dt className="text-xs text-ink-muted">NSS</dt>
-              <dd className="mt-0.5"><DatoSensible personaId={p.id} campo="nss" enmascarado={p.nss_ultimos4 ? enmascararNss(p.nss_ultimos4) : null} puedeVer={puedeVer} /></dd>
-            </div>
-            <Dato titulo="Fecha de nacimiento" valor={isoDe(p.fecha_nacimiento) ? formatoFecha(isoDe(p.fecha_nacimiento)!, { dateStyle: "long" }) : "—"} />
-            <Dato titulo="Aviso de privacidad" valor={p.privacidad_aceptada_at ? `Aceptado (versión ${p.privacidad_version ?? "—"})` : "Pendiente"} />
-          </dl>
-          <p className="mt-4 text-xs text-ink-muted">La edición de datos llega en la siguiente entrega.</p>
-        </CardContent>
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Consultas oficiales</CardTitle></CardHeader>
-        <CardContent className="pt-2"><LigasConsulta ligas={ligas} /></CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Seguimiento({ caso }: { caso: CasoDetalle }) {
-  const cuando = new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" });
-  return (
-    <div className="grid gap-4 lg:grid-cols-3">
-      <Card className="lg:col-span-2">
-        <CardHeader><CardTitle>Línea de tiempo</CardTitle></CardHeader>
-        {caso.eventos.length === 0 ? (
-          <EstadoVacio icono={MessageCircle} titulo="Sin movimientos" texto="Registra la primera llamada o mensaje." />
-        ) : (
-          <CardContent>
-            <ol className="relative flex flex-col gap-4 border-l border-borde pl-5">
-              {caso.eventos.map((e) => (
-                <li key={e.id} className="relative">
-                  <span className="absolute -left-[25px] top-1.5 size-2.5 rounded-full bg-brand" aria-hidden />
-                  <p className="text-sm text-ink">{e.texto}</p>
-                  <p className="text-xs text-ink-muted">
-                    {cuando.format(e.fecha)} · {e.tipo.replace("_", " ")} · {e.usuario?.nombre ?? "Sistema"}
-                  </p>
-                </li>
-              ))}
-            </ol>
-          </CardContent>
-        )}
-      </Card>
-      <Card>
-        <CardHeader><CardTitle>Nota rápida</CardTitle></CardHeader>
-        <CardContent><NotaRapida casoId={caso.id} /></CardContent>
-      </Card>
-    </div>
-  );
-}
-
-function Dato({ titulo, valor }: { titulo: string; valor: string }) {
-  return (
-    <div>
-      <dt className="text-xs text-ink-muted">{titulo}</dt>
-      <dd className="mt-0.5 text-ink">{valor}</dd>
-    </div>
   );
 }

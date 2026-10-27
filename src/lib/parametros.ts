@@ -42,7 +42,7 @@ export async function ligasConsulta(): Promise<LigasConsulta> {
 
 // Parámetros numéricos que usan las reglas de fechas (7.1) y los días inhábiles cargados.
 export async function parametrosFechas(fecha = hoyCDMX()) {
-  const p = await parametrosVigentes(["DIAS_ESPERA_DESEMPLEO", "ANIOS_CANDADO_RETIRO", "VIGENCIA_CONTRATO_DIAS", "SLA_DIAS_HABILES"], fecha);
+  const p = await parametrosVigentes(["DIAS_ESPERA_DESEMPLEO", "ANIOS_CANDADO_RETIRO", "VIGENCIA_CONTRATO_DIAS", "SLA_DIAS_HABILES", "AFORE_DIAS_HABILES"], fecha);
   const numero = (clave: string) => {
     const v = Number(p[clave]);
     if (!Number.isFinite(v)) throw new Error(`Falta el parámetro ${clave} vigente al ${fecha}`);
@@ -54,6 +54,7 @@ export async function parametrosFechas(fecha = hoyCDMX()) {
     ANIOS_CANDADO_RETIRO: numero("ANIOS_CANDADO_RETIRO"),
     VIGENCIA_CONTRATO_DIAS: numero("VIGENCIA_CONTRATO_DIAS"),
     SLA_DIAS_HABILES: numero("SLA_DIAS_HABILES"),
+    AFORE_DIAS_HABILES: numero("AFORE_DIAS_HABILES"),
     inhabiles: new Set(inhabiles.map((d) => d.fecha.toISOString().slice(0, 10))),
   };
 }
