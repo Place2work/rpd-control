@@ -26,3 +26,16 @@ test("la tarea diaria rechaza llamadas sin el secreto", async ({ request }) => {
   const r = await request.post("/api/cron/diaria?tarea=ALERTAS_DIARIAS");
   expect(r.status()).toBe(401);
 });
+
+test("definir contraseña exige sesión; la liga sin tokens se rechaza", async ({ page }) => {
+  await page.goto("/contrasena");
+  await expect(page).toHaveURL(/\/login$/);
+  await page.goto("/auth/callback");
+  await expect(page.getByText("Esta liga no es válida")).toBeVisible();
+});
+
+test("se puede pedir la liga para definir contraseña", async ({ page }) => {
+  await page.goto("/login");
+  await page.getByRole("button", { name: /Olvidaste tu contraseña/ }).click();
+  await expect(page.getByRole("heading", { name: "Define tu contraseña" })).toBeVisible();
+});

@@ -4,7 +4,9 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { modoDemo } from "@/lib/auth/demo";
 
-const PUBLICAS = ["/login", "/api/cron", "/api/leads"];
+const PUBLICAS = ["/login", "/auth/callback", "/api/cron", "/api/leads"];
+// Con sesión pero sin 2FA solo se puede inscribir el segundo factor o definir contraseña.
+const SIN_2FA = ["/mfa", "/contrasena"];
 
 export async function proxy(request: NextRequest) {
   if (modoDemo()) return NextResponse.next();
@@ -37,7 +39,7 @@ export async function proxy(request: NextRequest) {
   };
 
   if (!claims) return ir("/login");
-  if (claims.aal !== "aal2" && ruta !== "/mfa") return ir("/mfa");
+  if (claims.aal !== "aal2" && !SIN_2FA.includes(ruta)) return ir("/mfa");
   if (claims.aal === "aal2" && (ruta === "/mfa" || ruta === "/")) return ir("/hoy");
   return respuesta;
 }

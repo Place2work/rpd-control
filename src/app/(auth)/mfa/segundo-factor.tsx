@@ -45,7 +45,9 @@ export function SegundoFactor() {
       code: String(form.get("codigo")).replace(/\s/g, ""),
     });
     if (error) return setError("El código no es válido o ya expiró. Intenta con el siguiente.");
-    router.replace("/hoy");
+    // Solo se permite regresar a /contrasena (recuperación con 2FA); nunca a una URL externa.
+    const siguiente = new URLSearchParams(window.location.search).get("siguiente");
+    router.replace(siguiente === "/contrasena" ? "/contrasena" : "/hoy");
     router.refresh();
   }
 
