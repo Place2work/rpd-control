@@ -15,7 +15,8 @@ REVOKE EXECUTE ON FUNCTION app.siguiente_folio() FROM PUBLIC, anon;
 GRANT EXECUTE ON FUNCTION app.siguiente_folio() TO authenticated;
 
 ALTER TABLE public.casos ALTER COLUMN folio SET DEFAULT app.siguiente_folio();
-DROP FUNCTION public.siguiente_folio();
+-- La función vieja se conserva (no se borra nada) pero nadie de la API puede llamarla.
+REVOKE EXECUTE ON FUNCTION public.siguiente_folio() FROM PUBLIC, anon, authenticated;
 
 -- 2. search_path fijo en todas las funciones propias.
 ALTER FUNCTION app.ahora_cdmx() SET search_path = pg_catalog, pg_temp;

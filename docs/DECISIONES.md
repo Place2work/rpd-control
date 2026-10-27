@@ -21,9 +21,10 @@ día 46 = baja + 46 · Vercel + Supabase · retención 5 años · logotipo SVG p
 | Pieza | Valor |
 | --- | --- |
 | Supabase | Proyecto **RPD Control** (`mltmnsykoemwplsawsau`, us-east-1), organización Ganadineroconduciendo.com, plan Free |
-| Migraciones aplicadas | 000 base · 100 init · 200 seguridad · 300 bitácora y reglas · 400 tareas y almacenamiento |
-| Pendiente | 500 endurecer funciones (folio fuera de `public` + `search_path`): requiere confirmación |
+| Migraciones aplicadas | 000 base · 100 init · 200 seguridad · 300 bitácora y reglas · 400 tareas y almacenamiento · 500 endurecer funciones (versión sin borrar) |
+| Asesor de seguridad | Limpio, salvo *leaked password protection* (solo plan Pro) |
 | Datos iniciales | `supabase/seed.sql` (equivalente a `prisma/seed.ts`) |
 | Auth | TOTP activo · registro público cerrado · sesiones 12 h/30 min no disponibles en plan Free (la app cierra por inactividad) |
 | GitHub | `Place2work/rpd-control` (privado) |
-| Vercel | Proyecto `rpd-control`, equipo place2work (Hobby; Pro para uso comercial) |
+| Vercel | `https://rpd-control.vercel.app`, equipo place2work (Hobby; Pro para uso comercial) |
+| Director | retiropordesempleo.com@gmail.com, 2FA TOTP verificado (27-oct) |
