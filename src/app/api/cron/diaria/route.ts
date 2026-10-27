@@ -20,6 +20,19 @@ export async function POST(req: NextRequest) {
   const tarea = req.nextUrl.searchParams.get("tarea") as (typeof TAREAS)[number] | null;
   if (!tarea || !TAREAS.includes(tarea)) return NextResponse.json({ error: "Tarea desconocida" }, { status: 400 });
 
+  try {
+    return await ejecutar(tarea);
+  } catch (e) {
+    // Quien llega aquí ya se autenticó con CRON_SECRETO: se le devuelve el motivo para
+    // diagnosticar (sin la cadena de conexión), y el detalle completo queda en los logs.
+    console.error("[cron/diaria]", e);
+    const err = e as { name?: string; code?: string; message?: string };
+    const mensaje = (err.message ?? "").replace(/postgres(ql)?:\/\/[^\s"']+/g, "[conexión oculta]").slice(0, 400);
+    return NextResponse.json({ tarea, estado: "error", tipo: err.name, codigo: err.code, mensaje }, { status: 500 });
+  }
+}
+
+async function ejecutar(tarea: (typeof TAREAS)[number]) {
   const fecha = hoyCDMX();
   const fecha_cdmx = new Date(`${fecha}T00:00:00Z`);
   const previa = await prismaSistema.ejecucionTarea.findUnique({ where: { tarea_fecha_cdmx: { tarea, fecha_cdmx } } });
