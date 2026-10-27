@@ -25,14 +25,18 @@ export function RecibirLiga() {
       let tipo = (hash.get("type") ?? url.searchParams.get("type")) as TipoLiga | null;
       let fallo: unknown = null;
 
-      if (hash.get("access_token") && hash.get("refresh_token")) {
+      if (url.searchParams.get("code")) {
+        // ?code (PKCE): el cliente de Supabase ya lo canjea solo al iniciar
+        // (detectSessionInUrl). Canjearlo otra vez falla porque el código es de un solo uso,
+        // así que solo se espera a que termine y se revisa que haya sesión.
+        const { data } = await supabase.auth.getSession();
+        if (!data.session) fallo = "sin sesión";
+        tipo ??= "recovery";
+      } else if (hash.get("access_token") && hash.get("refresh_token")) {
         ({ error: fallo } = await supabase.auth.setSession({
           access_token: hash.get("access_token")!,
           refresh_token: hash.get("refresh_token")!,
         }));
-      } else if (url.searchParams.get("code")) {
-        ({ error: fallo } = await supabase.auth.exchangeCodeForSession(url.searchParams.get("code")!));
-        tipo ??= "recovery";
       } else if (url.searchParams.get("token_hash") && tipo) {
         ({ error: fallo } = await supabase.auth.verifyOtp({ token_hash: url.searchParams.get("token_hash")!, type: tipo }));
       } else {
