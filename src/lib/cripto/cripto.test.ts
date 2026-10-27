@@ -13,7 +13,7 @@ describe("cifrado a nivel campo", async () => {
   it("cifra y descifra, con IV distinto cada vez", () => {
     const a = cifrar("12345678903");
     const b = cifrar("12345678903");
-    expect(a.equals(b)).toBe(false);
+    expect(Buffer.from(a).equals(Buffer.from(b))).toBe(false);
     expect(descifrar(a)).toBe("12345678903");
   });
 

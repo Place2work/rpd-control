@@ -11,13 +11,13 @@ import { modoDemo } from "./demo";
 export type Sesion = {
   claims: ClaimsUsuario;
   ip: string | null;
-  usuario: { id: string; nombre: string; email: string; rol: Rol };
+  usuario: { id: string; nombre: string; email: string; rol: Rol; socio_id: string | null };
 };
 
 const SESION_DEMO: Sesion = {
   claims: { sub: "00000000-0000-0000-0000-000000000000", aal: "aal2" },
   ip: null,
-  usuario: { id: "00000000-0000-0000-0000-000000000000", nombre: "Irving (demo)", email: "demo@local", rol: "director" },
+  usuario: { id: "00000000-0000-0000-0000-000000000000", nombre: "Irving (demo)", email: "demo@local", rol: "director", socio_id: null },
 };
 
 // Una sola verificación por request. Exige 2FA (aal2) y un usuario activo en `usuarios`.
@@ -34,11 +34,15 @@ export const obtenerSesion = cache(async (): Promise<Sesion> => {
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const usuario = await conUsuario(
     claims,
-    (tx) => tx.usuario.findUnique({ where: { id: claims.sub }, select: { id: true, nombre: true, email: true, rol: true, activo: true } }),
+    (tx) => tx.usuario.findUnique({ where: { id: claims.sub }, select: { id: true, nombre: true, email: true, rol: true, activo: true, socio_id: true } }),
     ip,
   );
   if (!usuario?.activo) redirect("/login?motivo=sin-acceso");
-  return { claims, ip, usuario };
+  return {
+    claims,
+    ip,
+    usuario: { id: usuario.id, nombre: usuario.nombre, email: usuario.email, rol: usuario.rol, socio_id: usuario.socio_id },
+  };
 });
 
 export async function exigirRol(...roles: Rol[]): Promise<Sesion> {

@@ -14,11 +14,12 @@ function llave(nombre: "CIFRADO_LLAVE" | "HMAC_LLAVE"): Buffer {
   return k;
 }
 
-export function cifrar(texto: string): Buffer {
+// Devuelve Uint8Array<ArrayBuffer>, el tipo que Prisma espera para columnas Bytes.
+export function cifrar(texto: string): Uint8Array<ArrayBuffer> {
   const iv = randomBytes(12);
   const c = createCipheriv("aes-256-gcm", llave("CIFRADO_LLAVE"), iv);
   const datos = Buffer.concat([c.update(texto, "utf8"), c.final()]);
-  return Buffer.concat([Buffer.from([VERSION]), iv, c.getAuthTag(), datos]);
+  return new Uint8Array(Buffer.concat([Buffer.from([VERSION]), iv, c.getAuthTag(), datos]));
 }
 
 export function descifrar(blob: Uint8Array): string {

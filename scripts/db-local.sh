@@ -11,3 +11,9 @@ psql "$URL" -q -v ON_ERROR_STOP=1 -f "$(dirname "$0")/supabase-local-stub.sql"
 DIRECT_URL="$URL" DATABASE_URL="$URL" npx prisma migrate deploy
 DIRECT_URL="$URL" DATABASE_URL="$URL" npx prisma db seed
 echo "Base ${BD} lista: ${URL}"
+
+# Usuario Director de demostración (RPD_DEMO_SIN_AUTH=1): mismo id que SESION_DEMO.
+psql "$URL" -q -v ON_ERROR_STOP=1 <<'SQL'
+INSERT INTO auth.users (id, email) VALUES ('00000000-0000-0000-0000-000000000000', 'demo@local') ON CONFLICT DO NOTHING;
+INSERT INTO public.usuarios (id, nombre, email, rol) VALUES ('00000000-0000-0000-0000-000000000000', 'Irving (demo)', 'demo@local', 'director') ON CONFLICT DO NOTHING;
+SQL
