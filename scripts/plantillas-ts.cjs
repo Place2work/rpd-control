@@ -6,6 +6,7 @@ const PLANTILLAS = [
   ['contrato-retiro.md', 'contrato', 'RETIRO_DESEMPLEO', 'Contrato de retiro parcial por desempleo'],
   ['contrato-fallecimiento.md', 'contrato', 'FALLECIMIENTO', 'Contrato de pensión por fallecimiento (viudez)'],
   ['aviso-fallecimiento.md', 'aviso_privacidad', 'FALLECIMIENTO', 'Aviso de privacidad integral (pensión por fallecimiento)'],
+  ['aviso-retiro.md', 'aviso_privacidad', 'RETIRO_DESEMPLEO', 'Aviso de privacidad integral (retiro por desempleo)'],
 ];
 const filas = PLANTILLAS.map(([archivo, clase, servicio, nombre]) => {
   const cuerpo = fs.readFileSync(path.join(__dirname, '..', 'prisma', 'plantillas', archivo), 'utf8');

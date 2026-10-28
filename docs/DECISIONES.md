@@ -93,8 +93,10 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   que el responsable es Irving, persona física (antes «S.A.S.», «empresa privada… afiliada»).
 - Beneficiaria y finado en `partes_caso` con CURP/NSS cifrados. Al generar el PDF solo se descifran los datos que la
   plantilla imprime, cada uno con renglón VER_SENSIBLE en la bitácora. El vendedor no genera contratos.
-- Pendiente: plantilla del aviso de privacidad para retiro (solo se recibió el de fallecimiento) y variante de
-  contrato cuando la viuda contrata directamente o por concubinato.
+- Aviso de privacidad de retiro recibido el 28-oct (`prisma/plantillas/aviso-retiro.md`), con el mismo ajuste del
+  responsable (Irving, persona física). La versión simplificada y la nota para revisión legal del documento no se
+  cargan en la plantilla integral.
+- Pendiente: variante de contrato cuando la viuda contrata directamente o por concubinato.
 
 ### Pensión y Modalidad 40 (7.6)
 - Pago M40: vence el **día 17 del mismo mes que cubre** (por adelantado, como dice 7.6). Las fuentes públicas

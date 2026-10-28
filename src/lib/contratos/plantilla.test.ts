@@ -50,7 +50,7 @@ describe("plantillas vigentes (prisma/plantillas)", () => {
     finado: { nombre: "F", curp: "Z", nss: "2", fecha_defuncion: "1 de enero de 2025", regimen: "Ley 1973", afore: "A" },
     advertencias: ["Primera advertencia.", "Segunda advertencia."], regularizacion: "el acta",
   };
-  for (const f of ["contrato-retiro.md", "contrato-fallecimiento.md", "aviso-fallecimiento.md"]) {
+  for (const f of ["contrato-retiro.md", "contrato-fallecimiento.md", "aviso-fallecimiento.md", "aviso-retiro.md"]) {
     it(`${f}: con todos los datos no falta nada y los incisos no se cortan`, () => {
       const r = llenar(leer(f), datos);
       expect(r.faltantes).toEqual([]);
