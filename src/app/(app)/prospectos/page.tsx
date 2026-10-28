@@ -6,7 +6,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { EstadoVacio } from "@/components/rpd/estado-vacio";
-import { InsigniaDia46, isoDe } from "@/components/rpd/insignia-dia46";
+import { InsigniaDia46 } from "@/components/rpd/insignia-dia46";
 import { LigasConsulta } from "@/components/rpd/ligas-consulta";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { ligasConsulta, parametrosFechas } from "@/lib/parametros";
@@ -58,7 +58,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
           ) : (
             <ul className="divide-y divide-borde">
               {filas.map((f) => {
-                const ultimo = isoDe(f.eventos[0]?.fecha ?? f.created_at)!;
+                const ultimo = hoyCDMX(f.eventos[0]?.fecha ?? f.created_at);
                 const sinContacto = diasEntre(ultimo, hoy);
                 return (
                   <li key={f.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 px-5 py-3 hover:bg-brand-tint/40">

@@ -1,15 +1,17 @@
-import { BellRing, CalendarClock, Filter, LineChart } from "lucide-react";
+import { CalendarClock, Filter, LineChart } from "lucide-react";
 import type { Metadata } from "next";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { EstadoVacio } from "@/components/rpd/estado-vacio";
 import Link from "next/link";
 import { formatoFecha } from "@/components/rpd/insignia-dia46";
+import { misAlertas } from "@/lib/alertas/consultas";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { parametrosFechas } from "@/lib/parametros";
 import { ETAPAS_PROSPECTO, listarCasos, nombreCompleto } from "@/lib/prospectos/consultas";
 import { fechaElegibleDesempleo } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
+import { Bandeja } from "./bandeja";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -21,7 +23,7 @@ export default async function Hoy() {
   const sesion = await obtenerSesion();
   const { usuario } = sesion;
   const hoy = hoyCDMX();
-  const [casos, p] = await Promise.all([listarCasos(sesion), parametrosFechas(hoy)]);
+  const [casos, p, alertas] = await Promise.all([listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion)]);
 
   // Próximos día 46 (10.1): retiros que aún no se ingresan, con fecha de baja, en los próximos 14 días.
   const proximos = casos
@@ -57,9 +59,11 @@ export default async function Hoy() {
       </section>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Alertas de hoy</CardTitle></CardHeader>
-          <EstadoVacio icono={BellRing} titulo="Sin alertas por ahora"
-            texto="Cada día a las 7:00 (hora de CDMX) el sistema revisa las fechas de todos los casos y deja aquí lo urgente." />
+          <CardHeader id="alertas">
+            <CardTitle>Alertas de hoy</CardTitle>
+            {alertas.length > 0 && <span className="cifra text-sm text-ink-muted">{alertas.length}</span>}
+          </CardHeader>
+          <div className="pt-3"><Bandeja alertas={alertas} esDirector={usuario.rol === "director"} /></div>
         </Card>
         <Card>
           <CardHeader><CardTitle>Próximos día 46</CardTitle></CardHeader>

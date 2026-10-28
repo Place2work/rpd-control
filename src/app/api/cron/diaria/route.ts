@@ -2,6 +2,8 @@
 // ya son las 07:00 (alertas) o las 07:15 (correo). Idempotente: una corrida por tarea y día.
 import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
+import { enviarResumenes } from "@/lib/alertas/correo";
+import { generarAlertas } from "@/lib/alertas/generar";
 import { prismaSistema } from "@/lib/db/prisma";
 import { hoyCDMX } from "@/lib/tiempo";
 
@@ -44,9 +46,7 @@ async function ejecutar(tarea: (typeof TAREAS)[number]) {
     create: { tarea, fecha_cdmx },
   });
 
-  // Fase 0: sin reglas de negocio todavía. La fase 1 genera aquí las alertas de 8.1
-  // y el correo de resumen con Resend.
-  const resultado = { fase: 0, mensaje: "Tarea registrada; las reglas de alertas llegan en la fase 1" };
+  const resultado = tarea === "ALERTAS_DIARIAS" ? await generarAlertas(fecha) : await enviarResumenes(fecha);
 
   await prismaSistema.ejecucionTarea.update({
     where: { tarea_fecha_cdmx: { tarea, fecha_cdmx } },

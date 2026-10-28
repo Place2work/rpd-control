@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Encabezado } from "@/components/rpd/encabezado";
-import { InsigniaDia46, isoDe } from "@/components/rpd/insignia-dia46";
+import { InsigniaDia46 } from "@/components/rpd/insignia-dia46";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { parametrosFechas } from "@/lib/parametros";
 import { listarCasos, nombreCompleto } from "@/lib/prospectos/consultas";
@@ -52,7 +52,7 @@ export default async function Casos() {
                 ) : (
                   <ul className="flex flex-col gap-2">
                     {tarjetas.map((c) => {
-                      const dias = diasEntre(isoDe(c.etapa_desde)!, hoy);
+                      const dias = diasEntre(hoyCDMX(c.etapa_desde), hoy);
                       return (
                         <li key={c.id}>
                           <Link href={`/casos/${c.id}`} className="block rounded-lg border border-borde bg-surface p-3 shadow-[var(--shadow-tarjeta)] hover:border-brand">

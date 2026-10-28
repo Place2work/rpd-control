@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Reportes" };
 export default function Reportes() {
   return (
     <>
-      <Encabezado titulo="Reportes" />
+      <Encabezado titulo="Reportes" descripcion="Se activa en la fase 3 (dinero), después de la calculadora." />
       <Card>
         <EstadoVacio icono={BarChart3} titulo="Sin datos para reportar" texto="Conversión por etapa, tiempos, motivos de pérdida, ingresos y margen por canal." />
       </Card>

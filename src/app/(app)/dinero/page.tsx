@@ -9,7 +9,7 @@ export const metadata: Metadata = { title: "Dinero" };
 export default function Dinero() {
   return (
     <>
-      <Encabezado titulo="Dinero" />
+      <Encabezado titulo="Dinero" descripcion="Se activa en la fase 3 (dinero), después de la calculadora." />
       <Card>
         <EstadoVacio icono={Banknote} titulo="Sin pagos de Afore registrados" texto="Aquí verás los depósitos de la Afore, los cobros del honorario con subtotal e IVA y lo pendiente por conciliar." />
       </Card>
