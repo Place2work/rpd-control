@@ -42,6 +42,7 @@ const PARAMETROS: { clave: string; valor: string; tipo?: string; descripcion: st
   { clave: "BASE_HONORARIO", valor: "neto", tipo: "texto", descripcion: "Decisión 14.3: el 30% se aplica sobre el depósito neto (neto | bruto)" },
   { clave: "BASE_COMISION_VENDEDOR", valor: "igual_honorario", tipo: "texto", descripcion: "Decisión 14.3: base del 5% del vendedor" },
   { clave: "BASE_REPARTO_SOCIO", valor: "subtotal", tipo: "texto", descripcion: "Decisión 14.3: reparto del socio sobre subtotal sin IVA (subtotal | total)" },
+  { clave: "COSTO_ADMIN_SOCIO_POR", valor: "caso", tipo: "texto", descripcion: "Costo administrativo del socio: una vez por caso (caso) o en cada cobro (cobro)" },
   { clave: "FALLEC_COMISION_INICIAL", valor: "3000", descripcion: "Comisión vendedor fallecimiento: pago inicial" },
   { clave: "FALLEC_COMISION_PCT_RECUPERADO", valor: "0.05", descripcion: "Comisión vendedor fallecimiento: % de lo recuperado" },
   { clave: "FALLEC_COMISION_MENSUALIDAD", valor: "3000", descripcion: "Comisión vendedor fallecimiento: primera mensualidad" },

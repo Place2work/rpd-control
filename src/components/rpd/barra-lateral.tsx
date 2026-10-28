@@ -38,7 +38,7 @@ export function BarraLateral({ rol }: { rol: Rol }) {
           );
         })}
       </nav>
-      <p className="px-6 py-4 text-xs text-white/50">RPD Control · fase 2</p>
+      <p className="px-6 py-4 text-xs text-white/50">RPD Control · fase 3</p>
     </aside>
   );
 }

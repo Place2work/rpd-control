@@ -4,6 +4,7 @@ import { timingSafeEqual } from "node:crypto";
 import { NextResponse, type NextRequest } from "next/server";
 import { enviarResumenes } from "@/lib/alertas/correo";
 import { generarAlertas } from "@/lib/alertas/generar";
+import { tareaDinero } from "@/lib/dinero/diaria";
 import { prismaSistema } from "@/lib/db/prisma";
 import { hoyCDMX } from "@/lib/tiempo";
 
@@ -46,7 +47,9 @@ async function ejecutar(tarea: (typeof TAREAS)[number]) {
     create: { tarea, fecha_cdmx },
   });
 
-  const resultado = tarea === "ALERTAS_DIARIAS" ? await generarAlertas(fecha) : await enviarResumenes(fecha);
+  const resultado = tarea === "ALERTAS_DIARIAS"
+    ? { ...(await generarAlertas(fecha)), ...(await tareaDinero(fecha)) }
+    : await enviarResumenes(fecha);
 
   await prismaSistema.ejecucionTarea.update({
     where: { tarea_fecha_cdmx: { tarea, fecha_cdmx } },

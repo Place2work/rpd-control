@@ -1,9 +1,10 @@
 // Hoja de precalificación (10.4 y 11.4): logo, folio, fecha, las dos modalidades con sus
 // semanas, honorario y el pie de contacto. Todo marcado como estimado.
 import "server-only";
-import { Document, Image, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
+import { Document, Page, StyleSheet, Text, View, renderToBuffer } from "@react-pdf/renderer";
 import type { Impacto, OpcionModalidad } from "@/lib/reglas/retiro";
-import { COLOR, LOGO, PIE, registrarFuentes } from "./marca";
+import { base, EncabezadoPdf, PiePdf } from "./componentes";
+import { COLOR, registrarFuentes } from "./marca";
 
 export type DatosHoja = {
   folio: string;
@@ -25,13 +26,9 @@ const mxn = (n: number) => n.toLocaleString("es-MX", { style: "currency", curren
 const sem = (n: number) => n.toLocaleString("es-MX", { maximumFractionDigits: 1 });
 
 const s = StyleSheet.create({
-  pagina: { fontFamily: "Inter", fontSize: 10, color: COLOR.tinta, paddingTop: 36, paddingBottom: 70, paddingHorizontal: 40 },
-  encabezado: { flexDirection: "row", justifyContent: "space-between", alignItems: "flex-start", paddingBottom: 10, borderBottomWidth: 2, borderBottomColor: COLOR.azul },
-  logo: { width: 170 },
-  folio: { textAlign: "right", fontSize: 9, color: COLOR.gris },
-  folioNum: { fontFamily: "Poppins", fontWeight: 600, fontSize: 12, color: COLOR.azul },
-  titulo: { fontFamily: "Poppins", fontWeight: 600, fontSize: 18, marginTop: 18 },
-  sub: { color: COLOR.gris, marginTop: 2 },
+  pagina: base.pagina,
+  titulo: base.titulo,
+  sub: base.sub,
   resultado: { marginTop: 14, padding: 12, backgroundColor: COLOR.azulTenue, borderRadius: 6 },
   parrafo: { fontSize: 10.5, lineHeight: 1.3 },
   etiqueta: { fontFamily: "Poppins", fontWeight: 600, fontSize: 10, color: COLOR.azul, marginBottom: 4 },
@@ -45,7 +42,6 @@ const s = StyleSheet.create({
   nota: { fontSize: 8, color: COLOR.gris, marginTop: 6, lineHeight: 1.4 },
   seccion: { marginTop: 14 },
   aviso: { marginTop: 14, padding: 10, borderRadius: 6, borderWidth: 1 },
-  pie: { position: "absolute", bottom: 24, left: 40, right: 40, borderTopWidth: 1, borderTopColor: COLOR.borde, paddingTop: 6, fontSize: 7.5, color: COLOR.gris, textAlign: "center", lineHeight: 1.4 },
 });
 
 function Modalidad({ m, o, elegida }: { m: "A" | "B"; o: OpcionModalidad | undefined; elegida: boolean }) {
@@ -79,15 +75,7 @@ function Hoja(d: DatosHoja) {
   return (
     <Document title={`Precalificación ${d.folio}`} author="RetiroPorDesempleo.com" language="es-MX">
       <Page size="LETTER" style={s.pagina}>
-        <View style={s.encabezado}>
-          {/* eslint-disable-next-line jsx-a11y/alt-text -- Image de react-pdf no acepta alt */}
-          <Image src={LOGO} style={s.logo} />
-          <View>
-            <Text style={s.folio}>Folio</Text>
-            <Text style={s.folioNum}>{d.folio}</Text>
-            <Text style={s.folio}>{d.fecha}</Text>
-          </View>
-        </View>
+        <EncabezadoPdf etiqueta="Folio" valor={d.folio} fecha={d.fecha} />
 
         <Text style={s.titulo}>Hoja de precalificación</Text>
         <Text style={s.sub}>{d.cliente} · {d.regimen} · {sem(d.semanasTotales)} semanas cotizadas · saldo RCV {mxn(d.saldoRcv)}</Text>
@@ -123,9 +111,7 @@ function Hoja(d: DatosHoja) {
           en proporción al saldo retirado (art. 198 de la Ley del Seguro Social). Nuestro honorario es el 30% de lo que pague la Afore, IVA incluido.
         </Text>
 
-        <View style={s.pie} fixed>
-          {PIE.map((l) => <Text key={l}>{l}</Text>)}
-        </View>
+        <PiePdf />
       </Page>
     </Document>
   );

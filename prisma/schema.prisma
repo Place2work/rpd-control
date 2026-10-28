@@ -782,22 +782,24 @@ model PagoAfore {
 }
 
 model Cobro {
-  id              String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  caso_id         String      @db.Uuid
-  pago_afore_id   String?     @db.Uuid
-  base_calculo    Decimal?    @db.Decimal(14, 2) // monto sobre el que se aplicó el 30%
-  honorario_total Decimal     @db.Decimal(14, 2)
-  subtotal        Decimal     @db.Decimal(14, 2)
-  iva             Decimal     @db.Decimal(14, 2) // = honorario_total − subtotal
-  fecha_cobro     DateTime?   @db.Date
-  metodo          MetodoPago?
-  referencia      String?
-  factura_folio   String?
-  estado          EstadoCobro @default(por_cobrar)
-  created_at      DateTime    @default(now()) @db.Timestamptz(6)
-  updated_at      DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
-  created_by      String?     @db.Uuid
-  archivado_at    DateTime?   @db.Timestamptz(6)
+  id                 String      @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id            String      @db.Uuid
+  pago_afore_id      String?     @db.Uuid
+  base_calculo       Decimal?    @db.Decimal(14, 2) // monto sobre el que se aplicó el 30%
+  honorario_total    Decimal     @db.Decimal(14, 2)
+  subtotal           Decimal     @db.Decimal(14, 2)
+  iva                Decimal     @db.Decimal(14, 2) // = honorario_total − subtotal
+  fecha_cobro        DateTime?   @db.Date
+  metodo             MetodoPago?
+  referencia         String?
+  factura_folio      String?
+  estado             EstadoCobro @default(por_cobrar)
+  concepto           String? // fallecimiento: pago_inicial | recuperado | primera_mensualidad
+  motivo_cancelacion String?
+  created_at         DateTime    @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by         String?     @db.Uuid
+  archivado_at       DateTime?   @db.Timestamptz(6)
 
   caso       Caso       @relation(fields: [caso_id], references: [id])
   pago_afore PagoAfore? @relation(fields: [pago_afore_id], references: [id])
@@ -805,6 +807,25 @@ model Cobro {
 
   @@index([estado, fecha_cobro])
   @@map("cobros")
+  @@schema("public")
+}
+
+// Pago de comisiones a un beneficiario por un mes; agrupa las comisiones para el estado de cuenta.
+model Liquidacion {
+  id                String           @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  beneficiario_tipo BeneficiarioTipo
+  beneficiario_id   String           @db.Uuid
+  periodo           DateTime         @db.Date
+  total             Decimal          @db.Decimal(14, 2)
+  fecha_pago        DateTime         @db.Date
+  metodo            MetodoPago
+  referencia        String?
+  created_at        DateTime         @default(now()) @db.Timestamptz(6)
+  created_by        String?          @db.Uuid
+
+  comisiones Comision[]
+
+  @@map("liquidaciones")
   @@schema("public")
 }
 
@@ -847,15 +868,18 @@ model Comision {
   fecha_pago        DateTime?        @db.Date
   metodo_pago       MetodoPago?
   referencia_pago   String?
+  clave             String? // estable dentro del caso: "vendedor:pago:2", "referido"... (conciliación)
+  liquidacion_id    String?          @db.Uuid
   created_at        DateTime         @default(now()) @db.Timestamptz(6)
   updated_at        DateTime         @default(now()) @updatedAt @db.Timestamptz(6)
   created_by        String?          @db.Uuid
   archivado_at      DateTime?        @db.Timestamptz(6)
 
-  caso       Caso            @relation(fields: [caso_id], references: [id])
-  esquema    EsquemaComision @relation(fields: [esquema_id], references: [id])
-  pago_afore PagoAfore?      @relation(fields: [pago_afore_id], references: [id])
-  cobro      Cobro?          @relation(fields: [cobro_id], references: [id])
+  caso        Caso            @relation(fields: [caso_id], references: [id])
+  esquema     EsquemaComision @relation(fields: [esquema_id], references: [id])
+  pago_afore  PagoAfore?      @relation(fields: [pago_afore_id], references: [id])
+  cobro       Cobro?          @relation(fields: [cobro_id], references: [id])
+  liquidacion Liquidacion?    @relation(fields: [liquidacion_id], references: [id])
 
   @@index([beneficiario_tipo, beneficiario_id, estado])
   @@map("comisiones")

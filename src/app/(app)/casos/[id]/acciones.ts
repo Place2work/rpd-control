@@ -8,6 +8,7 @@ import { fotoDelCaso } from "@/lib/casos/foto";
 import { cifrar, hashIdentificador } from "@/lib/cripto";
 import { conUsuario } from "@/lib/db/prisma";
 import { verDatoSensible } from "@/lib/db/sensibles";
+import { recalcularComisiones } from "@/lib/dinero/motor";
 import { parametrosFechas } from "@/lib/parametros";
 import { normalizarWhatsapp } from "@/lib/prospectos/validacion";
 import { NOMBRE_ETAPA, validarTransicion, type Etapa } from "@/lib/reglas/etapas";
@@ -347,8 +348,12 @@ export async function cambiarEtapa(casoId: string, _p: Resultado, form: FormData
       },
     });
     return { ok: true };
-  }, ip).then((res) => {
-    if (res.ok) revalidatePath(`/casos/${casoId}`);
+  }, ip).then(async (res) => {
+    if (res.ok) {
+      // Firmar contrato crea las comisiones estimadas; perder el caso cancela las no devengadas.
+      try { await recalcularComisiones([casoId]); } catch (e) { console.error("[comisiones]", casoId, e); }
+      revalidatePath(`/casos/${casoId}`);
+    }
     return res;
   });
 }

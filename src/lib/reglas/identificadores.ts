@@ -80,3 +80,18 @@ export const curpParcial = (curp: string) => {
   const c = normalizarCurp(curp);
   return `${c.slice(0, 4)}${"•".repeat(12)}${c.slice(16)}`;
 };
+
+// ───────────── CLABE interbancaria (18 dígitos, dígito verificador con pesos 3-7-1) ─────────────
+
+export function normalizarClabe(entrada: string): string {
+  return entrada.replace(/\D/g, "");
+}
+
+export function validarClabe(entrada: string): { valido: true } | { valido: false; error: string } {
+  const c = normalizarClabe(entrada);
+  if (c.length !== 18) return { valido: false, error: "La CLABE tiene 18 dígitos" };
+  const pesos = [3, 7, 1];
+  const suma = [...c.slice(0, 17)].reduce((a, d, i) => a + ((Number(d) * pesos[i % 3]) % 10), 0);
+  const verificador = (10 - (suma % 10)) % 10;
+  return verificador === Number(c[17]) ? { valido: true } : { valido: false, error: "La CLABE no es válida (revisa los dígitos)" };
+}

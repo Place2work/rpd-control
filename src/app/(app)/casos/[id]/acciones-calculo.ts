@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { recalcularComisiones } from "@/lib/dinero/motor";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { entradaDesdeCaso, faltantesParaCalcular, VERSION_REGLAS } from "@/lib/calculo/entrada";
 import { conUsuario, prismaSistema } from "@/lib/db/prisma";
@@ -84,6 +85,10 @@ export async function calcularPrecalificacion(casoId: string, modalidad: "A" | "
       skipDuplicates: true,
     });
   }
-  if ("ok" in r && r.ok) revalidatePath(`/casos/${casoId}`);
+  if ("ok" in r && r.ok) {
+    // Un nuevo estimado cambia las comisiones estimadas (si ya hay contrato).
+    try { await recalcularComisiones([casoId]); } catch (e) { console.error("[comisiones]", casoId, e); }
+    revalidatePath(`/casos/${casoId}`);
+  }
   return "faltantes" in r ? { faltantes: r.faltantes } : "error" in r ? { error: r.error } : { ok: true };
 }

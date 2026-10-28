@@ -40,3 +40,29 @@ día 46 = baja + 46 · Vercel + Supabase · retención 5 años · logotipo SVG p
   prospecto entra a la bandeja general con dueño = primer Director activo. Mismo WhatsApp con caso
   abierto del mismo servicio: no se duplica, se anota y se avisa. El sitio no manda CURP ni NSS.
   Contrato completo en `docs/INTEGRACION_SITIO.md`. Requiere `LEADS_HMAC_SECRETO` en Vercel y en el sitio.
+
+## 28-oct-2026 · Fase 3: dinero, comisiones y reportes
+
+Decisiones de Irving (14.3), ya cargadas como parámetros:
+- **Base del 30% y del 5% del vendedor:** depósito neto (después de ISR). `BASE_HONORARIO=neto`, `BASE_COMISION_VENDEDOR=igual_honorario`.
+- **Reparto del socio:** sobre el subtotal sin IVA. `BASE_REPARTO_SOCIO=subtotal` (T13: $834.48).
+- **Escalón de referidos:** 1–2 = $1,000, 3–10 = $2,000, 11+ = $3,000 c/u; cuentan solo clientes con honorario
+  cobrado en el mes calendario (el del primer cobro del caso). Mientras el mes está abierto la comisión es estimada;
+  al cambiar de mes la tarea diaria la devenga con fecha del último día del mes.
+- **Facturación:** solo se captura el folio de la factura en el cobro. Sin facturador integrado.
+- **Pensiones, M40 e Infonavit:** sin comisión de vendedor hasta definir (valor por defecto de 14.3).
+
+Supuestos míos (cámbialos en Configuración o avísame):
+- **Costo administrativo del socio ($500):** se descuenta **una vez por caso** (en el primer cobro), no en cada
+  mensualidad de la modalidad B. Parámetro `COSTO_ADMIN_SOCIO_POR` (`caso` | `cobro`).
+- Fallecimiento: los componentes fijos (pago inicial, primera mensualidad) se pagan una sola vez; el 5% de lo
+  recuperado, en cada cobro con ese concepto. No generan estimadas (los montos son inciertos).
+
+Diseño:
+- `src/lib/reglas/comisiones.ts` (puro) calcula el estado **deseado** de las comisiones de un caso; `src/lib/dinero/motor.ts`
+  lo concilia con la tabla por `clave` (`vendedor:pago:2`, `socio:cobro:<id>`, `referido`…). Las pagadas no se tocan.
+- El motor corre como **proceso del sistema** (`prismaSistema`), igual que la tarea diaria: RLS solo deja al Director
+  escribir comisiones, y el motor se llama después de que el usuario registró con sus permisos el pago o el cobro.
+- `liquidaciones` agrupa las comisiones pagadas de un beneficiario en un mes (estado de cuenta reimprimible).
+- Migración `20261028000800_dinero` (solo agrega): `comisiones.clave` con índice único parcial, `cobros.concepto`,
+  `cobros.motivo_cancelacion` (obligatorio al cancelar), tabla `liquidaciones` con RLS y bitácora.

@@ -77,3 +77,29 @@ export async function parametrosRetiro(fecha = hoyCDMX()) {
   }
   return r;
 }
+
+// Parámetros del dinero y las comisiones (2.2, 9 y decisiones 14.3 del 28-oct).
+export async function parametrosDinero(fecha = hoyCDMX()): Promise<import("@/lib/reglas/comisiones").ParametrosDinero> {
+  const p = await parametrosVigentes([
+    "HONORARIO_RETIRO_PCT", "IVA", "BASE_HONORARIO", "BASE_COMISION_VENDEDOR", "BASE_REPARTO_SOCIO", "COSTO_ADMIN_SOCIO_POR",
+    "FALLEC_COMISION_INICIAL", "FALLEC_COMISION_MENSUALIDAD", "FALLEC_COMISION_PCT_RECUPERADO",
+  ], fecha);
+  const numero = (clave: string) => {
+    const v = Number(p[clave]);
+    if (!Number.isFinite(v)) throw new Error(`Falta el parámetro ${clave} vigente al ${fecha}`);
+    return v;
+  };
+  const opcion = <T extends string>(clave: string, validas: readonly T[], defecto: T): T =>
+    (validas as readonly string[]).includes(p[clave]) ? (p[clave] as T) : defecto;
+  return {
+    HONORARIO_RETIRO_PCT: numero("HONORARIO_RETIRO_PCT"),
+    IVA: numero("IVA"),
+    BASE_HONORARIO: opcion("BASE_HONORARIO", ["neto", "bruto"], "neto"),
+    BASE_COMISION_VENDEDOR: opcion("BASE_COMISION_VENDEDOR", ["igual_honorario", "neto", "bruto"], "igual_honorario"),
+    BASE_REPARTO_SOCIO: opcion("BASE_REPARTO_SOCIO", ["subtotal", "total"], "subtotal"),
+    COSTO_ADMIN_SOCIO_POR: opcion("COSTO_ADMIN_SOCIO_POR", ["caso", "cobro"], "caso"),
+    FALLEC_COMISION_INICIAL: numero("FALLEC_COMISION_INICIAL"),
+    FALLEC_COMISION_MENSUALIDAD: numero("FALLEC_COMISION_MENSUALIDAD"),
+    FALLEC_COMISION_PCT_RECUPERADO: numero("FALLEC_COMISION_PCT_RECUPERADO"),
+  };
+}

@@ -3,6 +3,7 @@ import {
   curpParcial,
   datosDeCurp,
   digitoVerificadorCurp,
+  validarClabe,
   digitoVerificadorNss,
   enmascararClabe,
   enmascararNss,
@@ -62,5 +63,13 @@ describe("tipoIdentificador", () => {
     expect(tipoIdentificador(NSS)).toBe("nss");
     expect(tipoIdentificador("Juan Pérez")).toBeNull();
     expect(tipoIdentificador("777 123 4567")).toBeNull(); // 10 dígitos: teléfono
+  });
+});
+
+describe("CLABE", () => {
+  it("acepta una CLABE con dígito verificador correcto y rechaza la alterada", () => {
+    expect(validarClabe("002 010 07777777777 1").valido).toBe(true); // ejemplo de Banxico
+    expect(validarClabe("002010077777777772").valido).toBe(false);
+    expect(validarClabe("12345")).toEqual({ valido: false, error: "La CLABE tiene 18 dígitos" });
   });
 });

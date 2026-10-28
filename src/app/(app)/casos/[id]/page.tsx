@@ -8,6 +8,7 @@ import { nombreCompleto, obtenerCaso } from "@/lib/prospectos/consultas";
 import { cn } from "@/lib/utils";
 import { PestanaCalculo } from "./pestanas/calculo";
 import { PestanaContrato } from "./pestanas/contrato";
+import { PestanaDinero } from "./pestanas/dinero";
 import { PestanaDatos } from "./pestanas/datos";
 import { PestanaDocumentos } from "./pestanas/documentos";
 import { PestanaImss } from "./pestanas/imss";
@@ -16,7 +17,7 @@ import { PestanaSeguimiento } from "./pestanas/seguimiento";
 
 export const metadata: Metadata = { title: "Expediente" };
 
-// 10.4. Pestañas listas: Resumen, Datos personales, IMSS y Afore, Seguimiento. El resto llega en las siguientes.
+// 10.4. Pestañas del expediente.
 const PESTANAS = [
   ["resumen", "Resumen"],
   ["datos", "Datos personales"],
@@ -27,7 +28,7 @@ const PESTANAS = [
   ["dinero", "Dinero"],
   ["contrato", "Contrato"],
 ] as const;
-const LISTAS = new Set(["resumen", "datos", "imss", "calculo", "documentos", "seguimiento", "contrato"]);
+const LISTAS = new Set(["resumen", "datos", "imss", "calculo", "documentos", "seguimiento", "dinero", "contrato"]);
 
 const ETAPA: Record<string, { texto: string; tono: "prospecto" | "espera" | "tramite" | "pagado" | "perdido" | "critico" }> = {
   PROSPECTO: { texto: "Prospecto", tono: "prospecto" },
@@ -122,6 +123,7 @@ export default async function Expediente({ params, searchParams }: Props) {
       {pestana === "calculo" && <PestanaCalculo caso={caso} sesion={sesion} />}
       {pestana === "documentos" && <PestanaDocumentos caso={caso} sesion={sesion} />}
       {pestana === "seguimiento" && <PestanaSeguimiento caso={caso} />}
+      {pestana === "dinero" && <PestanaDinero caso={caso} sesion={sesion} />}
       {pestana === "contrato" && <PestanaContrato caso={caso} sesion={sesion} />}
     </>
   );

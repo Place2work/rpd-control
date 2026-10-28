@@ -46,3 +46,20 @@ test("el almacén de demostración no existe fuera del modo demostración", asyn
   const put = await request.put("/api/demo/almacen?ruta=x&firma=y", { data: "hola", maxRedirects: 0 });
   expect(put.status()).not.toBe(200);
 });
+
+test("dinero, comisiones, reportes y sus exportaciones exigen sesión", async ({ page, request }) => {
+  for (const ruta of ["/dinero", "/comisiones", "/comisiones/beneficiarios", "/reportes"]) {
+    await page.goto(ruta);
+    await expect(page).toHaveURL(/\/login$/);
+  }
+  for (const ruta of ["/api/exportar/dinero?mes=2026-10", "/api/exportar/reporte?clave=todos", "/api/comisiones/estado-cuenta?benef=x&mes=2026-10"]) {
+    const r = await request.get(ruta, { maxRedirects: 0 });
+    expect(r.status(), ruta).toBe(307);
+    expect(r.headers().location).toMatch(/\/login$/);
+  }
+});
+
+test("el formulario del sitio exige firma", async ({ request }) => {
+  const r = await request.post("/api/leads", { data: { nombre: "Ana" } });
+  expect(r.status()).toBe(401);
+});
