@@ -36,3 +36,12 @@ export function hashIdentificador(tipo: "curp" | "nss", valor: string): string {
   const normal = tipo === "curp" ? normalizarCurp(valor) : normalizarNss(valor);
   return createHmac("sha256", llave("HMAC_LLAVE")).update(`${tipo}:${normal}`).digest("hex");
 }
+
+// Ligas privadas (calendario): el token viaja en la URL; en la base solo queda su HMAC.
+export function nuevoToken(): string {
+  return randomBytes(32).toString("base64url");
+}
+
+export function hashToken(token: string): string {
+  return createHmac("sha256", llave("HMAC_LLAVE")).update(`token:${token}`).digest("hex");
+}

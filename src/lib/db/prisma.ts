@@ -16,6 +16,7 @@ const OMITIR_CIFRADOS = {
   referidor: { clabe_cifrada: true },
   socio: { clabe_cifrada: true },
   parteCaso: { curp_cifrada: true, nss_cifrado: true },
+  calendarioToken: { token_hash: true },
 } as const;
 
 function crearCliente() {

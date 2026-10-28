@@ -979,6 +979,19 @@ model ParteCaso {
   @@schema("public")
 }
 
+// Liga privada del calendario (.ics) por usuario; solo el HMAC del token.
+model CalendarioToken {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id    String    @db.Uuid
+  token_hash    String    @unique
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  ultimo_uso_at DateTime? @db.Timestamptz(6)
+  revocado_at   DateTime? @db.Timestamptz(6)
+
+  @@map("calendario_tokens")
+  @@schema("public")
+}
+
 model PlantillaContrato {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
   clase         String    @default("contrato") // contrato | aviso_privacidad

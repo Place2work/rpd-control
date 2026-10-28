@@ -104,3 +104,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Conservación de derechos Ley 73: ¼ del tiempo cotizado desde la baja, mínimo 12 meses (art. 150 LSS 1973).
 - INFONAVIT_70: el sistema no sabe si hay saldo de vivienda; avisa a los 69 en casos de pensión, M40 y
   devolución Infonavit para que el asesor lo verifique.
+
+### Calendario (10.5 y 8.2)
+- Vista mensual y semanal con día 46, fin del candado, límite de 15 días hábiles, límite de resolución de la Afore,
+  vencimiento de contrato, pagos M40 pendientes, derecho a M40, conservación de derechos y cumpleaños 60/65.
+- Suscripción con **liga privada** por usuario (`/api/calendario/<token>.ics`): el token se muestra una sola vez,
+  en la base solo queda su HMAC, generar otra revoca la anterior. La consulta usa RLS con la identidad del dueño.
+- En los eventos solo va el folio y el primer nombre del cliente (Google guarda esa información).
+- Cada caso descarga su `.ics` desde el encabezado del expediente.

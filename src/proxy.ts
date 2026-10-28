@@ -4,7 +4,8 @@ import { createServerClient } from "@supabase/ssr";
 import { NextResponse, type NextRequest } from "next/server";
 import { modoDemo } from "@/lib/auth/demo";
 
-const PUBLICAS = ["/login", "/auth/callback", "/api/cron", "/api/leads"];
+// /api/calendario/<token>: suscripción .ics; la autoriza el token, no la sesión.
+const PUBLICAS = ["/login", "/auth/callback", "/api/cron", "/api/leads", "/api/calendario/"];
 // Con sesión pero sin 2FA solo se puede inscribir el segundo factor o definir contraseña.
 const SIN_2FA = ["/mfa", "/contrasena"];
 

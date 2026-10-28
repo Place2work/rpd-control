@@ -1,4 +1,4 @@
-import { CheckCircle2, MessageCircle, Phone } from "lucide-react";
+import { CalendarPlus, CheckCircle2, MessageCircle, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
@@ -83,7 +83,11 @@ export default async function Expediente({ params, searchParams }: Props) {
             <span>· {caso.asignado ? `Asignado a ${caso.asignado.nombre}` : "Bandeja general"}</span>
           </p>
         </div>
-        <div className="flex gap-2">
+        <div className="flex flex-wrap gap-2">
+          <a href={`/api/casos/${caso.id}/ics`} title="Fechas del caso para tu calendario"
+            className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-boton)] border border-borde px-3 text-sm text-ink hover:bg-brand-tint md:h-10">
+            <CalendarPlus className="size-4" aria-hidden /> .ics
+          </a>
           {wa && (
             <a href={`https://wa.me/${wa}?text=${saludo}`} target="_blank" rel="noopener noreferrer"
               className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-boton)] bg-brand px-4 text-sm font-medium text-white hover:bg-brand-dark md:h-10">

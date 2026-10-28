@@ -63,3 +63,8 @@ test("el formulario del sitio exige firma", async ({ request }) => {
   const r = await request.post("/api/leads", { data: { nombre: "Ana" } });
   expect(r.status()).toBe(401);
 });
+
+test("la liga del calendario rechaza tokens inválidos o inexistentes", async ({ request }) => {
+  expect((await request.get("/api/calendario/x.ics")).status()).toBe(404);
+  expect((await request.get(`/api/calendario/${"a".repeat(43)}.ics`)).status()).toBe(404);
+});
