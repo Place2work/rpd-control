@@ -1,4 +1,4 @@
-import { CircleAlert, Leaf } from "lucide-react";
+import { CircleAlert, FileDown, Leaf } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -69,6 +69,12 @@ export async function PestanaCalculo({ caso, sesion }: { caso: CasoDetalle; sesi
           )}
           <div className="flex flex-wrap items-start gap-3">
             <BotonCalcular casoId={caso.id} modalidad={elegida ?? null} texto={ultimo ? "Calcular de nuevo" : "Calcular"} />
+            {ultimo && (
+              <a href={`/api/casos/${caso.id}/hoja`} target="_blank" rel="noopener"
+                className="inline-flex h-11 items-center gap-2 rounded-[var(--radius-boton)] border border-brand px-4 text-sm font-medium text-brand hover:bg-brand-tint md:h-10">
+                <FileDown className="size-4" aria-hidden /> Hoja de precalificación (PDF)
+              </a>
+            )}
             {ultimo && <p className="text-xs text-ink-muted">Calculado el {formatoFecha(isoDe(ultimo.fecha_calculo)!, { dateStyle: "long" })} con UMA mensual {mxn(Number(ultimo.uma_mensual))}. Todos los montos son estimados.</p>}
           </div>
         </CardContent>

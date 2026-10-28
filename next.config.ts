@@ -1,8 +1,12 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
   cacheComponents: true,
+  // El PDF lee fuentes y logo del disco: que Vercel los incluya en la función.
+  outputFileTracingIncludes: {
+    "/api/casos/[id]/hoja": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
+  },
+  serverExternalPackages: ["@react-pdf/renderer"],
   partialPrefetching: true,
   turbopack: {
     rules: {
