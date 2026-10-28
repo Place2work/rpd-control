@@ -3,7 +3,7 @@ import { descifrar, hashIdentificador } from "@/lib/cripto";
 import { tipoIdentificador } from "@/lib/reglas/identificadores";
 import { conUsuario, type ClaimsUsuario } from "./prisma";
 
-type Dato = { tabla: "personas"; campo: "curp" | "nss" } | { tabla: "datos_afore" | "referidores" | "socios"; campo: "clabe" };
+type Dato = { tabla: "personas" | "partes_caso"; campo: "curp" | "nss" } | { tabla: "datos_afore" | "referidores" | "socios"; campo: "clabe" };
 
 // Ver el dato completo: la base valida el rol y deja un renglón VER_SENSIBLE en la bitácora.
 export async function verDatoSensible(claims: ClaimsUsuario, dato: Dato, id: string, ip?: string | null) {

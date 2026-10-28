@@ -52,7 +52,7 @@ test("dinero, comisiones, reportes y sus exportaciones exigen sesión", async ({
     await page.goto(ruta);
     await expect(page).toHaveURL(/\/login$/);
   }
-  for (const ruta of ["/api/exportar/dinero?mes=2026-10", "/api/exportar/reporte?clave=todos", "/api/comisiones/estado-cuenta?benef=x&mes=2026-10"]) {
+  for (const ruta of ["/api/exportar/dinero?mes=2026-10", "/api/exportar/reporte?clave=todos", "/api/casos/00000000-0000-0000-0000-000000000001/contrato?doc=contrato", "/api/comisiones/estado-cuenta?benef=x&mes=2026-10"]) {
     const r = await request.get(ruta, { maxRedirects: 0 });
     expect(r.status(), ruta).toBe(307);
     expect(r.headers().location).toMatch(/\/login$/);

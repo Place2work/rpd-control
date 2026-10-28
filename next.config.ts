@@ -6,6 +6,7 @@ const nextConfig: NextConfig = {
   outputFileTracingIncludes: {
     "/api/casos/[id]/hoja": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
     "/api/comisiones/estado-cuenta": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
+    "/api/casos/[id]/contrato": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
     "/api/exportar/reporte": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
   },
   serverExternalPackages: ["@react-pdf/renderer"],

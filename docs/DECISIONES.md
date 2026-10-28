@@ -83,3 +83,15 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - **Portal del cliente:** no por ahora.
 - **Calendario:** suscripción con liga privada (.ics) por usuario; sin conexión OAuth con Google.
 - **Asistente de precalificación en 4 pasos:** sí, en esta fase.
+
+### Contratos desde plantilla (fase 4)
+- Plantillas en `prisma/plantillas/*.md` (texto de Irving con variables `{{…}}`); `scripts/plantillas-ts.cjs` genera
+  `src/lib/contratos/plantillas-iniciales.ts` y la versión 1 se carga a la base la primera vez que se usa. Una
+  versión nueva se agrega como renglón con su vigencia; los contratos viejos no cambian.
+- Cambios al texto original, mínimos: «en particular el estado civil asentado en el acta de defunción» (fallecimiento,
+  PRIMERA b) es un dato del caso; las advertencias de la TERCERA son una lista por caso; el aviso de privacidad dice
+  que el responsable es Irving, persona física (antes «S.A.S.», «empresa privada… afiliada»).
+- Beneficiaria y finado en `partes_caso` con CURP/NSS cifrados. Al generar el PDF solo se descifran los datos que la
+  plantilla imprime, cada uno con renglón VER_SENSIBLE en la bitácora. El vendedor no genera contratos.
+- Pendiente: plantilla del aviso de privacidad para retiro (solo se recibió el de fallecimiento) y variante de
+  contrato cuando la viuda contrata directamente o por concubinato.

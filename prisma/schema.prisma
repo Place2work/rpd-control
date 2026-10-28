@@ -426,6 +426,8 @@ model Persona {
   municipio                String?
   estado                   String?
   estado_civil             EstadoCivil?
+  domicilio                String? // como va en el contrato
+  identificacion           String? // "credencial para votar vigente"
   origen                   Origen
   referidor_id             String?      @db.Uuid
   owner_id                 String       @db.Uuid
@@ -494,6 +496,10 @@ model Caso {
   created_by                 String?                   @db.Uuid
   archivado_at               DateTime?                 @db.Timestamptz(6)
   motivo_archivo             String?
+  contrato_advertencias      String? // una por renglón (fallecimiento, cláusula TERCERA)
+  contrato_regularizacion    String?
+  contrato_pct               Decimal?                  @db.Decimal(5, 4)
+  contrato_generado_at       DateTime?                 @db.Timestamptz(6)
 
   persona     Persona      @relation(fields: [persona_id], references: [id])
   servicio    TipoServicio @relation(fields: [tipo_servicio], references: [clave])
@@ -516,6 +522,7 @@ model Caso {
   cobros       Cobro[]
   comisiones   Comision[]
   pagos_m40    PagoM40[]
+  partes       ParteCaso[]
 
   @@index([etapa])
   @@index([asignado_a])
@@ -939,8 +946,38 @@ model PlantillaMensaje {
   @@schema("public")
 }
 
+// Beneficiaria y finado (fallecimiento). CURP y NSS cifrados; completos solo con verDatoSensible().
+model ParteCaso {
+  id                 String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id            String    @db.Uuid
+  rol                String // beneficiaria | finado
+  nombre             String
+  curp_cifrada       Bytes?
+  curp_parcial       String?
+  nss_cifrado        Bytes?
+  nss_ultimos4       String?   @db.Char(4)
+  domicilio          String?
+  identificacion     String?
+  relacion           String?
+  parentesco_cliente String?
+  fecha_defuncion    DateTime? @db.Date
+  regimen            String?
+  afore              String?
+  created_at         DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at         DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by         String?   @db.Uuid
+  archivado_at       DateTime? @db.Timestamptz(6)
+
+  caso Caso @relation(fields: [caso_id], references: [id])
+
+  @@map("partes_caso")
+  @@schema("public")
+}
+
 model PlantillaContrato {
   id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  clase         String    @default("contrato") // contrato | aviso_privacidad
+  nombre        String?
   tipo_servicio String?
   version       Int
   cuerpo        String // HTML/Markdown con variables

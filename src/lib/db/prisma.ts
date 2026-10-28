@@ -15,6 +15,7 @@ const OMITIR_CIFRADOS = {
   datosAfore: { clabe_cifrada: true },
   referidor: { clabe_cifrada: true },
   socio: { clabe_cifrada: true },
+  parteCaso: { curp_cifrada: true, nss_cifrado: true },
 } as const;
 
 function crearCliente() {
