@@ -39,3 +39,10 @@ test("se puede pedir la liga para definir contraseña", async ({ page }) => {
   await page.getByRole("button", { name: /Olvidaste tu contraseña/ }).click();
   await expect(page.getByRole("heading", { name: "Define tu contraseña" })).toBeVisible();
 });
+
+test("el almacén de demostración no existe fuera del modo demostración", async ({ request }) => {
+  const r = await request.get("/api/demo/almacen?ruta=x&firma=y", { maxRedirects: 0 });
+  expect(r.status()).not.toBe(200);
+  const put = await request.put("/api/demo/almacen?ruta=x&firma=y", { data: "hola", maxRedirects: 0 });
+  expect(put.status()).not.toBe(200);
+});

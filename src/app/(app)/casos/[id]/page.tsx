@@ -7,6 +7,7 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { nombreCompleto, obtenerCaso } from "@/lib/prospectos/consultas";
 import { cn } from "@/lib/utils";
 import { PestanaDatos } from "./pestanas/datos";
+import { PestanaDocumentos } from "./pestanas/documentos";
 import { PestanaImss } from "./pestanas/imss";
 import { PestanaResumen } from "./pestanas/resumen";
 import { PestanaSeguimiento } from "./pestanas/seguimiento";
@@ -24,7 +25,7 @@ const PESTANAS = [
   ["dinero", "Dinero"],
   ["contrato", "Contrato"],
 ] as const;
-const LISTAS = new Set(["resumen", "datos", "imss", "seguimiento"]);
+const LISTAS = new Set(["resumen", "datos", "imss", "documentos", "seguimiento"]);
 
 const ETAPA: Record<string, { texto: string; tono: "prospecto" | "espera" | "tramite" | "pagado" | "perdido" | "critico" }> = {
   PROSPECTO: { texto: "Prospecto", tono: "prospecto" },
@@ -116,6 +117,7 @@ export default async function Expediente({ params, searchParams }: Props) {
       {pestana === "resumen" && <PestanaResumen caso={caso} sesion={sesion} />}
       {pestana === "datos" && <PestanaDatos caso={caso} puedeVer={sesion.usuario.rol !== "vendedor"} />}
       {pestana === "imss" && <PestanaImss caso={caso} sesion={sesion} />}
+      {pestana === "documentos" && <PestanaDocumentos caso={caso} sesion={sesion} />}
       {pestana === "seguimiento" && <PestanaSeguimiento caso={caso} />}
     </>
   );

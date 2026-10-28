@@ -189,6 +189,18 @@ describe("decisiones del 27-oct", () => {
   });
 });
 
+describe("documentos", () => {
+  it("abrir un documento deja bitácora; el vendedor no puede", async () => {
+    const doc = (await db.query("SELECT id FROM documentos WHERE caso_id = $1 LIMIT 1", [C1])).rows[0].id;
+    await db.query("UPDATE documentos SET archivo_path = $2 WHERE id = $1", [doc, `${C1}/x.jpg`]);
+    const r = await como<{ ruta: string }>(U.asesor, "SELECT app.registrar_vista_documento($1) AS ruta", [doc]);
+    expect(r[0].ruta).toBe(`${C1}/x.jpg`);
+    const fila = (await db.query("SELECT campo, usuario_id FROM auditoria.auditoria WHERE accion = 'VER_SENSIBLE' AND registro_id = $1", [doc])).rows[0];
+    expect(fila).toEqual({ campo: "documento", usuario_id: U.asesor });
+    await expect(como(U.vendedor, "SELECT app.registrar_vista_documento($1)", [doc])).rejects.toThrow(/Sin acceso/);
+  });
+});
+
 describe("alta de prospectos", () => {
   it("un vendedor da de alta persona y caso en una transacción y ve lo que creó", async () => {
     await db.query("BEGIN");
