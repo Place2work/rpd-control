@@ -73,3 +73,18 @@ describe("cuenta Afore y contrato", () => {
   });
 });
 
+
+describe("bimestres cotizados estimados", () => {
+  it("bimestres completos entre alta y baja", async () => {
+    const { bimestresEntre } = await import("../fechas");
+    expect(bimestresEntre("2020-01-15", "2026-09-14")).toBe(39); // 79 meses completos
+    expect(bimestresEntre("2026-01-01", "2026-02-28")).toBe(0); // 1 mes completo
+    expect(bimestresEntre("2026-01-01", "2026-03-01")).toBe(1);
+    expect(bimestresEntre("2026-05-01", "2026-01-01")).toBe(0); // fechas al revés
+  });
+  it("las semanas dan el tope real cotizado", async () => {
+    const { bimestresPorSemanas } = await import("../fechas");
+    expect(bimestresPorSemanas(168)).toBe(19);
+    expect(bimestresPorSemanas(52)).toBe(5);
+  });
+});

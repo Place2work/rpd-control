@@ -11,7 +11,7 @@ import { verDatoSensible } from "@/lib/db/sensibles";
 import { parametrosFechas } from "@/lib/parametros";
 import { normalizarWhatsapp } from "@/lib/prospectos/validacion";
 import { NOMBRE_ETAPA, validarTransicion, type Etapa } from "@/lib/reglas/etapas";
-import { diasEntre, regimenPorPrimeraAlta, sumarDiasHabiles, vencimientoContrato } from "@/lib/reglas/fechas";
+import { bimestresEntre, diasEntre, regimenPorPrimeraAlta, sumarDiasHabiles, vencimientoContrato } from "@/lib/reglas/fechas";
 import { curpParcial, datosDeCurp, validarCurp, validarNss } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
 
@@ -167,7 +167,22 @@ export async function guardarImss(casoId: string, _p: Resultado, form: FormData)
     ultimo_patron: texto(form, "ultimo_patron"),
     cotiza_actualmente: marcado(form, "cotiza_actualmente"),
   };
-  await conUsuario(claims, (tx) => tx.datosImss.upsert({ where: { caso_id: casoId }, update: data, create: { caso_id: casoId, ...data }, select: { id: true } }), ip);
+  await conUsuario(claims, async (tx) => {
+    // Bimestres (28-oct): si no se capturan, salen de la primera alta y la baja. Si el número
+    // guardado era el calculado y cambian las fechas, se vuelve a calcular; uno escrito a mano se respeta.
+    const previo = await tx.datosImss.findUnique({
+      where: { caso_id: casoId }, select: { fecha_primera_alta: true, fecha_baja: true, bimestres_cotizados: true },
+    });
+    const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
+    const altaPrev = iso(previo?.fecha_primera_alta);
+    const bajaPrev = iso(previo?.fecha_baja);
+    const eraCalculado = altaPrev && bajaPrev && previo?.bimestres_cotizados === bimestresEntre(altaPrev, bajaPrev);
+    const baja = texto(form, "fecha_baja");
+    if (primeraAlta && baja && (data.bimestres_cotizados === null || (eraCalculado && data.bimestres_cotizados === previo?.bimestres_cotizados))) {
+      data.bimestres_cotizados = bimestresEntre(primeraAlta, baja);
+    }
+    await tx.datosImss.upsert({ where: { caso_id: casoId }, update: data, create: { caso_id: casoId, ...data }, select: { id: true } });
+  }, ip);
   revalidatePath(`/casos/${casoId}`);
   return { ok: true };
 }

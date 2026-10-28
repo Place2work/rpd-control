@@ -9,6 +9,7 @@
 | 2026-10-27 | Tareas programadas en **horario de CDMX** (07:00 alertas, 07:15 correo), no en UTC fijo | Irving | `app.tareas_pendientes_hoy()`, parámetros `HORA_*_CDMX` |
 | 2026-10-27 | **Next.js 16** (16.4.3) en lugar de 15, a criterio del desarrollo. Prisma 7.10 | Irving → Claude | `package.json` |
 | 2026-10-28 | Mientras no exista la calculadora (fase 2), el **dictamen manual «Apto»** habilita pasar a Precalificado y a Contrato | Irving | `lib/reglas/etapas.ts` |
+| 2026-10-28 | **Bimestres cotizados**: si no se capturan, se calculan con la primera alta y la baja (bimestres completos). Aviso si las semanas cotizadas alcanzan menos bimestres (tiempo transcurrido ≠ cotizado) | Irving | `bimestresEntre()` en `lib/reglas/fechas.ts` |
 | 2026-10-27 | Se mantiene Prisma; RLS se aplica con `conUsuario()` (transacción con claims + rol `authenticated`) | Claude (recomendación aprobada) | `lib/db/prisma.ts` |
 
 ## Pendientes de la sección 14.3 (con su valor por defecto ya cargado)

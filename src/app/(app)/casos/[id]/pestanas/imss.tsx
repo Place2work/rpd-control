@@ -2,7 +2,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
-import { antiguedadCuenta, regimenPorPrimeraAlta } from "@/lib/reglas/fechas";
+import { antiguedadCuenta, bimestresEntre, bimestresPorSemanas, regimenPorPrimeraAlta } from "@/lib/reglas/fechas";
 import { enmascararClabe } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
 import { guardarAfore, guardarDictamen, guardarImss } from "../acciones";
@@ -35,6 +35,10 @@ export async function PestanaImss({ caso, sesion }: { caso: CasoDetalle; sesion:
   const antiguedad = a?.fecha_apertura_cuenta ? antiguedadCuenta(isoODefecto(a.fecha_apertura_cuenta), hoy) : null;
   const puedeDictaminar = sesion.usuario.rol === "director" || sesion.usuario.rol === "asesor";
   const avisoDigital = a?.banco && SOLO_DIGITALES.test(a.banco);
+  // Bimestres: por fechas (tiempo transcurrido) contra lo que alcanzan las semanas (tiempo cotizado).
+  const porFechas = i?.fecha_primera_alta && i.fecha_baja ? bimestresEntre(isoODefecto(i.fecha_primera_alta), isoODefecto(i.fecha_baja)) : null;
+  const porSemanas = i?.semanas_totales ? bimestresPorSemanas(Number(i.semanas_totales)) : null;
+  const avisoBimestres = i?.bimestres_cotizados != null && porSemanas !== null && i.bimestres_cotizados > porSemanas;
 
   return (
     <div className="grid gap-4 xl:grid-cols-2">
@@ -49,7 +53,8 @@ export async function PestanaImss({ caso, sesion }: { caso: CasoDetalle; sesion:
                 valor={i?.regimen ?? "por_definir"} opciones={REGIMENES} />
               <CampoTexto id="regimen_justificacion" etiqueta="Justificación" ayuda="solo si cambias el régimen sugerido" valor={i?.regimen_justificacion} />
               <CampoTexto id="fecha_constancia" etiqueta="Fecha de la constancia de semanas" tipo="date" max={hoy} valor={isoODefecto(i?.fecha_constancia)} />
-              <CampoTexto id="bimestres_cotizados" etiqueta="Bimestres cotizados" inputMode="numeric" valor={i?.bimestres_cotizados} />
+              <CampoTexto id="bimestres_cotizados" etiqueta="Bimestres cotizados" inputMode="numeric" valor={i?.bimestres_cotizados}
+                ayuda={porFechas !== null && i?.bimestres_cotizados === porFechas ? "calculado con alta y baja" : "vacío = se calcula con alta y baja"} />
               <CampoTexto id="semanas_cotizadas" etiqueta="Semanas cotizadas" inputMode="decimal" valor={numero(i?.semanas_cotizadas)} />
               <CampoTexto id="semanas_descontadas" etiqueta="Semanas descontadas" inputMode="decimal" valor={numero(i?.semanas_descontadas)} />
               <CampoTexto id="semanas_reintegradas" etiqueta="Semanas reintegradas" inputMode="decimal" valor={numero(i?.semanas_reintegradas)} />
@@ -60,6 +65,12 @@ export async function PestanaImss({ caso, sesion }: { caso: CasoDetalle; sesion:
               <CampoTexto id="sbc_promedio_250" etiqueta="SBC promedio 250 semanas" ayuda="$" inputMode="decimal" valor={numero(i?.sbc_promedio_250)} />
               <CampoTexto id="ultimo_patron" etiqueta="Último patrón" className="sm:col-span-2" valor={i?.ultimo_patron} />
             </div>
+            {avisoBimestres && (
+              <p className="rounded-md bg-aviso-tint px-3 py-2 text-sm text-aviso">
+                Ojo: con {numero(i!.semanas_totales)} semanas cotizadas alcanzan unos {porSemanas} bimestres, menos que los {i!.bimestres_cotizados} capturados.
+                Alta y baja cuentan tiempo transcurrido, no cotizado; confírmalo con la constancia antes de usarlo para la modalidad A.
+              </p>
+            )}
             <Casilla id="cotiza_actualmente" etiqueta="Cotiza actualmente (tiene empleo con IMSS)" marcada={i?.cotiza_actualmente} />
             <p className="text-xs text-ink-muted">Cambios en SBC y semanas quedan resaltados en la bitácora con tu nombre.</p>
           </FormularioAccion>

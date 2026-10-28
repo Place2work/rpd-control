@@ -111,3 +111,18 @@ export function vencimientoContrato(fechaContrato: FechaISO, diasSuspendidos: nu
 export function regimenPorPrimeraAlta(fechaPrimeraAlta: FechaISO): "L73" | "L97" {
   return fechaPrimeraAlta < "1997-07-01" ? "L73" : "L97";
 }
+
+/** Bimestres completos entre la primera alta y la baja (petición de Irving, 28-oct).
+ *  Es tiempo transcurrido, no cotizado: si hubo periodos sin empleo, sobrestima. */
+export function bimestresEntre(alta: FechaISO, baja: FechaISO): number {
+  if (baja <= alta) return 0;
+  const [a1, m1, d1] = alta.split("-").map(Number);
+  const [a2, m2, d2] = baja.split("-").map(Number);
+  const meses = (a2 - a1) * 12 + (m2 - m1) - (d2 < d1 ? 1 : 0);
+  return Math.floor(Math.max(0, meses) / 2);
+}
+
+/** Bimestres que alcanzan las semanas cotizadas (un bimestre ≈ 61 días ≈ 8.7 semanas). */
+export function bimestresPorSemanas(semanas: number): number {
+  return Math.floor((semanas * 7) / 61);
+}
