@@ -8,7 +8,9 @@ import { faltantesParaCalcular } from "@/lib/calculo/entrada";
 import { conUsuario } from "@/lib/db/prisma";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import type { Impacto, OpcionModalidad, Resultado } from "@/lib/reglas/retiro";
+import { hoyCDMX } from "@/lib/tiempo";
 import { cn } from "@/lib/utils";
+import { AsistenteCalculo, type Valores } from "../asistente-calculo";
 import { BotonCalcular } from "../boton-calcular";
 
 const RESULTADO: Record<Resultado, { texto: string; tono: "pagado" | "espera" | "critico" | "tramite" | "prospecto" }> = {
@@ -28,14 +30,45 @@ export async function PestanaCalculo({ caso, sesion }: { caso: CasoDetalle; sesi
   if (caso.servicio.clave !== "RETIRO_DESEMPLEO") {
     return <Card><CardContent className="text-sm text-ink-muted">La calculadora es para el retiro por desempleo. La de pensiones llega en la fase 4.</CardContent></Card>;
   }
-  const calculos = await conUsuario(sesion.claims, (tx) => tx.calculo.findMany({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, take: 10 }), sesion.ip);
+  const [calculos, afores] = await Promise.all([
+    conUsuario(sesion.claims, (tx) => tx.calculo.findMany({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, take: 10 }), sesion.ip),
+    conUsuario(sesion.claims, (tx) => tx.afore.findMany({ where: { activo: true }, orderBy: { nombre: "asc" }, select: { clave: true, nombre: true } }), sesion.ip),
+  ]);
   const faltantes = faltantesParaCalcular(caso);
   const ultimo = calculos[0];
   const g = ultimo?.impacto_pension as Guardado | null | undefined;
   const elegida = ultimo?.modalidad_elegida as "A" | "B" | null | undefined;
 
+  const i = caso.datos_imss, a = caso.datos_afore;
+  const f = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : "");
+  const t = (x: { toString(): string } | null | undefined) => (x === null || x === undefined ? "" : x.toString());
+  const inicial: Valores = {
+    regimen: i?.regimen ?? "por_definir", regimen_justificacion: i?.regimen_justificacion ?? "", fecha_primera_alta: f(i?.fecha_primera_alta),
+    fecha_constancia: f(i?.fecha_constancia), fecha_baja: f(i?.fecha_baja), semanas_cotizadas: t(i?.semanas_cotizadas), semanas_descontadas: t(i?.semanas_descontadas),
+    semanas_reintegradas: t(i?.semanas_reintegradas), bimestres_cotizados: t(i?.bimestres_cotizados), sbc_ultimo: t(i?.sbc_ultimo), sbc_promedio_250: t(i?.sbc_promedio_250),
+    ultimo_patron: i?.ultimo_patron ?? "", cotiza_actualmente: Boolean(i?.cotiza_actualmente),
+    afore: a?.afore ?? "", tipo_cuenta: a?.tipo_cuenta ?? "", fecha_apertura_cuenta: f(a?.fecha_apertura_cuenta), fecha_estado_cuenta: f(a?.fecha_estado_cuenta),
+    saldo_rcv: t(a?.saldo_rcv), saldo_sar92: t(a?.saldo_sar92), saldo_vivienda: t(a?.saldo_vivienda), saldo_voluntarias: t(a?.saldo_voluntarias),
+    estado_ultimo_retiro: a?.estado_ultimo_retiro ?? "por_verificar", fecha_ultimo_retiro: f(a?.fecha_ultimo_retiro), ide_vigente: Boolean(a?.ide_vigente),
+    banco: a?.banco ?? "", cuenta_nivel4: Boolean(a?.cuenta_nivel4), cuenta_solo_digital: Boolean(a?.cuenta_solo_digital),
+  };
+  const asistente = sesion.usuario.rol !== "vendedor" && (
+    <Card>
+      <CardHeader><CardTitle>Asistente de precalificación</CardTitle></CardHeader>
+      <CardContent>
+        <details open={!calculos.length || faltantes.length > 0}>
+          <summary className="cursor-pointer text-sm font-medium text-brand">{calculos.length ? "Revisar o cambiar los datos paso a paso" : "Captura en 4 pasos"}</summary>
+          <div className="mt-4">
+            <AsistenteCalculo casoId={caso.id} inicial={inicial} afores={afores.map((x) => [x.clave, x.nombre] as const)} hoy={hoyCDMX()} modalidad={(calculos[0]?.modalidad_elegida as "A" | "B" | null) ?? null} />
+          </div>
+        </details>
+      </CardContent>
+    </Card>
+  );
+
   return (
     <div className="grid gap-4">
+      {asistente}
       {faltantes.length > 0 && (
         <Card>
           <CardContent className="flex gap-3 text-sm">
