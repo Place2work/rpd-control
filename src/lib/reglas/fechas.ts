@@ -30,6 +30,15 @@ export function sumarAnios(iso: FechaISO, anios: number): FechaISO {
   return aISO(new Date(Date.UTC(a + anios, m - 1, Math.min(d, ultimoDia))));
 }
 
+// Suma meses de calendario; el día se ajusta al último del mes si no existe (31-ene + 1 = 28/29-feb).
+export function sumarMeses(iso: FechaISO, meses: number): FechaISO {
+  const [a, m, d] = iso.split("-").map(Number);
+  const total = a * 12 + (m - 1) + meses;
+  const ano = Math.floor(total / 12), mes = total % 12;
+  const ultimoDia = new Date(Date.UTC(ano, mes + 1, 0)).getUTCDate();
+  return aISO(new Date(Date.UTC(ano, mes, Math.min(d, ultimoDia))));
+}
+
 export function esDiaHabil(iso: FechaISO, inhabiles: ReadonlySet<FechaISO>): boolean {
   const dia = aDate(iso).getUTCDay();
   return dia !== 0 && dia !== 6 && !inhabiles.has(iso);
