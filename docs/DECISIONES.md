@@ -95,3 +95,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   plantilla imprime, cada uno con renglón VER_SENSIBLE en la bitácora. El vendedor no genera contratos.
 - Pendiente: plantilla del aviso de privacidad para retiro (solo se recibió el de fallecimiento) y variante de
   contrato cuando la viuda contrata directamente o por concubinato.
+
+### Pensión y Modalidad 40 (7.6)
+- Pago M40: vence el **día 17 del mismo mes que cubre** (por adelantado, como dice 7.6). Las fuentes públicas
+  coinciden en el día 17 pero no en si es del mismo mes o del siguiente: `M40_DIA_LIMITE` y `M40_PAGO_ADELANTADO`
+  son parámetros por si hay que cambiarlo.
+- El monto mensual de M40 lo captura el asesor (la tasa del IMSS cambia cada año hasta 2030); el sistema no la calcula.
+- Conservación de derechos Ley 73: ¼ del tiempo cotizado desde la baja, mínimo 12 meses (art. 150 LSS 1973).
+- INFONAVIT_70: el sistema no sabe si hay saldo de vivienda; avisa a los 69 en casos de pensión, M40 y
+  devolución Infonavit para que el asesor lo verifique.

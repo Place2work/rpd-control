@@ -12,6 +12,7 @@ import { PestanaDinero } from "./pestanas/dinero";
 import { PestanaDatos } from "./pestanas/datos";
 import { PestanaDocumentos } from "./pestanas/documentos";
 import { PestanaImss } from "./pestanas/imss";
+import { PestanaPension } from "./pestanas/pension";
 import { PestanaResumen } from "./pestanas/resumen";
 import { PestanaSeguimiento } from "./pestanas/seguimiento";
 
@@ -25,10 +26,13 @@ const PESTANAS = [
   ["calculo", "Cálculo"],
   ["documentos", "Documentos"],
   ["seguimiento", "Seguimiento"],
+  ["pension", "Pensión y M40"],
   ["dinero", "Dinero"],
   ["contrato", "Contrato"],
 ] as const;
-const LISTAS = new Set(["resumen", "datos", "imss", "calculo", "documentos", "seguimiento", "dinero", "contrato"]);
+const LISTAS = new Set(["resumen", "datos", "imss", "calculo", "documentos", "seguimiento", "pension", "dinero", "contrato"]);
+// Pensión y M40 solo en servicios de planeación de pensión.
+const CON_PENSION = new Set(["PENSION_L73", "PENSION_L97", "MODALIDAD_40", "PTI_M10", "DEVOLUCION_INFONAVIT"]);
 
 const ETAPA: Record<string, { texto: string; tono: "prospecto" | "espera" | "tramite" | "pagado" | "perdido" | "critico" }> = {
   PROSPECTO: { texto: "Prospecto", tono: "prospecto" },
@@ -53,7 +57,8 @@ export default async function Expediente({ params, searchParams }: Props) {
   const caso = await obtenerCaso(sesion, id);
   if (!caso) notFound();
 
-  const pestana = LISTAS.has(tab) ? tab : "resumen";
+  const visibles = PESTANAS.filter(([k]) => k !== "pension" || CON_PENSION.has(caso.servicio.clave));
+  const pestana = LISTAS.has(tab) && visibles.some(([k]) => k === tab) ? tab : "resumen";
   const nombre = nombreCompleto(caso.persona);
   const etapa = ETAPA[caso.etapa] ?? { texto: caso.etapa, tono: "prospecto" as const };
   const wa = caso.persona.whatsapp?.replace("+", "");
@@ -96,7 +101,7 @@ export default async function Expediente({ params, searchParams }: Props) {
 
       <nav aria-label="Secciones del expediente" className="-mx-4 mb-4 overflow-x-auto border-b border-borde px-4 md:mx-0 md:px-0">
         <ul className="flex gap-1">
-          {PESTANAS.map(([clave, texto]) => {
+          {visibles.map(([clave, texto]) => {
             const activa = clave === pestana;
             const lista = LISTAS.has(clave);
             return (
@@ -123,6 +128,7 @@ export default async function Expediente({ params, searchParams }: Props) {
       {pestana === "calculo" && <PestanaCalculo caso={caso} sesion={sesion} />}
       {pestana === "documentos" && <PestanaDocumentos caso={caso} sesion={sesion} />}
       {pestana === "seguimiento" && <PestanaSeguimiento caso={caso} />}
+      {pestana === "pension" && <PestanaPension caso={caso} sesion={sesion} />}
       {pestana === "dinero" && <PestanaDinero caso={caso} sesion={sesion} />}
       {pestana === "contrato" && <PestanaContrato caso={caso} sesion={sesion} />}
     </>

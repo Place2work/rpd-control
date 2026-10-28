@@ -103,3 +103,18 @@ export async function parametrosDinero(fecha = hoyCDMX()): Promise<import("@/lib
     FALLEC_COMISION_PCT_RECUPERADO: numero("FALLEC_COMISION_PCT_RECUPERADO"),
   };
 }
+
+// Plazos de pensión y Modalidad 40 (7.6) y avisos de 8.1.
+export async function parametrosPension(fecha = hoyCDMX()): Promise<import("@/lib/reglas/pension").ParametrosPension> {
+  const numeros = ["M40_ANIOS_DERECHO", "M40_SEMANAS_REQUERIDAS", "M40_MESES_BAJA", "M40_MESES_REINGRESO", "M40_DIA_LIMITE",
+    "VENTANA_SIN_EXAMEN_MESES", "CONSERVACION_FRACCION", "CONSERVACION_MIN_MESES", "AVISO_M40_PAGO_DIAS", "AVISO_M40_PLAZO_DIAS",
+    "AVISO_VENTANA_DIAS", "AVISO_EDAD_MESES", "AVISO_CONSERVACION_DIAS", "INFONAVIT_EDAD_AVISO", "INFONAVIT_EDAD_LIMITE"] as const;
+  const p = await parametrosVigentes([...numeros, "M40_PAGO_ADELANTADO"], fecha);
+  const r = {} as Record<(typeof numeros)[number], number>;
+  for (const k of numeros) {
+    const v = Number(p[k]);
+    if (!Number.isFinite(v)) throw new Error(`Falta el parámetro ${k} vigente al ${fecha}`);
+    r[k] = v;
+  }
+  return { ...r, M40_PAGO_ADELANTADO: p.M40_PAGO_ADELANTADO !== "no" };
+}
