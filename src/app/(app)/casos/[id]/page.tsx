@@ -6,6 +6,7 @@ import { Badge } from "@/components/ui/badge";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { nombreCompleto, obtenerCaso } from "@/lib/prospectos/consultas";
 import { cn } from "@/lib/utils";
+import { PestanaCalculo } from "./pestanas/calculo";
 import { PestanaContrato } from "./pestanas/contrato";
 import { PestanaDatos } from "./pestanas/datos";
 import { PestanaDocumentos } from "./pestanas/documentos";
@@ -26,7 +27,7 @@ const PESTANAS = [
   ["dinero", "Dinero"],
   ["contrato", "Contrato"],
 ] as const;
-const LISTAS = new Set(["resumen", "datos", "imss", "documentos", "seguimiento", "contrato"]);
+const LISTAS = new Set(["resumen", "datos", "imss", "calculo", "documentos", "seguimiento", "contrato"]);
 
 const ETAPA: Record<string, { texto: string; tono: "prospecto" | "espera" | "tramite" | "pagado" | "perdido" | "critico" }> = {
   PROSPECTO: { texto: "Prospecto", tono: "prospecto" },
@@ -107,7 +108,7 @@ export default async function Expediente({ params, searchParams }: Props) {
                   </Link>
                 ) : (
                   <span className="inline-block cursor-not-allowed whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm text-ink-muted/50"
-                    title="Llega en una fase posterior (Cálculo: fase 2 · Dinero: fase 3)">{texto}</span>
+                    title="Llega en la fase 3 (dinero)">{texto}</span>
                 )}
               </li>
             );
@@ -118,6 +119,7 @@ export default async function Expediente({ params, searchParams }: Props) {
       {pestana === "resumen" && <PestanaResumen caso={caso} sesion={sesion} />}
       {pestana === "datos" && <PestanaDatos caso={caso} puedeVer={sesion.usuario.rol !== "vendedor"} />}
       {pestana === "imss" && <PestanaImss caso={caso} sesion={sesion} />}
+      {pestana === "calculo" && <PestanaCalculo caso={caso} sesion={sesion} />}
       {pestana === "documentos" && <PestanaDocumentos caso={caso} sesion={sesion} />}
       {pestana === "seguimiento" && <PestanaSeguimiento caso={caso} />}
       {pestana === "contrato" && <PestanaContrato caso={caso} sesion={sesion} />}

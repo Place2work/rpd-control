@@ -58,3 +58,22 @@ export async function parametrosFechas(fecha = hoyCDMX()) {
     inhabiles: new Set(inhabiles.map((d) => d.fecha.toISOString().slice(0, 10))),
   };
 }
+
+// Parámetros del motor de retiro (7.2 a 7.5), vigentes en la fecha del cálculo: así un
+// cálculo viejo se reproduce con la UMA de su fecha (14.2).
+export async function parametrosRetiro(fecha = hoyCDMX()) {
+  const claves = [
+    "UMA_MENSUAL", "MODALIDAD_A_ANIOS", "MODALIDAD_A_BIMESTRES", "MODALIDAD_A_DIAS_SBC", "MODALIDAD_A_TOPE_UMAS",
+    "MODALIDAD_B_ANIOS", "MODALIDAD_B_DIAS_SBC", "MODALIDAD_B_PCT_RCV", "UMBRAL_DIFERENCIA_MODALIDAD", "HONORARIO_RETIRO_PCT", "IVA",
+    "L97_SEMANAS_2021", "L97_INCREMENTO_ANUAL", "L97_SEMANAS_TOPE", "L73_SEMANAS_MINIMAS", "L73_SEMANAS_CRITICAS",
+    "DIAS_ESPERA_DESEMPLEO", "ANIOS_CANDADO_RETIRO", "UMA_DIARIA",
+  ] as const;
+  const p = await parametrosVigentes([...claves], fecha);
+  const r = {} as Record<(typeof claves)[number], number>;
+  for (const k of claves) {
+    const v = Number(p[k]);
+    if (!Number.isFinite(v)) throw new Error(`Falta el parámetro ${k} vigente al ${fecha}`);
+    r[k] = v;
+  }
+  return r;
+}
