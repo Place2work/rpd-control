@@ -20,6 +20,7 @@ export type DatosHoja = {
   impacto: Impacto | null;
   tareas: string[];
   umaMensual: number;
+  honorarioPct: number; // el vigente al calcular
 };
 
 const mxn = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -108,7 +109,7 @@ function Hoja(d: DatosHoja) {
         <Text style={[s.nota, { marginTop: 16 }]}>
           Montos y semanas estimados con la información de tu constancia de semanas y tu estado de cuenta, y la UMA mensual vigente
           ({mxn(d.umaMensual)}). El monto definitivo lo determina tu Afore. El retiro por desempleo descuenta semanas de cotización
-          en proporción al saldo retirado (art. 198 de la Ley del Seguro Social). Nuestro honorario es el 30% de lo que pague la Afore, IVA incluido.
+          en proporción al saldo retirado (art. 198 de la Ley del Seguro Social). Nuestro honorario es el {+(d.honorarioPct * 100).toFixed(2)}% de lo que pague la Afore, IVA incluido.
         </Text>
 
         <PiePdf />

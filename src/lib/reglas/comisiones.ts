@@ -32,7 +32,7 @@ export function baseDePago(pago: Pick<PagoAforeFoto, "bruto" | "neto">, cual: "n
   return cual === "bruto" ? pago.bruto : pago.neto;
 }
 
-/** Honorario del 30% sobre el depósito (neto o bruto según el parámetro), con su desglose. */
+/** Honorario (HONORARIO_RETIRO_PCT) sobre el depósito (neto o bruto según el parámetro), con su desglose. */
 export function honorarioDePago(pago: Pick<PagoAforeFoto, "bruto" | "neto">, p: Pick<ParametrosDinero, "HONORARIO_RETIRO_PCT" | "IVA" | "BASE_HONORARIO">) {
   const base = baseDePago(pago, p.BASE_HONORARIO);
   return { base, ...desglosarHonorario(base, p) };

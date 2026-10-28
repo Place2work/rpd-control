@@ -28,7 +28,7 @@ const cent = (pesos: number) => Math.round(pesos * 100);
 const pesos = (c: number) => Math.round(c) / 100;
 const uno = (x: number) => Math.round(x * 10) / 10;
 
-// ───────────── 2.2 Honorario: 30% IVA incluido ─────────────
+// ───────────── 2.2 Honorario: % del pago de la Afore, IVA incluido (parámetro) ─────────────
 
 /** Subtotal redondeado a 2 decimales; el IVA es la diferencia para que siempre sume exacto. */
 export function desglosarHonorario(montoPagado: number, p: Pick<ParametrosRetiro, "HONORARIO_RETIRO_PCT" | "IVA">) {

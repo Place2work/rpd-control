@@ -66,3 +66,20 @@ Diseño:
 - `liquidaciones` agrupa las comisiones pagadas de un beneficiario en un mes (estado de cuenta reimprimible).
 - Migración `20261028000800_dinero` (solo agrega): `comisiones.clave` con índice único parcial, `cobros.concepto`,
   `cobros.motivo_cancelacion` (obligatorio al cancelar), tabla `liquidaciones` con RLS y bitácora.
+
+## 28-oct-2026 · Fase 4: decisiones con los contratos vigentes
+
+Irving entregó sus contratos vigentes (retiro RP-27 y pensión por fallecimiento RP-29) y el aviso de privacidad.
+Los documentos de clientes no se guardan en el repositorio: se convirtieron en plantillas con variables.
+
+- **Honorario del retiro: 26% IVA incluido** (antes 30%). Parámetro `HONORARIO_RETIRO_PCT` con vigencia desde
+  2026-10-28; el 30% queda vigente hasta el 27-oct para reproducir cálculos viejos. Los casos de prueba de la
+  sección 14 siguen usando 30% porque reciben los parámetros explícitos.
+- **Vigencia del contrato de retiro: 180 días naturales** (antes 90). `VIGENCIA_CONTRATO_DIAS` con la misma vigencia.
+- **Cobro del retiro:** se queda como está (un cobro por cada pago de la Afore). El anticipo del 50% que menciona
+  el contrato no se modela por ahora.
+- **Responsable de los datos personales: Irving Ortega Valois, persona física** (nombre comercial
+  RetiroPorDesempleo.com). La plantilla del aviso de privacidad se corrige (el original decía «S.A.S.»).
+- **Portal del cliente:** no por ahora.
+- **Calendario:** suscripción con liga privada (.ics) por usuario; sin conexión OAuth con Google.
+- **Asistente de precalificación en 4 pasos:** sí, en esta fase.

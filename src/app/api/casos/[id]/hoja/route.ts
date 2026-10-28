@@ -2,6 +2,7 @@
 import { NextResponse, type NextRequest } from "next/server";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
+import { parametrosDinero } from "@/lib/parametros";
 import { generarHojaPrecalificacion } from "@/lib/pdf/hoja-precalificacion";
 import type { Impacto, OpcionModalidad, Resultado } from "@/lib/reglas/retiro";
 
@@ -28,7 +29,7 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
   if (!caso || !c) return new NextResponse("Primero calcula la precalificación.", { status: 404 });
 
   const g = c.impacto_pension as { opciones: OpcionModalidad[]; porDefecto: "A" | "B" | null; impacto: Impacto | null; tareas: string[] } | null;
-  const entradas = c.entradas as { semanasTotales: number; saldoRcv: number };
+  const entradas = c.entradas as { semanasTotales: number; saldoRcv: number; parametros?: { HONORARIO_RETIRO_PCT?: number } };
   const pdf = await generarHojaPrecalificacion({
     folio: caso.folio,
     fecha: new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" }).format(c.fecha_calculo),
@@ -43,6 +44,8 @@ export async function GET(_req: NextRequest, { params }: { params: Promise<{ id:
     impacto: g?.impacto ?? null,
     tareas: g?.tareas ?? [],
     umaMensual: Number(c.uma_mensual),
+    // El porcentaje con que se hizo el cálculo, no el de hoy.
+    honorarioPct: entradas.parametros?.HONORARIO_RETIRO_PCT ?? (await parametrosDinero(c.fecha_calculo.toISOString().slice(0, 10))).HONORARIO_RETIRO_PCT,
   });
   return new NextResponse(new Uint8Array(pdf), {
     headers: {

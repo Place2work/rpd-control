@@ -6,6 +6,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
+import { parametrosDinero } from "@/lib/parametros";
 import { margenCaso } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import { archivarPagoAfore, cancelarCobro, guardarCanal, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
@@ -25,6 +26,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     return <Card><CardContent className="text-sm text-ink-muted">Los pagos y cobros los registra el asesor. Tus comisiones están en «Comisiones».</CardContent></Card>;
   }
   const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
+  const { HONORARIO_RETIRO_PCT } = await parametrosDinero();
+  const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
   const puedeCanal = rol === "director" || rol === "asesor";
   const d = await conUsuario(sesion.claims, async (tx) => ({
     pagos: await tx.pagoAfore.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { numero: "asc" } }),
@@ -88,7 +91,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                   <CampoTexto id="monto_bruto" etiqueta="Monto bruto" inputMode="decimal" placeholder="10,000.00" />
                   <CampoTexto id="isr_retenido" etiqueta="ISR retenido" ayuda="si hubo" inputMode="decimal" placeholder="0.00" />
                 </div>
-                <p className="text-xs text-ink-muted">El honorario del 30% (IVA incluido) se calcula sobre el depósito neto y queda por cobrar.</p>
+                <p className="text-xs text-ink-muted">El honorario del {pctTxt(HONORARIO_RETIRO_PCT)} (IVA incluido) se calcula sobre el depósito y queda por cobrar.</p>
               </FormularioAccion>
             )}
           </CardContent>
@@ -114,7 +117,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                   <span className="cifra font-display text-lg font-semibold text-ink">{mxn(c.honorario_total)}</span>
                 </div>
                 <p className="mt-1 text-xs text-ink-muted">
-                  Subtotal {mxn(c.subtotal)} + IVA {mxn(c.iva)}{c.base_calculo ? ` · 30% de ${mxn(c.base_calculo)}` : ""}
+                  Subtotal {mxn(c.subtotal)} + IVA {mxn(c.iva)}{c.base_calculo ? ` · ${pctTxt(Number(c.honorario_total) / Number(c.base_calculo))} de ${mxn(c.base_calculo)}` : ""}
                   {c.estado === "cobrado" && ` · cobrado el ${corta(c.fecha_cobro)} por ${c.metodo}${c.referencia ? ` (${c.referencia})` : ""}${c.factura_folio ? ` · factura ${c.factura_folio}` : ""}`}
                   {c.estado === "cancelado" && ` · ${c.motivo_cancelacion}`}
                 </p>

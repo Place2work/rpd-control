@@ -71,7 +71,7 @@ export function CambiarEtapa({ casoId, opciones, esLey73, embudo, hoy, valores }
                   <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="cliente_entendio_costo" value="si" className="size-5" /> El cliente recibió y entendió el costo en semanas</label>
                 </fieldset>
               )}
-              {embudo === "retiro" && <p className="text-xs text-ink-muted">Al firmar, el caso pasa directo a «Armando expediente» y empieza a contar la vigencia de 90 días.</p>}
+              {embudo === "retiro" && <p className="text-xs text-ink-muted">Al firmar, el caso pasa directo a «Armando expediente» y empieza a contar la vigencia del contrato.</p>}
             </>
           )}
           {elegida.destino === "INGRESADA" && (
@@ -106,7 +106,7 @@ export function CambiarEtapa({ casoId, opciones, esLey73, embudo, hoy, valores }
           {elegida.destino === "BLOQUEADO" && (
             <label className="flex items-center gap-2 text-sm">
               <input type="checkbox" name="atribuible_cliente" value="si" className="size-5" />
-              Es por causa del cliente (suspende el conteo de los 90 días)
+              Es por causa del cliente (suspende el conteo de la vigencia del contrato)
             </label>
           )}
           {pideMotivo && (

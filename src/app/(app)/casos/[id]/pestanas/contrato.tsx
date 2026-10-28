@@ -4,6 +4,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { diasEntre } from "@/lib/reglas/fechas";
+import { parametrosFechas } from "@/lib/parametros";
 import { hoyCDMX } from "@/lib/tiempo";
 import { Dato } from "../campos";
 
@@ -15,6 +16,7 @@ export async function PestanaContrato({ caso, sesion }: { caso: CasoDetalle; ses
   const suspensiones = await conUsuario(sesion.claims,
     (tx) => tx.suspensionContrato.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { inicio: "desc" } }), sesion.ip)
     .catch(() => []);
+  const { VIGENCIA_CONTRATO_DIAS: vigencia } = await parametrosFechas(hoy);
   const vence = isoDe(caso.fecha_vencimiento_contrato);
   const restantes = vence ? diasEntre(hoy, vence) : null;
 
@@ -36,7 +38,7 @@ export async function PestanaContrato({ caso, sesion }: { caso: CasoDetalle; ses
             </dl>
           )}
           <p className="rounded-md bg-slate-50 p-3 text-xs text-ink-muted">
-            La vigencia es de 90 días naturales desde la firma, más los días que el caso estuvo bloqueado por causa del cliente (2.4).
+            La vigencia es de {vigencia} días naturales desde la firma, más los días que el caso estuvo bloqueado por causa del cliente (2.4).
             Generar el contrato en PDF desde la plantilla llega en la fase 4.
           </p>
         </CardContent>

@@ -102,7 +102,7 @@ export function diasHabilesTranscurridos(desde: FechaISO, hasta: FechaISO, inhab
   return n;
 }
 
-/** Vencimiento del contrato: firma + 90 días naturales + días suspendidos por causa del cliente. */
+/** Vencimiento del contrato: firma + VIGENCIA_CONTRATO_DIAS naturales + días suspendidos por causa del cliente. */
 export function vencimientoContrato(fechaContrato: FechaISO, diasSuspendidos: number, p: Pick<ParametrosFechas, "VIGENCIA_CONTRATO_DIAS">): FechaISO {
   return sumarDias(fechaContrato, p.VIGENCIA_CONTRATO_DIAS + diasSuspendidos);
 }
