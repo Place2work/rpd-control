@@ -30,3 +30,13 @@ día 46 = baja + 46 · Vercel + Supabase · retención 5 años · logotipo SVG p
 | GitHub | `Place2work/rpd-control` (privado) |
 | Vercel | `https://rpd-control.vercel.app`, equipo place2work (Hobby; Pro para uso comercial) |
 | Director | retiropordesempleo.com@gmail.com, 2FA TOTP verificado (27-oct) |
+
+## 28-oct-2026 · Fase 2: hoja PDF y formulario del sitio
+
+- **Hoja de precalificación** (11.4): `GET /api/casos/{id}/hoja` genera el PDF del último cálculo
+  con @react-pdf/renderer, Poppins e Inter (licencia OFL, en `src/lib/pdf/fuentes`). Pasa por RLS:
+  solo la ve quien puede ver el caso.
+- **`POST /api/leads`**: firma HMAC-SHA256 sobre `timestamp.cuerpo`, ventana de 5 minutos. El
+  prospecto entra a la bandeja general con dueño = primer Director activo. Mismo WhatsApp con caso
+  abierto del mismo servicio: no se duplica, se anota y se avisa. El sitio no manda CURP ni NSS.
+  Contrato completo en `docs/INTEGRACION_SITIO.md`. Requiere `LEADS_HMAC_SECRETO` en Vercel y en el sitio.
