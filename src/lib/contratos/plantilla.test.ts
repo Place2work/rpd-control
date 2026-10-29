@@ -1,7 +1,7 @@
 import fs from "node:fs";
 import { describe, expect, it } from "vitest";
 import { enteroEnLetra, pesosEnLetra, porcentajeEnLetra } from "./letras";
-import { BLANCO, bloques, llenar, negritas } from "./plantilla";
+import { BLANCO, bloques, llenar, negritas, validarPlantilla } from "./plantilla";
 
 describe("números en letra", () => {
   it("como en los contratos vigentes", () => {
@@ -68,5 +68,18 @@ describe("plantillas iniciales", () => {
     for (const p of PLANTILLAS_INICIALES) {
       expect(p.cuerpo).toBe(fs.readFileSync(`${__dirname}/../../../prisma/plantillas/${p.archivo}`, "utf8"));
     }
+  });
+});
+
+describe("validar plantilla antes de guardarla", () => {
+  it("las plantillas vigentes son válidas", () => {
+    for (const f of ["contrato-retiro.md", "contrato-fallecimiento.md", "aviso-fallecimiento.md", "aviso-retiro.md"]) {
+      expect(validarPlantilla(fs.readFileSync(`${__dirname}/../../../prisma/plantillas/${f}`, "utf8"))).toEqual([]);
+    }
+  });
+  it("detecta variables mal escritas, bloques sin cerrar y falta de firmas", () => {
+    expect(validarPlantilla("# T\n{{cliente.nombr}} {{#si finado}}x\n")).toEqual([
+      "Variable desconocida: {{cliente.nombr}}", "Hay 1 {{#si …}} y 0 {{/si}}: deben ser iguales", "Falta [[firmas]] (el lugar de las firmas)",
+    ]);
   });
 });

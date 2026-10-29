@@ -42,7 +42,7 @@ export default async function Calendario({ searchParams }: { searchParams: Promi
 
   const [eventos, inhabiles, liga] = await Promise.all([
     eventosUsuario(sesion.claims, sesion.ip, desde, hasta, hoy),
-    prismaSistema.diaInhabil.findMany({ where: { fecha: { gte: new Date(`${desde}T00:00:00Z`), lte: new Date(`${hasta}T00:00:00Z`) } } }),
+    prismaSistema.diaInhabil.findMany({ where: { activo: true, fecha: { gte: new Date(`${desde}T00:00:00Z`), lte: new Date(`${hasta}T00:00:00Z`) } } }),
     conUsuario(sesion.claims, (tx) => tx.calendarioToken.findFirst({ where: { usuario_id: sesion.usuario.id, revocado_at: null }, select: { id: true } }), sesion.ip),
   ]);
   const feriado = new Map(inhabiles.map((d) => [d.fecha.toISOString().slice(0, 10), d.descripcion]));

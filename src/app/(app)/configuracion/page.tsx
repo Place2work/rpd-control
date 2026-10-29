@@ -1,59 +1,59 @@
 import type { Metadata } from "next";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import Link from "next/link";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { exigirRol } from "@/lib/auth/sesion";
-import { prismaSistema } from "@/lib/db/prisma";
+import { cn } from "@/lib/utils";
+import { SeccionBitacora } from "./secciones/bitacora";
+import { SeccionComisiones } from "./secciones/comisiones";
+import { SeccionInhabiles } from "./secciones/inhabiles";
+import { SeccionMensajes } from "./secciones/mensajes";
+import { SeccionParametros } from "./secciones/parametros";
+import { SeccionPlantillas } from "./secciones/plantillas";
+import { SeccionUsuarios } from "./secciones/usuarios";
 
 export const metadata: Metadata = { title: "Configuración" };
 
-const fecha = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : "sin fin");
+const SECCIONES = [
+  ["usuarios", "Usuarios y roles"],
+  ["parametros", "Parámetros"],
+  ["plantillas", "Contratos y avisos"],
+  ["mensajes", "Mensajes de WhatsApp"],
+  ["comisiones", "Esquemas de comisión"],
+  ["inhabiles", "Días inhábiles"],
+  ["bitacora", "Bitácora"],
+] as const;
+type Seccion = (typeof SECCIONES)[number][0];
 
-// 10.9, solo Director. En fase 0 es de consulta; la edición con vigencia llega en la fase 1.
-export default async function Configuracion() {
-  await exigirRol("director");
-  const [parametros, servicios, documentos, afores, inhabiles] = await Promise.all([
-    prismaSistema.parametro.findMany({ orderBy: [{ clave: "asc" }, { vigente_desde: "desc" }] }),
-    prismaSistema.tipoServicio.count(),
-    prismaSistema.tipoDocumento.count(),
-    prismaSistema.afore.count(),
-    prismaSistema.diaInhabil.count(),
-  ]);
+// 10.9: solo el Director. Cada cambio queda en la bitácora; lo que tiene vigencia nunca cambia hacia atrás.
+export default async function Configuracion({ searchParams }: { searchParams: Promise<{ seccion?: string; filtro?: string }> }) {
+  const sesion = await exigirRol("director");
+  const q = await searchParams;
+  const seccion: Seccion = SECCIONES.some(([k]) => k === q.seccion) ? (q.seccion as Seccion) : "usuarios";
+
   return (
     <>
-      <Encabezado titulo="Configuración" descripcion="Parámetros con vigencia, catálogos y bitácora." />
-      <div className="mb-4 grid grid-cols-2 gap-3 md:grid-cols-4">
-        {[["Servicios", servicios], ["Tipos de documento", documentos], ["Afores", afores], ["Días inhábiles", inhabiles]].map(([t, n]) => (
-          <Card key={t} className="p-4">
-            <p className="text-xs text-ink-muted">{t}</p>
-            <p className="cifra mt-1 font-display text-[22px] font-semibold">{n}</p>
-          </Card>
-        ))}
+      <Encabezado titulo="Configuración" descripcion="Equipo, parámetros con vigencia, plantillas, comisiones, días inhábiles y bitácora." />
+      <div className="grid gap-4 lg:grid-cols-[220px_1fr]">
+        <nav aria-label="Secciones de configuración" className="-mx-4 overflow-x-auto px-4 lg:mx-0 lg:px-0">
+          <ul className="flex gap-1 lg:flex-col">
+            {SECCIONES.map(([k, t]) => (
+              <li key={k}>
+                <Link href={`/configuracion?seccion=${k}`} aria-current={k === seccion ? "page" : undefined}
+                  className={cn("block whitespace-nowrap rounded-[var(--radius-boton)] px-3 py-2 text-sm", k === seccion ? "bg-brand-tint font-medium text-brand" : "text-ink-muted hover:text-ink")}>{t}</Link>
+              </li>
+            ))}
+          </ul>
+        </nav>
+        <div className="min-w-0">
+          {seccion === "usuarios" && <SeccionUsuarios sesion={sesion} />}
+          {seccion === "parametros" && <SeccionParametros sesion={sesion} />}
+          {seccion === "plantillas" && <SeccionPlantillas sesion={sesion} />}
+          {seccion === "mensajes" && <SeccionMensajes sesion={sesion} />}
+          {seccion === "comisiones" && <SeccionComisiones sesion={sesion} />}
+          {seccion === "inhabiles" && <SeccionInhabiles sesion={sesion} />}
+          {seccion === "bitacora" && <SeccionBitacora sesion={sesion} filtro={q.filtro ?? ""} />}
+        </div>
       </div>
-      <Card>
-        <CardHeader><CardTitle>Parámetros</CardTitle></CardHeader>
-        <CardContent className="overflow-x-auto">
-          <table className="w-full text-[13px]">
-            <thead className="text-left text-xs text-ink-muted">
-              <tr className="border-b border-borde">
-                <th className="py-2 pr-4 font-medium">Clave</th>
-                <th className="py-2 pr-4 text-right font-medium">Valor</th>
-                <th className="py-2 pr-4 font-medium">Vigencia</th>
-                <th className="py-2 font-medium">Descripción</th>
-              </tr>
-            </thead>
-            <tbody>
-              {parametros.map((p) => (
-                <tr key={p.id} className="border-b border-borde last:border-0">
-                  <td className="py-2 pr-4 font-mono text-xs">{p.clave}</td>
-                  <td className="cifra max-w-64 truncate py-2 pr-4 text-right" title={p.valor}>{p.valor}</td>
-                  <td className="cifra whitespace-nowrap py-2 pr-4 text-ink-muted">{fecha(p.vigente_desde)} → {fecha(p.vigente_hasta)}</td>
-                  <td className="py-2 text-ink-muted">{p.descripcion}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
     </>
   );
 }

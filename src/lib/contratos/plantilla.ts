@@ -75,3 +75,36 @@ export function bloques(texto: string): Bloque[] {
 export function negritas(texto: string): { texto: string; negrita: boolean }[] {
   return texto.split(/(\*\*[^*]+\*\*)/g).filter(Boolean).map((p) => (p.startsWith("**") ? { texto: p.slice(2, -2), negrita: true } : { texto: p, negrita: false }));
 }
+
+// Variables que el sistema sabe llenar (src/lib/contratos/datos.ts). Una plantilla nueva solo puede usar estas.
+export const VARIABLES = [
+  "folio", "ciudad", "fecha_firma", "vigencia_dias", "regularizacion", "advertencias",
+  "prestador.nombre", "prestador.nombre_comercial", "prestador.rfc", "prestador.regimen", "prestador.domicilio",
+  "prestador.banco", "prestador.cuenta", "prestador.clabe",
+  "cliente.nombre", "cliente.curp", "cliente.nss", "cliente.domicilio", "cliente.email", "cliente.identificacion", "cliente.parentesco",
+  "honorario.pct", "precio.pago_unico", "precio.pct_recuperado",
+  "beneficiaria", "beneficiaria.nombre", "beneficiaria.relacion", "beneficiaria.curp", "beneficiaria.domicilio", "beneficiaria.identificacion",
+  "finado", "finado.nombre", "finado.curp", "finado.nss", "finado.fecha_defuncion", "finado.regimen", "finado.afore",
+] as const;
+
+/** Errores de una plantilla antes de guardarla: variables desconocidas, bloques sin cerrar, sin firmas. */
+export function validarPlantilla(cuerpo: string): string[] {
+  const e: string[] = [];
+  const conocidas = new Set<string>(VARIABLES);
+  for (const m of cuerpo.matchAll(/\{\{([#/]?)(si|no|cada)?\s*([\w.]*)\}\}/g)) {
+    const [, marca, bloque, ruta] = m;
+    if (marca === "/" ) continue;
+    if (marca === "#" && !["si", "no", "cada"].includes(bloque ?? "")) { e.push(`Bloque desconocido: ${m[0]}`); continue; }
+    if (!marca && (ruta === "." || ruta === "letra")) continue;
+    const nombre = marca ? ruta : `${bloque ?? ""}${ruta}`;
+    if (!conocidas.has(nombre)) e.push(`Variable desconocida: {{${nombre}}}`);
+  }
+  for (const b of ["si", "no", "cada"]) {
+    const abre = (cuerpo.match(new RegExp(`\\{\\{#${b} `, "g")) ?? []).length;
+    const cierra = (cuerpo.match(new RegExp(`\\{\\{/${b}\\}\\}`, "g")) ?? []).length;
+    if (abre !== cierra) e.push(`Hay ${abre} {{#${b} …}} y ${cierra} {{/${b}}}: deben ser iguales`);
+  }
+  if (!cuerpo.includes("[[firmas]]")) e.push("Falta [[firmas]] (el lugar de las firmas)");
+  if (!/^# /m.test(cuerpo)) e.push("Falta el título (un renglón que empiece con «# »)");
+  return [...new Set(e)];
+}

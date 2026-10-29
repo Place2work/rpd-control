@@ -114,3 +114,16 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   en la base solo queda su HMAC, generar otra revoca la anterior. La consulta usa RLS con la identidad del dueño.
 - En los eventos solo va el folio y el primer nombre del cliente (Google guarda esa información).
 - Cada caso descarga su `.ics` desde el encabezado del expediente.
+
+## 29-oct-2026 · Configuración editable (10.9)
+
+- Solo el Director. Secciones: usuarios y roles, parámetros, contratos y avisos, mensajes de WhatsApp, esquemas
+  de comisión, días inhábiles y bitácora. Todo pasa por RLS y queda en la bitácora.
+- **Parámetros, plantillas y esquemas con vigencia:** el valor nuevo empieza hoy o después y el anterior se cierra el
+  día previo; nunca se cambia hacia atrás. Un valor programado a futuro se puede reemplazar antes de que empiece.
+- **Usuarios:** invitación por correo de Supabase (llave secreta solo en el servidor); quitar el acceso pone
+  `activo = false` (RLS corta todo al instante) y bloquea el inicio de sesión en Supabase. Nadie se borra. El
+  Director no puede quitarse a sí mismo el rol ni el acceso, y siempre queda al menos un Director activo.
+- **Días inhábiles:** se desactivan en vez de borrarse (migración 1300).
+- Esquemas editables desde la pantalla: % del vendedor y escalones del referidor. El reparto del socio se ajusta en
+  cada socio; los montos de fallecimiento, en parámetros.

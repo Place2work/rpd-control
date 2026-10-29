@@ -934,6 +934,7 @@ model DiaInhabil {
   fecha       DateTime @id @db.Date
   descripcion String
   origen      String   @default("oficial") // oficial | afore
+  activo      Boolean  @default(true) // se desactiva en vez de borrarse
 
   @@map("dias_inhabiles")
   @@schema("public")

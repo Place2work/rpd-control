@@ -48,7 +48,7 @@ export async function parametrosFechas(fecha = hoyCDMX()) {
     if (!Number.isFinite(v)) throw new Error(`Falta el parámetro ${clave} vigente al ${fecha}`);
     return v;
   };
-  const inhabiles = await prismaSistema.diaInhabil.findMany({ select: { fecha: true } });
+  const inhabiles = await prismaSistema.diaInhabil.findMany({ where: { activo: true }, select: { fecha: true } });
   return {
     DIAS_ESPERA_DESEMPLEO: numero("DIAS_ESPERA_DESEMPLEO"),
     ANIOS_CANDADO_RETIRO: numero("ANIOS_CANDADO_RETIRO"),
