@@ -12,6 +12,7 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { cn } from "@/lib/utils";
 import { AsistenteCalculo, type Valores } from "../asistente-calculo";
 import { BotonCalcular } from "../boton-calcular";
+import { BotonDesvio } from "../boton-desvio";
 
 const RESULTADO: Record<Resultado, { texto: string; tono: "pagado" | "espera" | "critico" | "tramite" | "prospecto" }> = {
   APTO: { texto: "Apto", tono: "pagado" },
@@ -28,11 +29,13 @@ type Guardado = { impacto: Impacto | null; motivos: string[]; tareas: string[]; 
 
 export async function PestanaCalculo({ caso, sesion }: { caso: CasoDetalle; sesion: Sesion }) {
   if (caso.servicio.clave !== "RETIRO_DESEMPLEO") {
-    return <Card><CardContent className="text-sm text-ink-muted">La calculadora es para el retiro por desempleo. La de pensiones llega en la fase 4.</CardContent></Card>;
+    return <Card><CardContent className="text-sm text-ink-muted">La calculadora es para el retiro por desempleo. Para pensión y Modalidad 40 usa la pestaña <Link href={`/casos/${caso.id}?tab=pension`} className="text-brand underline">Pensión</Link>.</CardContent></Card>;
   }
-  const [calculos, afores] = await Promise.all([
+  const [calculos, afores, servicios, desvios] = await Promise.all([
     conUsuario(sesion.claims, (tx) => tx.calculo.findMany({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, take: 10 }), sesion.ip),
     conUsuario(sesion.claims, (tx) => tx.afore.findMany({ where: { activo: true }, orderBy: { nombre: "asc" }, select: { clave: true, nombre: true } }), sesion.ip),
+    conUsuario(sesion.claims, (tx) => tx.tipoServicio.findMany({ where: { activo: true, clave: { not: caso.servicio.clave } }, orderBy: { orden: "asc" }, select: { clave: true, nombre: true } }), sesion.ip),
+    conUsuario(sesion.claims, (tx) => tx.caso.findMany({ where: { caso_origen_id: caso.id, archivado_at: null }, select: { id: true, folio: true, servicio: { select: { nombre: true } } } }), sesion.ip),
   ]);
   const faltantes = faltantesParaCalcular(caso);
   const ultimo = calculos[0];
@@ -97,6 +100,12 @@ export async function PestanaCalculo({ caso, sesion }: { caso: CasoDetalle; sesi
               )}
               {ultimo.fecha_elegibilidad && <p className="text-sm text-ink">Fecha estimada para poder retirar: <strong>{formatoFecha(isoDe(ultimo.fecha_elegibilidad)!, { dateStyle: "long" })}</strong></p>}
               {!!g?.motivos.length && <Lista titulo="Por qué" items={g.motivos} />}
+              {desvios.length > 0 && (
+                <p className="text-sm text-ink">Desvío: {desvios.map((d, n) => <span key={d.id}>{n > 0 && ", "}<Link href={`/casos/${d.id}`} className="text-brand underline">{d.folio}</Link> ({d.servicio.nombre})</span>)}</p>
+              )}
+              {ultimo.resultado === "NO_ELEGIBLE_DESVIO" && desvios.length === 0 && caso.etapa !== "PERDIDO" && sesion.usuario.rol !== "vendedor" && (
+                <BotonDesvio casoId={caso.id} sugerido={ultimo.servicio_sugerido} servicios={servicios} />
+              )}
               {!!g?.tareas.length && <Lista titulo="Pendientes antes de ingresar" items={g.tareas} />}
             </>
           )}

@@ -107,19 +107,13 @@ export default async function Expediente({ params, searchParams }: Props) {
         <ul className="flex gap-1">
           {visibles.map(([clave, texto]) => {
             const activa = clave === pestana;
-            const lista = LISTAS.has(clave);
             return (
               <li key={clave}>
-                {lista ? (
-                  <Link href={`/casos/${caso.id}?tab=${clave}`} aria-current={activa ? "page" : undefined}
-                    className={cn("inline-block whitespace-nowrap border-b-2 px-3 py-3 text-sm",
-                      activa ? "border-brand font-medium text-brand" : "border-transparent text-ink-muted hover:text-ink")}>
-                    {texto}
-                  </Link>
-                ) : (
-                  <span className="inline-block cursor-not-allowed whitespace-nowrap border-b-2 border-transparent px-3 py-3 text-sm text-ink-muted/50"
-                    title="Llega en la fase 3 (dinero)">{texto}</span>
-                )}
+                <Link href={`/casos/${caso.id}?tab=${clave}`} aria-current={activa ? "page" : undefined}
+                  className={cn("inline-block whitespace-nowrap border-b-2 px-3 py-3 text-sm",
+                    activa ? "border-brand font-medium text-brand" : "border-transparent text-ink-muted hover:text-ink")}>
+                  {texto}
+                </Link>
               </li>
             );
           })}

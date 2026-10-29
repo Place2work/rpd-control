@@ -1,6 +1,7 @@
 // Lecturas de prospectos y casos. Todas pasan por conUsuario(): RLS decide qué ve cada rol.
 import "server-only";
 import type { Etapa, Prisma } from "@/generated/prisma/client";
+import { Origen } from "@/generated/prisma/enums";
 import type { Sesion } from "@/lib/auth/sesion";
 import { hashIdentificador } from "@/lib/cripto";
 import { conUsuario } from "@/lib/db/prisma";
@@ -46,14 +47,30 @@ const seleccionLista = {
   etapa: true,
   created_at: true,
   persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true, whatsapp: true, origen: true } },
-  servicio: { select: { clave: true, nombre: true } },
-  datos_imss: { select: { fecha_baja: true } },
+  servicio: { select: { clave: true, nombre: true, embudo: true } },
+  vendedor: { select: { id: true, nombre: true } },
+  asignado: { select: { id: true, nombre: true } },
+  datos_imss: { select: { fecha_baja: true, regimen: true } },
   eventos: { select: { fecha: true }, orderBy: { fecha: "desc" as const }, take: 1 },
 } satisfies Prisma.CasoSelect;
 
 export type FilaProspecto = Prisma.CasoGetPayload<{ select: typeof seleccionLista }>;
 
-export async function listarProspectos({ claims, ip }: Sesion, q = ""): Promise<FilaProspecto[]> {
+export type FiltrosProspecto = { origen?: string; servicio?: string; vendedor?: string; regimen?: string };
+
+/** Filtros de la lista (10.2). Los valores desconocidos se ignoran; «sin» en vendedor = sin vendedor. */
+function whereFiltros(f: FiltrosProspecto): Prisma.CasoWhereInput {
+  const w: Prisma.CasoWhereInput = {};
+  if (f.origen && (Object.values(Origen) as string[]).includes(f.origen)) w.persona = { origen: f.origen as Origen };
+  if (f.servicio && /^[A-Z0-9_]{2,40}$/.test(f.servicio)) w.servicio = { clave: f.servicio };
+  if (f.vendedor === "sin") w.vendedor_id = null;
+  else if (f.vendedor && /^[0-9a-f-]{36}$/i.test(f.vendedor)) w.vendedor_id = f.vendedor;
+  if (f.regimen === "por_definir") w.OR = [{ datos_imss: null }, { datos_imss: { regimen: "por_definir" } }];
+  else if (f.regimen === "L73" || f.regimen === "L97") w.datos_imss = { regimen: f.regimen };
+  return w;
+}
+
+export async function listarProspectos({ claims, ip }: Sesion, q = "", filtros: FiltrosProspecto = {}): Promise<FilaProspecto[]> {
   const filtro = filtroBusqueda(q);
   return conUsuario(
     claims,
@@ -69,8 +86,20 @@ export async function listarProspectos({ claims, ip }: Sesion, q = ""): Promise<
                 LIKE ALL (${patrones}::text[])`;
         where = { archivado_at: null, persona_id: { in: filas.map((f) => f.id) } };
       }
-      return tx.caso.findMany({ where, select: seleccionLista, orderBy: { created_at: "desc" }, take: 200 });
+      return tx.caso.findMany({ where: { AND: [where, whereFiltros(filtros)] }, select: seleccionLista, orderBy: { created_at: "desc" }, take: 200 });
     },
+    ip,
+  );
+}
+
+/** Lo que llenan los filtros de Prospectos: servicios activos y quién puede vender. */
+export async function opcionesFiltrosProspecto({ claims, ip }: Sesion) {
+  return conUsuario(
+    claims,
+    async (tx) => ({
+      servicios: await tx.tipoServicio.findMany({ where: { activo: true }, select: { clave: true, nombre: true }, orderBy: { orden: "asc" } }),
+      vendedores: await tx.usuario.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    }),
     ip,
   );
 }

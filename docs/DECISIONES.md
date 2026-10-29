@@ -127,3 +127,19 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - **Días inhábiles:** se desactivan en vez de borrarse (migración 1300).
 - Esquemas editables desde la pantalla: % del vendedor y escalones del referidor. El reparto del socio se ajusta en
   cada socio; los montos de fallecimiento, en parámetros.
+
+## 29-oct-2026 · Bloque 1: tablero, filtros, Hoy y desvío
+
+- **Tablero de casos (10.3):** dos embudos (retiro y pensión, cada uno con sus etapas más «Bloqueado» y «Perdido o
+  desvío») y dos vistas (tablero y tabla). En computadora se arrastra la tarjeta; el servidor valida con la misma
+  `validarTransicion` del expediente. Si falta motivo se pide ahí mismo; si faltan datos (fecha de firma, acuse…)
+  se ofrece abrir el caso. En celular se usa «Siguiente paso» del expediente.
+- **Filtros de Prospectos:** origen, servicio, vendedor (incluye «sin vendedor»), régimen y días sin contacto
+  (desde el último evento o el alta). Se aplican en el servidor y viven en la URL para poder compartirlos.
+- **Hoy:** monto retirado del mes = depósitos netos de la Afore; honorarios cobrados del mes con IVA; por cobrar =
+  cobros pendientes; comisiones por pagar = devengadas sin pagar; SLA en riesgo = casos con alerta de 15 días
+  hábiles. El vendedor no ve las cifras de dinero. Embudo del mes por la etapa actual de los retiros dados de alta
+  en el mes.
+- **Desvío (resultado 2):** crea un caso del servicio elegido (el sugerido viene preseleccionado) para la misma
+  persona, ligado con `caso_origen_id`, con copia de los datos del IMSS. El original pasa a «Perdido o desvío» con
+  motivo `no_elegible`; si su etapa no lo permite, se avisa y queda abierto. Un solo desvío por servicio.

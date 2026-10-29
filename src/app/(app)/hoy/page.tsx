@@ -1,4 +1,8 @@
 import { CalendarClock, Filter, LineChart } from "lucide-react";
+import { GraficaBarras } from "@/components/rpd/grafica-barras";
+import { cifrasHoy } from "@/lib/dinero/consultas";
+import { mxn } from "@/lib/formato";
+import { ETAPAS_RETIRO } from "@/lib/reglas/etapas";
 import type { Metadata } from "next";
 import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
@@ -23,7 +27,11 @@ export default async function Hoy() {
   const sesion = await obtenerSesion();
   const { usuario } = sesion;
   const hoy = hoyCDMX();
-  const [casos, p, alertas] = await Promise.all([listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion)]);
+  // El vendedor no ve dinero (10.6); para él la fila de indicadores solo lleva el embudo.
+  const veDinero = usuario.rol !== "vendedor";
+  const [casos, p, alertas, dinero] = await Promise.all([
+    listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion), veDinero ? cifrasHoy(sesion, hoy.slice(0, 7)) : null,
+  ]);
 
   // Próximos día 46 (10.1): retiros que aún no se ingresan, con fecha de baja, en los próximos 14 días.
   const proximos = casos
@@ -32,17 +40,32 @@ export default async function Hoy() {
     .filter(({ d }) => d.diasFaltan <= 14)
     .sort((a, b) => a.d.fecha.localeCompare(b.d.fecha));
 
-  // 10.1: fila de indicadores. Los de dinero llegan en la fase 3.
-  const INDICADORES: [string, string][] = [
-    ["Prospectos activos", String(casos.filter((c) => ETAPAS_PROSPECTO.includes(c.etapa)).length)],
-    ["Casos en trámite", String(casos.filter((c) => EN_TRAMITE.has(c.etapa)).length)],
-    ["Listos para retirar esta semana", String(proximos.filter(({ d }) => d.diasFaltan <= 7).length)],
-    ["SLA en riesgo", "—"],
-    ["Monto retirado del mes", "—"],
-    ["Honorarios cobrados del mes", "—"],
-    ["Por cobrar", "—"],
-    ["Comisiones por pagar", "—"],
+  // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
+  const slaEnRiesgo = new Set(alertas.filter((a) => a.regla.startsWith("SLA_15")).map((a) => a.casoId)).size;
+  const INDICADORES: { t: string; v: string; nota?: string; liga?: string }[] = [
+    { t: "Prospectos activos", v: String(casos.filter((c) => ETAPAS_PROSPECTO.includes(c.etapa)).length), liga: "/prospectos" },
+    { t: "Casos en trámite", v: String(casos.filter((c) => EN_TRAMITE.has(c.etapa)).length), liga: "/casos" },
+    { t: "Listos para retirar esta semana", v: String(proximos.filter(({ d }) => d.diasFaltan <= 7).length) },
+    { t: "SLA en riesgo", v: String(slaEnRiesgo), nota: "casos con alerta de 15 días hábiles", liga: "#alertas" },
+    ...(dinero ? [
+      { t: "Monto retirado del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/dinero" },
+      { t: "Honorarios cobrados del mes", v: mxn(dinero.cobradoMes), nota: "con IVA", liga: "/dinero" },
+      { t: "Por cobrar", v: mxn(dinero.porCobrar), nota: `${dinero.cobrosPendientes} ${dinero.cobrosPendientes === 1 ? "cobro" : "cobros"}`, liga: "/dinero" },
+      { t: "Comisiones por pagar", v: mxn(dinero.comisionesPorPagar), nota: `${dinero.comisionesPendientes} devengadas`, liga: "/comisiones" },
+    ] : []),
   ];
+
+  // Embudo del mes: retiros dados de alta este mes según la etapa a la que han llegado.
+  const delMes = casos.filter((c) => c.servicio.embudo === "retiro" && hoyCDMX(c.created_at).slice(0, 7) === hoy.slice(0, 7));
+  const llego = (etapa: (typeof ETAPAS_RETIRO)[number]) =>
+    delMes.filter((c) => (ETAPAS_RETIRO as readonly string[]).indexOf(c.etapa) >= ETAPAS_RETIRO.indexOf(etapa)).length;
+  const EMBUDO = [
+    { etiqueta: "Altas", valor: delMes.length },
+    { etiqueta: "Precalificados", valor: llego("PRECALIFICADO") },
+    { etiqueta: "Contratos", valor: llego("CONTRATO") },
+    { etiqueta: "Pagados", valor: llego("PAGADO") },
+  ];
+  const ingresos = dinero ? [...dinero.meses].reverse().map((m) => ({ etiqueta: m.mes.slice(2).replace("-", "/"), valor: m.total })) : [];
 
   const fecha = new Intl.DateTimeFormat("es-MX", { dateStyle: "full", timeZone: "America/Mexico_City" })
     .format(new Date(`${hoy}T12:00:00-06:00`));
@@ -50,12 +73,20 @@ export default async function Hoy() {
     <>
       <Encabezado titulo={`Hola, ${usuario.nombre.split(" ")[0]}`} descripcion={fecha.charAt(0).toUpperCase() + fecha.slice(1)} />
       <section aria-label="Indicadores" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
-        {INDICADORES.map(([t, v]) => (
-          <Card key={t} className="p-4">
-            <p className="text-xs text-ink-muted">{t}</p>
-            <p className={`cifra mt-1 font-display text-[22px] font-semibold ${v === "—" ? "text-ink-muted/60" : "text-ink"}`}>{v}</p>
-          </Card>
-        ))}
+        {INDICADORES.map(({ t, v, nota, liga }) => {
+          const contenido = (
+            <>
+              <p className="text-xs text-ink-muted">{t}</p>
+              <p className="cifra mt-1 font-display text-[22px] font-semibold text-ink">{v}</p>
+              {nota && <p className="text-xs text-ink-muted">{nota}</p>}
+            </>
+          );
+          return (
+            <Card key={t} className="p-0">
+              {liga ? <Link href={liga} className="block h-full rounded-[inherit] p-4 hover:bg-brand-tint/40">{contenido}</Link> : <div className="p-4">{contenido}</div>}
+            </Card>
+          );
+        })}
       </section>
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
@@ -92,11 +123,34 @@ export default async function Hoy() {
         </Card>
         <Card>
           <CardHeader><CardTitle>Embudo del mes</CardTitle></CardHeader>
-          <EstadoVacio icono={Filter} titulo="Aún no hay movimiento" texto="Prospectos → precalificados → contratos → pagados, con la conversión entre etapas." />
+          {delMes.length === 0 ? (
+            <EstadoVacio icono={Filter} titulo="Aún no hay movimiento" texto="Aquí verás cuántos retiros dados de alta este mes llegan a precalificado, contrato y pago." />
+          ) : (
+            <ul className="grid gap-2 px-5 pb-5 pt-2">
+              {EMBUDO.map((e, i) => (
+                <li key={e.etiqueta} className="grid gap-1">
+                  <div className="flex justify-between text-sm">
+                    <span className="text-ink">{e.etiqueta}</span>
+                    <span className="cifra text-ink-muted">{e.valor}{i > 0 && ` · ${Math.round((e.valor / delMes.length) * 100)}%`}</span>
+                  </div>
+                  <div className="h-2 rounded-full bg-slate-100" aria-hidden>
+                    <div className="h-2 rounded-full bg-brand" style={{ width: `${(e.valor / delMes.length) * 100}%` }} />
+                  </div>
+                </li>
+              ))}
+            </ul>
+          )}
         </Card>
         <Card className="lg:col-span-2">
           <CardHeader><CardTitle>Ingresos de los últimos 12 meses</CardTitle></CardHeader>
-          <EstadoVacio icono={LineChart} titulo="Sin honorarios cobrados" texto="Aquí verás los honorarios cobrados por mes y por servicio." />
+          {ingresos.some((m) => m.valor > 0) ? (
+            <div className="px-5 pb-5 pt-2">
+              <GraficaBarras formato="pesos" color="exito" datos={ingresos} />
+              <p className="mt-2 text-xs text-ink-muted">Honorarios cobrados con IVA. El detalle por mes está en <Link href="/dinero" className="text-brand underline">Dinero</Link>.</p>
+            </div>
+          ) : (
+            <EstadoVacio icono={LineChart} titulo="Sin honorarios cobrados" texto={veDinero ? "Aquí verás los honorarios cobrados por mes." : "Los ingresos solo los ven el Director, los asesores y los socios."} />
+          )}
         </Card>
       </div>
     </>
