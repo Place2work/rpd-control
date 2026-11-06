@@ -74,6 +74,7 @@ const esquemaPersona = z.object({
   email: z.string().email("Correo no válido").nullable(),
   curp: z.string().nullable().refine((v) => !v || validarCurp(v).valido, "CURP no válida"),
   nss: z.string().nullable().refine((v) => !v || validarNss(v).valido, "NSS no válido"),
+  domicilio: z.string().max(300, "Máximo 300 caracteres").nullable(),
 });
 
 export async function guardarDatosPersonales(casoId: string, personaId: string, _p: Resultado, form: FormData): Promise<Resultado> {
@@ -84,6 +85,7 @@ export async function guardarDatosPersonales(casoId: string, personaId: string, 
     email: texto(form, "email"),
     curp: texto(form, "curp"),
     nss: texto(form, "nss"),
+    domicilio: texto(form, "domicilio"),
   });
   if (!r.success) return { errores: erroresDe(r.error) };
   const d = r.data;
@@ -95,6 +97,7 @@ export async function guardarDatosPersonales(casoId: string, personaId: string, 
     whatsapp: wa,
     telefono: wa,
     email: d.email,
+    domicilio: d.domicilio,
     municipio: texto(form, "municipio"),
     estado: texto(form, "estado"),
     estado_civil: (texto(form, "estado_civil") as Prisma.PersonaUpdateInput["estado_civil"]) ?? null,

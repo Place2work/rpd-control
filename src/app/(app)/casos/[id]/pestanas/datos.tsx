@@ -11,7 +11,7 @@ import { FormularioAccion } from "../formulario-accion";
 
 const ESTADO_CIVIL = [["soltero", "Soltero(a)"], ["casado", "Casado(a)"], ["union_libre", "Unión libre"], ["divorciado", "Divorciado(a)"], ["viudo", "Viudo(a)"]] as const;
 const SI_NO = [["si", "Sí"], ["no", "No"], ["no_sabe", "No sabe"]] as const;
-const ETIQUETAS = { nombre: "Nombre", whatsapp: "WhatsApp", email: "Correo", curp: "CURP", nss: "NSS" };
+const ETIQUETAS = { domicilio: "Domicilio", nombre: "Nombre", whatsapp: "WhatsApp", email: "Correo", curp: "CURP", nss: "NSS" };
 const local = (e164: string | null) => (e164 ? e164.replace(/^\+52/, "") : "");
 
 export async function PestanaDatos({ caso, puedeVer }: { caso: CasoDetalle; puedeVer: boolean }) {
@@ -39,6 +39,8 @@ export async function PestanaDatos({ caso, puedeVer }: { caso: CasoDetalle; pued
               <CampoTexto id="email" etiqueta="Correo" tipo="email" valor={p.email} />
               <CampoTexto id="curp" etiqueta="CURP nueva" ayuda="solo si cambia; se guarda cifrada" maxLength={18} className="font-mono" />
               <CampoTexto id="nss" etiqueta="NSS nuevo" ayuda="solo si cambia; se guarda cifrado" inputMode="numeric" maxLength={13} />
+              <CampoTexto id="domicilio" etiqueta="Domicilio completo" ayuda="calle, número, colonia, C.P., municipio y estado; así va en el contrato"
+                valor={p.domicilio} maxLength={300} className="sm:col-span-2" />
               <CampoTexto id="municipio" etiqueta="Municipio" valor={p.municipio} />
               <CampoTexto id="estado" etiqueta="Estado" valor={p.estado} />
               <Seleccion id="estado_civil" etiqueta="Estado civil" valor={p.estado_civil} vacia="Sin capturar" opciones={ESTADO_CIVIL} />
