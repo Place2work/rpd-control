@@ -23,6 +23,9 @@ export async function invitarCuenta(email: string): Promise<{ id?: string; error
   const { data, error } = await admin().inviteUserByEmail(email, { redirectTo: `${urlApp()}/auth/callback` });
   if (error) {
     if (/already been registered|already exists/i.test(error.message)) return { error: "Ese correo ya tiene cuenta. Si es de alguien del equipo, búscalo en la lista." };
+    if (error.code === "email_address_not_authorized" || /not authorized/i.test(error.message)) {
+      return { error: "Supabase todavía usa su correo de prueba, que solo envía al equipo del proyecto. Configura Resend como SMTP en Supabase y vuelve a invitar." };
+    }
     if (/rate limit/i.test(error.message)) return { error: "Supabase alcanzó su límite de correos por hora. Intenta más tarde (con Resend como SMTP ya no pasa)." };
     return { error: `Supabase no pudo enviar la invitación: ${error.message}` };
   }
