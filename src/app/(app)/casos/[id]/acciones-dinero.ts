@@ -9,13 +9,13 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { recalcularComisiones } from "@/lib/dinero/motor";
 import { parametrosDinero } from "@/lib/parametros";
-import { desglosarTotal, honorarioDePago } from "@/lib/reglas/comisiones";
+import { desglosarTotal, honorarioDePago, leerPctPactado, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "./acciones";
 
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const monto = z.string().trim().transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number({ message: "Escribe un monto" }).finite().min(0, "No puede ser negativo").max(10_000_000));
-const fechaPasada = z.iso.date({ message: "Fecha no válida" }).refine((v) => v <= hoyCDMX(), "No puede ser futura");
+const fechaPasada = z.string().min(1, "Escribe la fecha").pipe(z.iso.date({ message: "Fecha no válida" })).refine((v) => v <= hoyCDMX(), "No puede ser futura");
 const METODOS = ["transferencia", "efectivo", "tarjeta"] as const;
 const CONCEPTOS = ["pago_inicial", "recuperado", "primera_mensualidad", "honorario"] as const;
 const datosDe = (form: FormData) => Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string")) as Record<string, string>;
@@ -25,6 +25,32 @@ async function despues(casoId: string) {
   // Si el motor falla, el pago o el cobro ya quedó guardado; la tarea diaria lo reintenta.
   try { await recalcularComisiones([casoId]); } catch (e) { console.error("[comisiones]", casoId, e); }
   revalidatePath(`/casos/${casoId}`);
+}
+
+// ───────────── Honorario pactado (retiro) ─────────────
+
+/** El Director fija el % negociado con el cliente. Vacío = vuelve al parámetro vigente. Aplica a los pagos que se registren después. */
+export async function guardarHonorarioPactado(casoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol !== "director") return { error: "Solo el Director cambia el honorario pactado." };
+  const leido = leerPctPactado(String(form.get("pct_pactado") ?? ""));
+  if ("error" in leido) return { errores: { pct_pactado: leido.error } };
+  const p = await parametrosDinero();
+  const txt = (x: number) => `${+(x * 100).toFixed(2)}%`;
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true, contrato_pct: true } });
+    if (!caso) return { error: "No encontramos el caso." };
+    if (caso.tipo_servicio !== "RETIRO_DESEMPLEO") return { error: "El porcentaje pactado es del retiro por desempleo." };
+    const antes = pctHonorarioRetiro(caso.contrato_pct === null ? null : Number(caso.contrato_pct), p);
+    const despues = pctHonorarioRetiro(leido.pct, p);
+    await tx.caso.update({ where: { id: casoId }, data: { contrato_pct: leido.pct }, select: { id: true } });
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id,
+      texto: leido.pct === null ? `Honorario: vuelve al ${txt(despues)} general (antes ${txt(antes)}).` : `Honorario pactado con el cliente: ${txt(despues)} (antes ${txt(antes)}).`,
+      datos: { contrato_pct_antes: antes, contrato_pct: despues } } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) revalidatePath(`/casos/${casoId}`);
+  return res;
 }
 
 // ───────────── Pagos de la Afore (retiro: hasta 6) ─────────────
@@ -44,7 +70,7 @@ export async function registrarPagoAfore(casoId: string, _p: Resultado, form: Fo
   const p = await parametrosDinero();
 
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
-    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true, etapa: true, pagos_afore: { where: { archivado_at: null }, select: { numero: true } } } });
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true, etapa: true, contrato_pct: true, pagos_afore: { where: { archivado_at: null }, select: { numero: true } } } });
     if (!caso) return { error: "No encontramos el caso." };
     if (caso.tipo_servicio !== "RETIRO_DESEMPLEO") return { error: "Los pagos de la Afore son del retiro por desempleo. Para otros servicios registra el cobro." };
     const numero = Math.max(0, ...caso.pagos_afore.map((x) => x.numero)) + 1;
@@ -53,8 +79,9 @@ export async function registrarPagoAfore(casoId: string, _p: Resultado, form: Fo
       select: { id: true },
       data: { caso_id: casoId, numero, fecha_deposito: dia(fecha_deposito), monto_bruto, isr_retenido: isr, monto_neto: neto, created_by: usuario.id },
     });
-    // El honorario se calcula sobre lo que pagó la Afore, no sobre el estimado (2.2).
-    const h = honorarioDePago({ bruto: monto_bruto, neto }, p);
+    // El honorario se calcula sobre lo que pagó la Afore, no sobre el estimado (2.2), con el % pactado.
+    const pct = pctHonorarioRetiro(caso.contrato_pct === null ? null : Number(caso.contrato_pct), p);
+    const h = honorarioDePago({ bruto: monto_bruto, neto }, { ...p, HONORARIO_RETIRO_PCT: pct });
     await tx.cobro.create({
       data: { caso_id: casoId, pago_afore_id: pago.id, base_calculo: h.base, honorario_total: h.honorario, subtotal: h.subtotal, iva: h.iva, concepto: "honorario", created_by: usuario.id },
     });

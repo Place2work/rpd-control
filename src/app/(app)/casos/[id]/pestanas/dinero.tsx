@@ -7,9 +7,9 @@ import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { parametrosDinero } from "@/lib/parametros";
-import { margenCaso } from "@/lib/reglas/comisiones";
+import { margenCaso, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
-import { archivarPagoAfore, cancelarCobro, guardarCanal, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
+import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
 import { FormularioAccion } from "../formulario-accion";
 
@@ -28,6 +28,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
   const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
   const { HONORARIO_RETIRO_PCT } = await parametrosDinero();
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
+  const pactado = caso.contrato_pct === null ? null : Number(caso.contrato_pct);
+  const pct = pctHonorarioRetiro(pactado, { HONORARIO_RETIRO_PCT });
   const puedeCanal = rol === "director" || rol === "asesor";
   const d = await conUsuario(sesion.claims, async (tx) => ({
     pagos: await tx.pagoAfore.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { numero: "asc" } }),
@@ -53,6 +55,32 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
         <Cifra titulo="Comisiones" valor={mxn(m.comisiones)} nota="Estimadas, devengadas y pagadas" />
         {rol === "director" && <Cifra titulo="Margen" valor={mxn(m.margen)} nota="Honorario − IVA − comisiones" />}
       </div>
+
+      {esRetiro && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Honorario pactado</CardTitle>
+            <span className="cifra font-display text-xl font-semibold text-ink">{pctTxt(pct)}</span>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-sm text-ink-muted">
+              {pactado === null ? `Se cobra el ${pctTxt(HONORARIO_RETIRO_PCT)} general (IVA incluido).` : `Negociado con el cliente; el general es ${pctTxt(HONORARIO_RETIRO_PCT)}.`}
+              {" "}Aplica a los pagos de la Afore que registres después y sale así en el contrato.
+            </p>
+            {rol === "director" ? (
+              <FormularioAccion accion={guardarHonorarioPactado.bind(null, caso.id)} boton="Guardar porcentaje" etiquetas={{ pct_pactado: "Porcentaje" }}>
+                <div className="grid gap-3 sm:grid-cols-3">
+                  <CampoTexto id="pct_pactado" etiqueta="Porcentaje pactado (%)" ayuda="vacío = el general" inputMode="decimal"
+                    placeholder={String(+(HONORARIO_RETIRO_PCT * 100).toFixed(2))} valor={pactado === null ? null : +(pactado * 100).toFixed(2)} />
+                </div>
+                {d.pagos.length > 0 && <p className="text-xs text-aviso">Los {d.pagos.length} pagos ya registrados conservan su honorario. Para recalcular uno, corrígelo y regístralo de nuevo.</p>}
+              </FormularioAccion>
+            ) : (
+              <p className="text-xs text-ink-muted">Solo el Director cambia el porcentaje.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
 
       {esRetiro && (
         <Card>
@@ -91,7 +119,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                   <CampoTexto id="monto_bruto" etiqueta="Monto bruto" inputMode="decimal" placeholder="10,000.00" />
                   <CampoTexto id="isr_retenido" etiqueta="ISR retenido" ayuda="si hubo" inputMode="decimal" placeholder="0.00" />
                 </div>
-                <p className="text-xs text-ink-muted">El honorario del {pctTxt(HONORARIO_RETIRO_PCT)} (IVA incluido) se calcula sobre el depósito y queda por cobrar.</p>
+                <p className="text-xs text-ink-muted">El honorario del {pctTxt(pct)} (IVA incluido) se calcula sobre el depósito y queda por cobrar.</p>
               </FormularioAccion>
             )}
           </CardContent>

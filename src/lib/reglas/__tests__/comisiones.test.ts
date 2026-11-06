@@ -1,7 +1,8 @@
 // Casos de la sección 9 y 14.1 (T11, T12, T13) con los parámetros de la sección 14.
 import { describe, expect, it } from "vitest";
 import {
-  alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, liquidacionReferidor, margenCaso,
+  alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
+  pctHonorarioRetiro,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
 } from "../comisiones";
 
@@ -38,6 +39,27 @@ describe("2.2 honorario sobre el depósito", () => {
   it("honorario fijo: el IVA es la diferencia y suma exacto", () => {
     const d = desglosarTotal(4999.99, 0.16);
     expect(d.subtotal + d.iva).toBeCloseTo(4999.99, 10);
+  });
+});
+
+describe("honorario pactado con el cliente", () => {
+  it("sin pacto aplica el parámetro; con pacto, el pactado", () => {
+    expect(pctHonorarioRetiro(null, P)).toBe(0.3);
+    expect(pctHonorarioRetiro(0.22, P)).toBe(0.22);
+  });
+  it("con 22% pactado, la Afore deposita $10,000 → $2,200 = $1,896.55 + IVA $303.45", () => {
+    expect(honorarioDePago({ bruto: 10000, neto: 10000 }, { ...P, HONORARIO_RETIRO_PCT: pctHonorarioRetiro(0.22, P) }))
+      .toEqual({ base: 10000, honorario: 2200, subtotal: 1896.55, iva: 303.45 });
+  });
+  it("lee lo que escribe el usuario", () => {
+    expect(leerPctPactado("22")).toEqual({ pct: 0.22 });
+    expect(leerPctPactado(" 22.5 % ")).toEqual({ pct: 0.225 });
+    expect(leerPctPactado("22,5")).toEqual({ pct: 0.225 });
+    expect(leerPctPactado("")).toEqual({ pct: null });
+    expect(leerPctPactado("0")).toHaveProperty("error");
+    expect(leerPctPactado("100")).toHaveProperty("error");
+    expect(leerPctPactado("veinte")).toHaveProperty("error");
+    expect(leerPctPactado("0.22")).toEqual({ pct: 0.0022 }); // se escribe en por ciento, no en fracción
   });
 });
 

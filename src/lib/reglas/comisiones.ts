@@ -32,6 +32,27 @@ export function baseDePago(pago: Pick<PagoAforeFoto, "bruto" | "neto">, cual: "n
   return cual === "bruto" ? pago.bruto : pago.neto;
 }
 
+/**
+ * % de honorario del retiro que aplica a un caso: el pactado con el cliente (casos.contrato_pct)
+ * o, si no se negoció, el del parámetro vigente.
+ */
+export function pctHonorarioRetiro(pactado: number | null | undefined, p: Pick<ParametrosDinero, "HONORARIO_RETIRO_PCT">): number {
+  return pactado !== null && pactado !== undefined && Number.isFinite(pactado) && pactado > 0 ? pactado : p.HONORARIO_RETIRO_PCT;
+}
+
+/**
+ * Lee el % que escribe el usuario («22», «22.5%», «22,5») y lo regresa como fracción (0.225).
+ * Vacío = sin pacto (vuelve al parámetro). Debe ser mayor que 0 y menor que 100.
+ */
+export function leerPctPactado(texto: string): { pct: number | null } | { error: string } {
+  const t = texto.trim().replace("%", "").replace(",", ".").trim();
+  if (!t) return { pct: null };
+  if (!/^\d{1,2}(\.\d{1,2})?$/.test(t)) return { error: "Escribe el porcentaje, por ejemplo 22 o 22.5" };
+  const n = Number(t);
+  if (n <= 0) return { error: "Debe ser mayor que 0%" };
+  return { pct: Math.round(n * 100) / 10000 };
+}
+
 /** Honorario (HONORARIO_RETIRO_PCT) sobre el depósito (neto o bruto según el parámetro), con su desglose. */
 export function honorarioDePago(pago: Pick<PagoAforeFoto, "bruto" | "neto">, p: Pick<ParametrosDinero, "HONORARIO_RETIRO_PCT" | "IVA" | "BASE_HONORARIO">) {
   const base = baseDePago(pago, p.BASE_HONORARIO);

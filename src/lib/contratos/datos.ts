@@ -91,7 +91,8 @@ export async function datosContrato(s: Sesion, casoId: string, completo: boolean
       nss: await sensible("cliente.nss", "personas", per.id, "nss", Boolean(per.nss_ultimos4)),
       domicilio: per.domicilio, email: per.email, identificacion: per.identificacion, parentesco: finado?.parentesco_cliente,
     },
-    honorario: { pct: p.HONORARIO_RETIRO_PCT ? porcentajeEnLetra(Number(p.HONORARIO_RETIRO_PCT)) : null },
+    // Retiro: el % pactado con el cliente, o el general.
+    honorario: { pct: caso.contrato_pct ? porcentajeEnLetra(Number(caso.contrato_pct)) : p.HONORARIO_RETIRO_PCT ? porcentajeEnLetra(Number(p.HONORARIO_RETIRO_PCT)) : null },
     precio: {
       pago_unico: caso.honorario_fijo ? pesosEnLetra(Number(caso.honorario_fijo)) : null,
       pct_recuperado: Number.isFinite(pct) ? porcentajeEnLetra(pct) : null,

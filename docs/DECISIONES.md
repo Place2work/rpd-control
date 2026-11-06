@@ -143,3 +143,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - **Desvío (resultado 2):** crea un caso del servicio elegido (el sugerido viene preseleccionado) para la misma
   persona, ligado con `caso_origen_id`, con copia de los datos del IMSS. El original pasa a «Perdido o desvío» con
   motivo `no_elegible`; si su etapa no lo permite, se avisa y queda abierto. Un solo desvío por servicio.
+
+## 6-nov-2026 · Honorario pactado y domicilio
+
+- **Honorario del retiro negociado por caso:** el Director escribe el % pactado en la pestaña Dinero (vacío = el
+  general del parámetro `HONORARIO_RETIRO_PCT`). Se guarda en `casos.contrato_pct` (el mismo campo del % pactado de
+  fallecimiento; no hubo migración). Aplica a los pagos de la Afore que se registren después, al estimado de la
+  precalificación y al contrato. Los pagos ya registrados conservan su honorario. Cada cambio queda en Seguimiento.
+  Las comisiones del vendedor no cambian (van sobre el monto de la Afore); el reparto del socio sigue el subtotal cobrado.
+- **Domicilio:** se captura en Datos personales (el mismo campo que usa el contrato).

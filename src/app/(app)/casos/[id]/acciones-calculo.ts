@@ -6,6 +6,7 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { entradaDesdeCaso, faltantesParaCalcular, VERSION_REGLAS } from "@/lib/calculo/entrada";
 import { conUsuario, prismaSistema } from "@/lib/db/prisma";
 import { parametrosRetiro } from "@/lib/parametros";
+import { pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { precalificar, type Resultado } from "@/lib/reglas/retiro";
 import { hoyCDMX } from "@/lib/tiempo";
 
@@ -23,7 +24,7 @@ export async function calcularPrecalificacion(casoId: string, modalidad: "A" | "
     const caso = await tx.caso.findUnique({
       where: { id: casoId },
       select: {
-        folio: true, tipo_servicio: true, dictamen_manual: true, asignado_a: true,
+        folio: true, tipo_servicio: true, dictamen_manual: true, asignado_a: true, contrato_pct: true,
         persona: { select: { fecha_nacimiento: true, nombre: true, apellido_paterno: true } },
         datos_imss: true, datos_afore: true,
       },
@@ -34,7 +35,9 @@ export async function calcularPrecalificacion(casoId: string, modalidad: "A" | "
     if (faltantes.length) return { faltantes };
 
     const entrada = entradaDesdeCaso(caso, hoy, modalidad);
-    const s = precalificar(entrada, p);
+    // El estimado usa el % pactado con el cliente, si lo hay.
+    const pc = { ...p, HONORARIO_RETIRO_PCT: pctHonorarioRetiro(caso.contrato_pct === null ? null : Number(caso.contrato_pct), p) };
+    const s = precalificar(entrada, pc);
     // El dictamen manual prevalece sobre el resultado automático (decisión 27-oct).
     const final: Resultado = caso.dictamen_manual === "APTO" ? "APTO" : caso.dictamen_manual === "NO_APTO" ? "NO_ELEGIBLE_DEFINITIVO" : s.resultado;
     const a = s.modalidades.opciones.find((o) => o.modalidad === "A");
@@ -44,7 +47,7 @@ export async function calcularPrecalificacion(casoId: string, modalidad: "A" | "
     await tx.calculo.create({
       data: {
         caso_id: casoId, version_reglas: VERSION_REGLAS, fecha_calculo: new Date(`${hoy}T00:00:00Z`),
-        entradas: { ...entrada, parametros: p },
+        entradas: { ...entrada, parametros: pc },
         uma_diaria: p.UMA_DIARIA, uma_mensual: p.UMA_MENSUAL,
         modalidad_a_monto: a?.monto ?? null, modalidad_a_semanas: a?.semanasPerdidas ?? null,
         modalidad_b_90dias: b?.detalle.dias_sbc ?? null, modalidad_b_115pct: b?.detalle.pct_saldo ?? null,
