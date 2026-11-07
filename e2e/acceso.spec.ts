@@ -34,10 +34,10 @@ test("definir contraseña exige sesión; la liga sin tokens se rechaza", async (
   await expect(page.getByText("Esta liga no es válida")).toBeVisible();
 });
 
-test("se puede pedir la liga para definir contraseña", async ({ page }) => {
+test("sin correo configurado, el login no ofrece recuperar por correo: remite al Director", async ({ page }) => {
   await page.goto("/login");
-  await page.getByRole("button", { name: /Olvidaste tu contraseña/ }).click();
-  await expect(page.getByRole("heading", { name: "Define tu contraseña" })).toBeVisible();
+  await expect(page.getByRole("button", { name: /Olvidaste tu contraseña/ })).toHaveCount(0);
+  await expect(page.getByText("Pídele al Director una contraseña temporal")).toBeVisible();
 });
 
 test("el almacén de demostración no existe fuera del modo demostración", async ({ request }) => {

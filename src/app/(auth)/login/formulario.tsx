@@ -8,6 +8,10 @@ import { Input, Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { InputClave } from "@/components/ui/input-clave";
 
+// Recuperar por correo solo cuando Supabase tenga SMTP propio (Resend); sin él, el correo no llega.
+// Se prende con NEXT_PUBLIC_RECUPERAR_POR_CORREO=1 en Vercel y un nuevo despliegue.
+const RECUPERAR_POR_CORREO = process.env.NEXT_PUBLIC_RECUPERAR_POR_CORREO === "1";
+
 export function FormularioLogin({ aviso }: { aviso?: string }) {
   const router = useRouter();
   const [modo, setModo] = useState<"entrar" | "recuperar" | "enviado">("entrar");
@@ -55,9 +59,13 @@ export function FormularioLogin({ aviso }: { aviso?: string }) {
               {error && <p role="alert" className="text-sm text-critico">{error}</p>}
               <Button type="submit" disabled={enviando}>{enviando ? "Entrando…" : "Continuar"}</Button>
             </form>
-            <button type="button" onClick={() => setModo("recuperar")} className="self-start text-sm font-medium text-brand hover:underline">
-              ¿Olvidaste tu contraseña o es tu primera vez?
-            </button>
+            {RECUPERAR_POR_CORREO ? (
+              <button type="button" onClick={() => setModo("recuperar")} className="self-start text-sm font-medium text-brand hover:underline">
+                ¿Olvidaste tu contraseña o es tu primera vez?
+              </button>
+            ) : (
+              <p className="text-sm text-ink-muted">¿Olvidaste tu contraseña? Pídele al Director una contraseña temporal.</p>
+            )}
             <p className="text-xs text-ink-muted">Después te pediremos el código de tu app autenticadora.</p>
           </>
         )}
