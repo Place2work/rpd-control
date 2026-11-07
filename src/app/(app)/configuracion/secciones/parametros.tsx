@@ -35,7 +35,7 @@ export async function SeccionParametros({ sesion }: { sesion: Sesion }) {
                   const vigente = versiones.find((v) => iso(v.vigente_desde)! <= hoy && (v.vigente_hasta === null || iso(v.vigente_hasta)! >= hoy));
                   const futuro = versiones.find((v) => iso(v.vigente_desde)! > hoy);
                   return (
-                    <li key={clave} className="grid gap-2 py-3 md:grid-cols-[1fr_auto] md:items-start">
+                    <li key={clave} className="grid gap-2 py-3 md:grid-cols-[minmax(12rem,1fr)_minmax(10rem,26rem)] md:items-start md:gap-6">
                       <div className="min-w-0">
                         <p className="text-sm text-ink">{versiones[0].descripcion ?? clave}</p>
                         <p className="font-mono text-[11px] text-ink-muted">{clave}</p>
@@ -60,7 +60,8 @@ export async function SeccionParametros({ sesion }: { sesion: Sesion }) {
                           </div>
                         </details>
                       </div>
-                      <p className="cifra text-right text-sm font-medium text-ink md:min-w-40">{vigente ? valorVisible(clave, vigente.valor) : "—"}
+                      {/* Un valor largo (domicilio, CLABE, texto del régimen) baja a varias líneas en vez de encimarse. */}
+                      <p className="cifra min-w-0 break-words text-sm font-medium text-ink md:text-right">{vigente ? valorVisible(clave, vigente.valor) : "—"}
                         <span className="block text-xs font-normal text-ink-muted">desde {vigente ? iso(vigente.vigente_desde) : "—"}</span></p>
                     </li>
                   );
