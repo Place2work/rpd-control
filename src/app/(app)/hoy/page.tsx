@@ -63,7 +63,12 @@ export default async function Hoy() {
       { t: "Monto retirado del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/dinero" },
       { t: "Honorarios cobrados del mes", v: mxn(dinero.cobradoMes), nota: "con IVA", liga: "/dinero" },
       { t: "Por cobrar", v: mxn(dinero.porCobrar), liga: "/dinero",
-        nota: `${dinero.cobrosPendientes} ${dinero.cobrosPendientes === 1 ? "cobro" : "cobros"}${proy && proy.filas.length ? ` · + ${mxn(proy.total)} proyectado (${proy.filas.length} ${proy.filas.length === 1 ? "caso" : "casos"})` : ""}` },
+        nota: `${dinero.cobrosPendientes} ${dinero.cobrosPendientes === 1 ? "cobro" : "cobros"} · la Afore ya depositó` },
+      // Honorario de los retiros con el monto de la Afore ya capturado, antes del depósito.
+      { t: "Proyectado por cobrar", v: mxn(proy?.total ?? 0), liga: "/dinero",
+        nota: proy && proy.filas.length
+          ? `${proy.filas.length} ${proy.filas.length === 1 ? "prospecto" : "prospectos"} · con lo ya cobrable: ${mxn((Math.round(proy.total * 100) + Math.round(dinero.porCobrar * 100)) / 100)}`
+          : "Captura el pago esperado de la Afore en cada caso" },
       { t: "Costo administrativo del mes", v: mxn(costoAlta?.total ?? 0), nota: `${costoAlta?.altas ?? 0} ${costoAlta?.altas === 1 ? "alta" : "altas"} de prospectos`, liga: "/prospectos" },
       { t: "Comisiones por pagar", v: mxn(dinero.comisionesPorPagar), nota: `${dinero.comisionesPendientes} devengadas`, liga: "/comisiones" },
     ] : []),
