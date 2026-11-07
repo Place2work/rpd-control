@@ -15,6 +15,7 @@ import { NOMBRE_ETAPA, validarTransicion, type Etapa } from "@/lib/reglas/etapas
 import { bimestresEntre, diasEntre, regimenPorPrimeraAlta, sumarDiasHabiles, vencimientoContrato } from "@/lib/reglas/fechas";
 import { curpParcial, datosDeCurp, validarCurp, validarNss } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
+import { limpiarNombre } from "@/lib/reglas/nombres";
 
 export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; faltantes?: string[] };
 
@@ -90,10 +91,9 @@ export async function guardarDatosPersonales(casoId: string, personaId: string, 
   if (!r.success) return { errores: erroresDe(r.error) };
   const d = r.data;
   const wa = normalizarWhatsapp(d.whatsapp)!;
+  const nom = limpiarNombre({ nombre: d.nombre, apellido_paterno: texto(form, "apellido_paterno"), apellido_materno: texto(form, "apellido_materno") });
   const data: Prisma.PersonaUpdateInput = {
-    nombre: d.nombre,
-    apellido_paterno: texto(form, "apellido_paterno"),
-    apellido_materno: texto(form, "apellido_materno"),
+    ...nom,
     whatsapp: wa,
     telefono: wa,
     email: d.email,

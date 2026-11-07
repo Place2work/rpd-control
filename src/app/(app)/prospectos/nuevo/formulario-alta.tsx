@@ -27,7 +27,7 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy }: Props) {
   const [estado, accion, enviando] = useActionState<EstadoAlta, FormData>(crearProspecto, {});
   const v = estado.valores ?? {};
   const e = estado.errores ?? {};
-  const [masDatos, setMasDatos] = useState(Boolean(v.curp || v.nss || v.apellido_paterno));
+  const [masDatos, setMasDatos] = useState(Boolean(v.curp || v.nss));
   const soloTelefono = estado.duplicados?.length && estado.duplicados.every((d) => d.campo === "telefono");
 
   return (
@@ -59,9 +59,17 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy }: Props) {
 
       <Card>
         <CardContent className="grid gap-4">
-          <Campo id="nombre" etiqueta="Nombre" error={e.nombre}>
-            <Input id="nombre" name="nombre" defaultValue={v.nombre} autoComplete="off" autoFocus required aria-invalid={!!e.nombre} />
-          </Campo>
+          <div className="grid gap-4 sm:grid-cols-3">
+            <Campo id="nombre" etiqueta="Nombre(s)" ayuda="sin apellidos" error={e.nombre}>
+              <Input id="nombre" name="nombre" defaultValue={v.nombre} placeholder="Rubicel" autoComplete="off" autoFocus required aria-invalid={!!e.nombre} />
+            </Campo>
+            <Campo id="apellido_paterno" etiqueta="Apellido paterno">
+              <Input id="apellido_paterno" name="apellido_paterno" defaultValue={v.apellido_paterno} placeholder="Salgado" autoComplete="off" />
+            </Campo>
+            <Campo id="apellido_materno" etiqueta="Apellido materno">
+              <Input id="apellido_materno" name="apellido_materno" defaultValue={v.apellido_materno} placeholder="Terán" autoComplete="off" />
+            </Campo>
+          </div>
           <Campo id="whatsapp" etiqueta="WhatsApp" ayuda="10 dígitos" error={e.whatsapp}>
             <Input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" defaultValue={v.whatsapp} placeholder="777 123 4567"
               autoComplete="off" required aria-invalid={!!e.whatsapp} />
@@ -95,18 +103,10 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy }: Props) {
       <Card>
         <button type="button" onClick={() => setMasDatos(!masDatos)} aria-expanded={masDatos}
           className="flex h-14 w-full items-center justify-between px-5 text-left font-medium text-ink">
-          Apellidos, CURP y NSS <span className="text-sm font-normal text-ink-muted">opcional</span>
+          CURP y NSS <span className="text-sm font-normal text-ink-muted">opcional</span>
           <ChevronDown className={cn("size-5 text-ink-muted transition-transform", masDatos && "rotate-180")} aria-hidden />
         </button>
         <CardContent className={cn("grid gap-4 pt-0", !masDatos && "hidden")}>
-          <div className="grid gap-4 sm:grid-cols-2">
-            <Campo id="apellido_paterno" etiqueta="Apellido paterno">
-              <Input id="apellido_paterno" name="apellido_paterno" defaultValue={v.apellido_paterno} autoComplete="off" />
-            </Campo>
-            <Campo id="apellido_materno" etiqueta="Apellido materno">
-              <Input id="apellido_materno" name="apellido_materno" defaultValue={v.apellido_materno} autoComplete="off" />
-            </Campo>
-          </div>
           <Campo id="curp" etiqueta="CURP" ayuda="18 caracteres; se guarda cifrada" error={e.curp}>
             <Input id="curp" name="curp" defaultValue={v.curp} maxLength={18} autoCapitalize="characters" autoComplete="off"
               className="font-mono uppercase" aria-invalid={!!e.curp} />

@@ -8,6 +8,7 @@ import { esquemaLead } from "@/lib/leads/esquema";
 import { verificarFirma } from "@/lib/leads/firma";
 import { parametrosVigentes } from "@/lib/parametros";
 import { hoyCDMX } from "@/lib/tiempo";
+import { limpiarNombre } from "@/lib/reglas/nombres";
 
 const MAX_BYTES = 16_384;
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
@@ -29,7 +30,7 @@ export async function POST(req: NextRequest) {
   if (!r.success) {
     return NextResponse.json({ error: "Datos no válidos", campos: r.error.issues.map((i) => ({ campo: i.path.join("."), mensaje: i.message })) }, { status: 422 });
   }
-  const d = r.data;
+  const d = { ...r.data, ...limpiarNombre({ nombre: r.data.nombre, apellido_paterno: r.data.apellido_paterno ?? null, apellido_materno: r.data.apellido_materno ?? null }) };
   const hoy = hoyCDMX();
   const nombre = [d.nombre, d.apellido_paterno].filter(Boolean).join(" ");
 

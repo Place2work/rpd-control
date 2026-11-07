@@ -9,6 +9,7 @@ import { parametrosVigentes } from "@/lib/parametros";
 import { esquemaAlta } from "@/lib/prospectos/validacion";
 import { curpParcial, datosDeCurp } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
+import { limpiarNombre } from "@/lib/reglas/nombres";
 
 export type Duplicado = { campo: "telefono" | "curp" | "nss"; persona_id: string | null; visible: boolean };
 
@@ -33,7 +34,7 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
     for (const i of r.error.issues) errores[String(i.path[0])] ??= i.message;
     return { errores, valores };
   }
-  const d = r.data;
+  const d = { ...r.data, ...limpiarNombre({ nombre: r.data.nombre, apellido_paterno: r.data.apellido_paterno ?? null, apellido_materno: r.data.apellido_materno ?? null }) };
   const curpHash = d.curp ? hashIdentificador("curp", d.curp) : null;
   const nssHash = d.nss ? hashIdentificador("nss", d.nss) : null;
 
