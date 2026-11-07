@@ -205,3 +205,15 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - La pestaña Contrato permite subir la copia firmada del contrato y del aviso de privacidad. Son documentos del
   expediente de tipo «Contrato firmado» y «Aviso de privacidad firmado» (mismo bucket y políticas; el vendedor no los
   ve). Opcionales: no cambian los requisitos de etapa. Migración 1800.
+
+## 7-nov-2026 · Días administrativos, costo por alta y orden de Prospectos
+
+- **Días administrativos** (`DIAS_ADMINISTRATIVOS`, 10, con vigencia): margen de la empresa después del día 46 para
+  ingresar el trámite. No cambia la regla legal (cálculo y etapas siguen con el día 46). Se muestran las dos fechas
+  («Día 46 en N días» → «Cumplió 46 días · trámite en N días» → «Listo para trámite») en Prospectos, Casos, Hoy y
+  Resumen. Alertas: el día 46 dice cuándo toca el trámite y `TRAMITE_LISTO` (crítica) al terminar el margen.
+- **Costo administrativo por alta** (`COSTO_ADMIN_ALTA`, $500, con vigencia): cada prospecto dado de alta (sin
+  archivados ni desvíos) se valúa con el costo vigente el día de su alta. Se ve en Prospectos (mes y total; respeta el
+  filtro de vendedor) y en Hoy. El vendedor no lo ve.
+- **Prospectos** se ordenan por defecto por fecha para retirar: primero los que ya pueden (el más antiguo arriba),
+  luego los que les faltan días y al final sin fecha de baja; en Filtros, «Altas más recientes».

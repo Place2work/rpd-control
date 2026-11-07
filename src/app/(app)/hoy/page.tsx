@@ -2,6 +2,8 @@ import { CalendarClock, Filter, LineChart } from "lucide-react";
 import { GraficaBarras } from "@/components/rpd/grafica-barras";
 import { movimientosDelMes } from "@/lib/cerrados/consultas";
 import { cifrasHoy } from "@/lib/dinero/consultas";
+import { altasYCostos } from "@/lib/dinero/costo-alta";
+import { costoAdministrativo } from "@/lib/reglas/costo-alta";
 import { embudoDelMes } from "@/lib/reglas/cerrados";
 import { mxn } from "@/lib/formato";
 import type { Metadata } from "next";
@@ -14,7 +16,7 @@ import { misAlertas } from "@/lib/alertas/consultas";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { parametrosFechas } from "@/lib/parametros";
 import { ETAPAS_PROSPECTO, listarCasos, nombreCompleto } from "@/lib/prospectos/consultas";
-import { fechaElegibleDesempleo } from "@/lib/reglas/fechas";
+import { diasEntre, fechasRetiroDesempleo } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { Bandeja } from "./bandeja";
 
@@ -34,12 +36,18 @@ export default async function Hoy() {
     listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion), veDinero ? cifrasHoy(sesion, hoy.slice(0, 7)) : null,
     movimientosDelMes(sesion, hoy.slice(0, 7)),
   ]);
+  const costos = veDinero ? await altasYCostos(sesion) : null;
+  const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
 
   // Próximos día 46 (10.1): retiros que aún no se ingresan, con fecha de baja, en los próximos 14 días.
   const proximos = casos
     .filter((c) => c.servicio.clave === "RETIRO_DESEMPLEO" && ANTES_DE_INGRESAR.has(c.etapa) && c.datos_imss?.fecha_baja)
-    .map((c) => ({ c, d: fechaElegibleDesempleo(c.datos_imss!.fecha_baja!.toISOString().slice(0, 10), hoy, p) }))
-    .filter(({ d }) => d.diasFaltan <= 14)
+    .map((c) => {
+      const f = fechasRetiroDesempleo(c.datos_imss!.fecha_baja!.toISOString().slice(0, 10), hoy, p);
+      return { c, d: f.legal, f };
+    })
+    // Hasta que el trámite quede listo (46 + días administrativos) y una semana después.
+    .filter(({ d, f }) => d.diasFaltan <= 14 && diasEntre(f.tramite.fecha, hoy) <= 7)
     .sort((a, b) => a.d.fecha.localeCompare(b.d.fecha));
 
   // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
@@ -55,6 +63,7 @@ export default async function Hoy() {
       { t: "Monto retirado del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/dinero" },
       { t: "Honorarios cobrados del mes", v: mxn(dinero.cobradoMes), nota: "con IVA", liga: "/dinero" },
       { t: "Por cobrar", v: mxn(dinero.porCobrar), nota: `${dinero.cobrosPendientes} ${dinero.cobrosPendientes === 1 ? "cobro" : "cobros"}`, liga: "/dinero" },
+      { t: "Costo administrativo del mes", v: mxn(costoAlta?.total ?? 0), nota: `${costoAlta?.altas ?? 0} ${costoAlta?.altas === 1 ? "alta" : "altas"} de prospectos`, liga: "/prospectos" },
       { t: "Comisiones por pagar", v: mxn(dinero.comisionesPorPagar), nota: `${dinero.comisionesPendientes} devengadas`, liga: "/comisiones" },
     ] : []),
   ];
@@ -108,7 +117,7 @@ export default async function Hoy() {
               texto="Cuando captures la fecha de baja de un prospecto, verás aquí cuántos días le faltan para poder retirar." />
           ) : (
             <ul className="divide-y divide-borde pb-2">
-              {proximos.map(({ c, d }) => (
+              {proximos.map(({ c, d, f }) => (
                 <li key={c.id}>
                   <Link href={`/casos/${c.id}`} className="flex items-center gap-3 px-5 py-3 hover:bg-brand-tint/40">
                     <span className={`cifra flex size-11 shrink-0 flex-col items-center justify-center rounded-lg font-display text-lg font-semibold leading-none ${d.yaPuede ? "bg-exito-tint text-exito-texto" : "bg-aviso-tint text-aviso"}`}>
@@ -117,7 +126,8 @@ export default async function Hoy() {
                     <span className="min-w-0 flex-1">
                       <span className="block truncate text-sm font-medium text-ink">{nombreCompleto(c.persona)}</span>
                       <span className="block text-xs text-ink-muted">
-                        {d.yaPuede ? "Ya puede retirar" : `${d.diasFaltan === 1 ? "Falta 1 día" : `Faltan ${d.diasFaltan} días`} · ${formatoFecha(d.fecha)}`}
+                        {d.yaPuede ? `Ya cumplió ${p.DIAS_ESPERA_DESEMPLEO} días` : `${d.diasFaltan === 1 ? "Falta 1 día" : `Faltan ${d.diasFaltan} días`} para el día ${p.DIAS_ESPERA_DESEMPLEO} · ${formatoFecha(d.fecha)}`}
+                        {f.diasAdmin > 0 && <span className="block">{f.tramite.listo ? "Listo para ingresar el trámite" : `Trámite: ${formatoFecha(f.tramite.fecha)} (+${f.diasAdmin} días administrativos)`}</span>}
                       </span>
                     </span>
                   </Link>

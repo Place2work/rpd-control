@@ -4,9 +4,9 @@ import { Encabezado } from "@/components/rpd/encabezado";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { parametrosFechas } from "@/lib/parametros";
 import { listarCasos, nombreCompleto } from "@/lib/prospectos/consultas";
-import { isoDe } from "@/components/rpd/insignia-dia46";
+import { estadoRetiro, isoDe } from "@/components/rpd/insignia-dia46";
 import { NOMBRE_ETAPA, ETAPAS_LATERALES, ETAPAS_PENSION, ETAPAS_RETIRO, type Etapa } from "@/lib/reglas/etapas";
-import { diasEntre, fechaElegibleDesempleo } from "@/lib/reglas/fechas";
+import { diasEntre, fechasRetiroDesempleo } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { cn } from "@/lib/utils";
 import { TablaCasos, type FilaCaso } from "./tabla-casos";
@@ -42,8 +42,7 @@ export default async function Casos({ searchParams }: { searchParams: Promise<Q>
   const dia46 = (baja: Date | null | undefined): Tarjeta["dia46"] => {
     if (embudo !== "retiro") return null;
     if (!baja) return { texto: "Sin fecha de baja", tono: "espera" };
-    const r = fechaElegibleDesempleo(isoDe(baja)!, hoy, p);
-    return r.yaPuede ? { texto: "Ya puede retirar", tono: "pagado" } : { texto: `Día 46 en ${r.diasFaltan} ${r.diasFaltan === 1 ? "día" : "días"}`, tono: "espera" };
+    return estadoRetiro(fechasRetiroDesempleo(isoDe(baja)!, hoy, p));
   };
 
   const tarjetas: Tarjeta[] = delEmbudo.map((c) => ({

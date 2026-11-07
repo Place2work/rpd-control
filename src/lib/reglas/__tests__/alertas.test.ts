@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { alertaVigente, alertasDelDia, alertasProximoRetiro, fechaProximoRetiro, resolverDestinatarios, type CasoAlertable } from "../alertas";
 
 const HOY = "2026-10-27";
-const P = { DIAS_ESPERA_DESEMPLEO: 46, ANIOS_CANDADO_RETIRO: 5, SLA_DIAS_HABILES: 15, inhabiles: new Set(["2026-11-02", "2026-11-16"]) };
+const P = { DIAS_ESPERA_DESEMPLEO: 46, DIAS_ADMINISTRATIVOS: 0, ANIOS_CANDADO_RETIRO: 5, SLA_DIAS_HABILES: 15, inhabiles: new Set(["2026-11-02", "2026-11-16"]) };
 const base: CasoAlertable = {
   id: "c1", folio: "RP-0001", nombre: "Juana", etapa: "PROSPECTO", esRetiro: true,
   ownerId: "v1", asignadoA: "a1", vendedorId: "v1",
@@ -115,5 +115,24 @@ describe("alertas que dejan de aplicar cuando el caso cobró", () => {
     expect(alertaVigente("PROXIMO_RETIRO", "CERRADO")).toBe(true);
     expect(alertaVigente("DIA46_HOY", "PROSPECTO")).toBe(true);
     expect(alertaVigente("COMISION_POR_PAGAR", null)).toBe(true);
+  });
+});
+
+describe("días administrativos después del día 46", () => {
+  const PA = { ...P, DIAS_ADMINISTRATIVOS: 10 };
+  const c = { ...base, fechaBaja: "2026-10-01" } as CasoAlertable;
+  it("el día 46 avisa que ya puede retirar y cuándo se ingresa el trámite", () => {
+    const a = alertasDelDia([c], "2026-11-16", PA).find((x) => x.regla === "DIA46_HOY")!;
+    expect(a.mensaje).toContain("ya cumplió 46 días desde la baja");
+    expect(a.mensaje).toContain("2026-11-26");
+  });
+  it("al terminar los días administrativos: ingresar el trámite", () => {
+    const a = alertasDelDia([c], "2026-11-26", PA).filter((x) => x.regla === "TRAMITE_LISTO");
+    expect(a).toHaveLength(1);
+    expect(a[0].mensaje).toContain("46 + 10 días administrativos");
+    expect(alertasDelDia([c], "2026-11-20", PA).some((x) => x.regla === "TRAMITE_LISTO")).toBe(false);
+  });
+  it("con 0 días administrativos no hay alerta extra", () => {
+    expect(alertasDelDia([c], "2026-11-16", P).some((x) => x.regla === "TRAMITE_LISTO")).toBe(false);
   });
 });

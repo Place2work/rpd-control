@@ -59,6 +59,20 @@ export function fechaElegibleDesempleo(fechaBaja: FechaISO, hoy: FechaISO, p: Pi
   return { fecha, diasFaltan, yaPuede: diasFaltan === 0 };
 }
 
+/**
+ * Las dos fechas del retiro: la legal (baja + DIAS_ESPERA_DESEMPLEO, cuando el cliente ya puede retirar) y la
+ * del trámite (legal + DIAS_ADMINISTRATIVOS, el margen que la empresa se da para ingresarlo). El margen no
+ * cambia la regla legal: solo se muestra y se avisa.
+ */
+export function fechasRetiroDesempleo(fechaBaja: FechaISO, hoy: FechaISO, p: { DIAS_ESPERA_DESEMPLEO: number; DIAS_ADMINISTRATIVOS: number }) {
+  const legal = fechaElegibleDesempleo(fechaBaja, hoy, p);
+  const fecha = sumarDias(legal.fecha, p.DIAS_ADMINISTRATIVOS);
+  const diasFaltan = Math.max(0, diasEntre(hoy, fecha));
+  return { legal, tramite: { fecha, diasFaltan, listo: diasFaltan === 0 }, diasAdmin: p.DIAS_ADMINISTRATIVOS, diasEspera: p.DIAS_ESPERA_DESEMPLEO };
+}
+
+export type FechasRetiro = ReturnType<typeof fechasRetiroDesempleo>;
+
 export type EstadoUltimoRetiro = "por_verificar" | "nunca_retiro" | "con_retiro";
 
 export type Candado =

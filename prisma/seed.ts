@@ -19,6 +19,8 @@ const PARAMETROS: { clave: string; valor: string; tipo?: string; descripcion: st
   { clave: "MODALIDAD_B_MENSUALIDADES_MAX", valor: "6", tipo: "entero", descripcion: "Pagos máximos de la Afore en modalidad B; la A se paga en uno solo", hasta: "2026-11-06" },
   { clave: "MODALIDAD_B_MENSUALIDADES_MAX", valor: "1", tipo: "entero", descripcion: "Pagos máximos de la Afore en modalidad B; la A se paga en uno solo", desde: "2026-11-07" },
   { clave: "AVISO_PROXIMO_RETIRO_DIAS", valor: "30", tipo: "entero", descripcion: "Días antes del próximo retiro (5 años después del depósito) para avisar al asesor" },
+  { clave: "COSTO_ADMIN_ALTA", valor: "500", descripcion: "Costo administrativo por cada prospecto dado de alta (pesos)" },
+  { clave: "DIAS_ADMINISTRATIVOS", valor: "10", tipo: "entero", descripcion: "Días administrativos después del día 46 para ingresar el trámite (margen de la empresa)" },
   { clave: "DIAS_ESPERA_DESEMPLEO", valor: "46", tipo: "entero", descripcion: "Fecha elegible = baja + N días naturales (art. 191-II)" },
   { clave: "ANIOS_CANDADO_RETIRO", valor: "5", tipo: "entero", descripcion: "Años entre retiros por desempleo" },
   { clave: "SLA_DIAS_HABILES", valor: "15", tipo: "entero", descripcion: "Días hábiles para ingresar desde expediente completo" },

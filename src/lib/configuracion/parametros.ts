@@ -21,7 +21,7 @@ export const ES_PORCENTAJE = new Set([
 ]);
 
 export const GRUPOS: { titulo: string; prefijos: string[] }[] = [
-  { titulo: "Retiro por desempleo", prefijos: ["UMA_", "MODALIDAD_", "UMBRAL_", "HONORARIO_", "L97_", "L73_", "DIAS_ESPERA", "ANIOS_CANDADO"] },
+  { titulo: "Retiro por desempleo", prefijos: ["UMA_", "MODALIDAD_", "UMBRAL_", "HONORARIO_", "L97_", "L73_", "DIAS_ESPERA", "DIAS_ADMINISTRATIVOS", "ANIOS_CANDADO"] },
   { titulo: "Plazos y alertas", prefijos: ["VIGENCIA_", "SLA_", "AFORE_", "HORA_", "AVISO_", "ARCO_", "RETENCION_"] },
   { titulo: "Dinero y comisiones", prefijos: ["IVA", "BASE_", "COSTO_ADMIN", "FALLEC_COMISION"] },
   { titulo: "Pensión y Modalidad 40", prefijos: ["M40_", "VENTANA_", "CONSERVACION_", "INFONAVIT_"] },

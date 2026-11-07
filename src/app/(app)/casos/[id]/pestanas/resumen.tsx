@@ -9,6 +9,7 @@ import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { ORIGENES } from "@/lib/prospectos/validacion";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { movimientosPosibles, NOMBRE_ETAPA } from "@/lib/reglas/etapas";
+import { diasEntre, sumarDias } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { asignarAsesor } from "../acciones-asignacion";
 import { CambiarEtapa } from "../cambiar-etapa";
@@ -64,6 +65,16 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
                 <p className="mt-2 text-sm font-medium text-ink">{formatoFecha(dia46.fecha, { dateStyle: "full" })}</p>
               </>
             )}
+            {dia46 && p.DIAS_ADMINISTRATIVOS > 0 && (() => {
+              const tramite = sumarDias(dia46.fecha, p.DIAS_ADMINISTRATIVOS);
+              const faltan = Math.max(0, diasEntre(hoy, tramite));
+              return (
+                <div className={`mt-4 w-full rounded-[var(--radius-boton)] px-3 py-2 text-sm ${faltan === 0 ? "bg-exito-tint text-exito-texto" : "bg-brand-tint text-brand"}`}>
+                  <p className="font-medium">{faltan === 0 ? "Listo para ingresar el trámite" : `Trámite en ${faltan} ${faltan === 1 ? "día" : "días"}: ${largo(tramite)}`}</p>
+                  <p className="text-xs opacity-80">Día {p.DIAS_ESPERA_DESEMPLEO} + {p.DIAS_ADMINISTRATIVOS} días administrativos</p>
+                </div>
+              );
+            })()}
           </CardContent>
         </Card>
       )}

@@ -12,7 +12,11 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { ligasConsulta, parametrosFechas } from "@/lib/parametros";
 import { listarProspectos, nombreCompleto, opcionesFiltrosProspecto } from "@/lib/prospectos/consultas";
 import { ORIGENES } from "@/lib/prospectos/validacion";
-import { diasEntre } from "@/lib/reglas/fechas";
+import { altasYCostos } from "@/lib/dinero/costo-alta";
+import { mxn } from "@/lib/formato";
+import { costoAdministrativo, costoVigente } from "@/lib/reglas/costo-alta";
+import { diasEntre, fechaElegibleDesempleo } from "@/lib/reglas/fechas";
+import { ordenarPorRetiro } from "@/lib/reglas/orden-prospectos";
 import { hoyCDMX } from "@/lib/tiempo";
 
 export const metadata: Metadata = { title: "Prospectos" };
@@ -23,19 +27,34 @@ const telefonoVisible = (e164: string | null) => (e164 ? e164.replace(/^\+52(\d{
 const select = "h-11 w-full rounded-[var(--radius-boton)] border border-borde bg-surface px-3 text-sm text-ink md:h-10";
 const SIN_CONTACTO = [["3", "3 días o más"], ["7", "7 días o más"], ["15", "15 días o más"], ["30", "30 días o más"]] as const;
 
-type Q = { q?: string; origen?: string; servicio?: string; vendedor?: string; regimen?: string; sin_contacto?: string };
+type Q = { q?: string; origen?: string; servicio?: string; vendedor?: string; regimen?: string; sin_contacto?: string; orden?: string };
 
 export default async function Prospectos({ searchParams }: { searchParams: Promise<Q> }) {
   const sesion = await obtenerSesion();
   const filtro = await searchParams;
   const q = filtro.q ?? "";
   const hoy = hoyCDMX();
-  const [todas, ligas, p, opciones] = await Promise.all([
+  const veDinero = sesion.usuario.rol !== "vendedor";
+  const [todas, ligas, p, opciones, costos] = await Promise.all([
     listarProspectos(sesion, q, filtro), ligasConsulta(), parametrosFechas(hoy), opcionesFiltrosProspecto(sesion),
+    veDinero ? altasYCostos(sesion) : null,
   ]);
   const minimoSinContacto = Number(filtro.sin_contacto) > 0 ? Number(filtro.sin_contacto) : 0;
   const diasSinContacto = (x: (typeof todas)[number]) => diasEntre(hoyCDMX(x.eventos[0]?.fecha ?? x.created_at), hoy);
-  const filas = minimoSinContacto ? todas.filter((x) => diasSinContacto(x) >= minimoSinContacto) : todas;
+  const filtradas = minimoSinContacto ? todas.filter((x) => diasSinContacto(x) >= minimoSinContacto) : todas;
+  // Por defecto: primero los que ya pueden retirar, luego los que les faltan días; «recientes» = alta más nueva.
+  const orden = filtro.orden === "recientes" ? "recientes" : "retiro";
+  const filas = orden === "recientes" ? filtradas : ordenarPorRetiro(filtradas.map((f) => ({
+    ...f,
+    fechaRetiro: f.servicio.clave === "RETIRO_DESEMPLEO" && f.datos_imss?.fecha_baja
+      ? fechaElegibleDesempleo(f.datos_imss.fecha_baja.toISOString().slice(0, 10), hoy, p).fecha : null,
+    alta: f.created_at.toISOString(),
+  })), hoy);
+  // Costo administrativo por alta (respeta el filtro de vendedor).
+  const altasVistas = costos ? costos.altas.filter((a) => !filtro.vendedor || (filtro.vendedor === "sin" ? a.vendedorId === null : a.vendedorId === filtro.vendedor)) : [];
+  const costoMes = costos ? costoAdministrativo(altasVistas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
+  const costoTotal = costos ? costoAdministrativo(altasVistas, costos.vigencias) : null;
+  const costoHoy = costos ? costoVigente(hoy, costos.vigencias) : 0;
   const conFiltros = Boolean(filtro.origen || filtro.servicio || filtro.vendedor || filtro.regimen || minimoSinContacto);
 
   return (
@@ -78,6 +97,10 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                     <select id="f-sin" name="sin_contacto" defaultValue={filtro.sin_contacto ?? ""} className={select}>
                       <option value="">Cualquiera</option>{SIN_CONTACTO.map(([v, t]) => <option key={v} value={v}>{t}</option>)}
                     </select></div>
+                  <div className="grid gap-1.5"><Label htmlFor="f-orden">Ordenar</Label>
+                    <select id="f-orden" name="orden" defaultValue={orden} className={select}>
+                      <option value="retiro">Por fecha para retirar</option><option value="recientes">Altas más recientes</option>
+                    </select></div>
                   <div className="flex items-end gap-2">
                     <Button type="submit">Filtrar</Button>
                     {conFiltros && <Button asChild variant="secundario"><Link href={q ? `/prospectos?q=${encodeURIComponent(q)}` : "/prospectos"}>Quitar filtros</Link></Button>}
@@ -113,7 +136,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                       </p>
                     </Link>
                     {f.servicio.clave === "RETIRO_DESEMPLEO" && (
-                      <InsigniaDia46 fechaBaja={f.datos_imss?.fecha_baja} hoy={hoy} diasEspera={p.DIAS_ESPERA_DESEMPLEO} />
+                      <InsigniaDia46 fechaBaja={f.datos_imss?.fecha_baja} hoy={hoy} diasEspera={p.DIAS_ESPERA_DESEMPLEO} diasAdmin={p.DIAS_ADMINISTRATIVOS} />
                     )}
                     {f.persona.whatsapp && (
                       <a href={`https://wa.me/${f.persona.whatsapp.replace("+", "")}`} target="_blank" rel="noopener noreferrer"
@@ -129,6 +152,30 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
             </ul>
           )}
         </Card>
+        <div className="grid content-start gap-4">
+        {costoMes && costoTotal && (
+          <Card>
+            <CardHeader><CardTitle>Costo administrativo</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 pt-2">
+              <dl className="grid grid-cols-2 gap-3">
+                <div>
+                  <dt className="text-xs text-ink-muted">Este mes</dt>
+                  <dd className="cifra font-display text-xl font-semibold text-ink">{mxn(costoMes.total)}</dd>
+                  <dd className="text-xs text-ink-muted">{costoMes.altas} {costoMes.altas === 1 ? "alta" : "altas"}</dd>
+                </div>
+                <div>
+                  <dt className="text-xs text-ink-muted">Total</dt>
+                  <dd className="cifra font-display text-xl font-semibold text-ink">{mxn(costoTotal.total)}</dd>
+                  <dd className="text-xs text-ink-muted">{costoTotal.altas} {costoTotal.altas === 1 ? "alta" : "altas"}</dd>
+                </div>
+              </dl>
+              <p className="text-xs text-ink-muted">
+                {mxn(costoHoy)} por cada prospecto dado de alta{filtro.vendedor ? " · solo del vendedor filtrado" : ""}.
+                {sesion.usuario.rol === "director" && <> Cámbialo en <Link href="/configuracion?seccion=parametros" className="text-brand underline">Configuración → Parámetros</Link>.</>}
+              </p>
+            </CardContent>
+          </Card>
+        )}
         <Card>
           <CardHeader><CardTitle>Consultas oficiales</CardTitle></CardHeader>
           <CardContent className="pt-2">
@@ -136,6 +183,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
             <LigasConsulta ligas={ligas} />
           </CardContent>
         </Card>
+        </div>
       </div>
     </>
   );

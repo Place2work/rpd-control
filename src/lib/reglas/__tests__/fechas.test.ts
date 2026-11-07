@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  fechasRetiroDesempleo,
   antiguedadCuenta,
   diasHabilesTranscurridos,
   fechaCumpleAnios,
@@ -86,5 +87,24 @@ describe("bimestres cotizados estimados", () => {
     const { bimestresPorSemanas } = await import("../fechas");
     expect(bimestresPorSemanas(168)).toBe(19);
     expect(bimestresPorSemanas(52)).toBe(5);
+  });
+});
+
+describe("días administrativos después del día 46", () => {
+  const P = { DIAS_ESPERA_DESEMPLEO: 46, DIAS_ADMINISTRATIVOS: 10 };
+  it("baja el 1-oct: puede retirar el 16-nov y el trámite queda listo el 26-nov", () => {
+    const f = fechasRetiroDesempleo("2026-10-01", "2026-11-07", P);
+    expect(f.legal).toEqual({ fecha: "2026-11-16", diasFaltan: 9, yaPuede: false });
+    expect(f.tramite).toEqual({ fecha: "2026-11-26", diasFaltan: 19, listo: false });
+  });
+  it("ya cumplió 46 días pero faltan días administrativos", () => {
+    const f = fechasRetiroDesempleo("2026-10-01", "2026-11-20", P);
+    expect(f.legal.yaPuede).toBe(true);
+    expect(f.tramite).toMatchObject({ diasFaltan: 6, listo: false });
+  });
+  it("con 0 días administrativos ambas fechas coinciden", () => {
+    const f = fechasRetiroDesempleo("2026-10-01", "2026-11-16", { ...P, DIAS_ADMINISTRATIVOS: 0 });
+    expect(f.tramite.fecha).toBe(f.legal.fecha);
+    expect(f.tramite.listo).toBe(true);
   });
 });

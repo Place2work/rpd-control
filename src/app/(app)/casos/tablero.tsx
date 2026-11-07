@@ -12,7 +12,7 @@ import { Input, Label } from "@/components/ui/input";
 import { cn } from "@/lib/utils";
 import { moverCaso } from "./acciones-tablero";
 
-export type Tarjeta = { id: string; folio: string; nombre: string; etapa: string; diasEtapa: number; dia46: { texto: string; tono: "pagado" | "espera" | "critico" } | null; servicio: string | null };
+export type Tarjeta = { id: string; folio: string; nombre: string; etapa: string; diasEtapa: number; dia46: { texto: string; tono: "pagado" | "espera" | "critico" | "tramite"; titulo?: string } | null; servicio: string | null };
 export type Columna = { clave: string; titulo: string; tono: "prospecto" | "tramite" | "espera" | "pagado" | "critico" | "perdido" };
 
 type Pendiente = { tarjeta: Tarjeta; destino: Columna; faltantes: string[]; pideMotivo: boolean };
@@ -68,7 +68,7 @@ export function Tablero({ columnas, tarjetas }: { columnas: Columna[]; tarjetas:
                           <p className="text-xs text-ink-muted">
                             <span className="cifra">{c.folio}</span>{c.servicio ? ` · ${c.servicio}` : ""} · {c.diasEtapa === 0 ? "hoy en esta etapa" : `${c.diasEtapa} ${c.diasEtapa === 1 ? "día" : "días"} en la etapa`}
                           </p>
-                          {c.dia46 && <span className="mt-2 inline-block"><Badge tono={c.dia46.tono}>{c.dia46.texto}</Badge></span>}
+                          {c.dia46 && <span className="mt-2 inline-block"><Badge tono={c.dia46.tono} title={c.dia46.titulo}>{c.dia46.texto}</Badge></span>}
                         </Link>
                       </li>
                     ))}

@@ -2,7 +2,7 @@
 // Función pura: recibe la foto de los casos y `hoy`, devuelve las alertas que tocan.
 // La clave de deduplicación hace que cada alerta se cree una sola vez aunque la tarea corra
 // varias veces o un día se salte (las ventanas son de varios días, no de un día exacto).
-import { diasEntre, diasHabilesTranscurridos, fechaElegibleDesempleo, fechaFinCandado, sumarAnios, type EstadoUltimoRetiro, type FechaISO } from "./fechas";
+import { diasEntre, diasHabilesTranscurridos, fechaElegibleDesempleo, fechaFinCandado, sumarAnios, sumarDias, type EstadoUltimoRetiro, type FechaISO } from "./fechas";
 
 export type Severidad = "info" | "aviso" | "critica";
 
@@ -46,6 +46,7 @@ export type AlertaNueva = {
 
 export type ParametrosAlertas = {
   DIAS_ESPERA_DESEMPLEO: number;
+  DIAS_ADMINISTRATIVOS: number;
   ANIOS_CANDADO_RETIRO: number;
   SLA_DIAS_HABILES: number;
   inhabiles: ReadonlySet<FechaISO>;
@@ -72,7 +73,18 @@ export function alertasDelDia(casos: CasoAlertable[], hoy: FechaISO, p: Parametr
       const d = fechaElegibleDesempleo(c.fechaBaja, hoy, p);
       const atraso = diasEntre(d.fecha, hoy);
       if (!d.yaPuede && d.diasFaltan <= 3) add(c, "DIA46_PROXIMO", "aviso", `en ${d.diasFaltan} ${d.diasFaltan === 1 ? "día" : "días"} ya puede retirar`, d.fecha, ["asesor", "vendedor"]);
-      if (d.yaPuede && atraso <= GRACIA) add(c, "DIA46_HOY", "critica", "ya puede retirar (día 46)", d.fecha, ["asesor", "vendedor", "director"]);
+      const conAdmin = p.DIAS_ADMINISTRATIVOS > 0;
+      const tramite = sumarDias(d.fecha, p.DIAS_ADMINISTRATIVOS);
+      if (d.yaPuede && atraso <= GRACIA) {
+        add(c, "DIA46_HOY", "critica", conAdmin
+          ? `ya cumplió ${p.DIAS_ESPERA_DESEMPLEO} días desde la baja (ya puede retirar); con ${p.DIAS_ADMINISTRATIVOS} días administrativos, el trámite se ingresa el ${tramite}`
+          : `ya puede retirar (día ${p.DIAS_ESPERA_DESEMPLEO})`, d.fecha, ["asesor", "vendedor", "director"]);
+      }
+      // Fin del margen administrativo: ya toca ingresar el trámite.
+      const atrasoTramite = diasEntre(tramite, hoy);
+      if (conAdmin && atrasoTramite >= 0 && atrasoTramite <= GRACIA) {
+        add(c, "TRAMITE_LISTO", "critica", `pasaron ${p.DIAS_ESPERA_DESEMPLEO} + ${p.DIAS_ADMINISTRATIVOS} días administrativos: ingresar el trámite`, tramite, ["asesor", "vendedor", "director"]);
+      }
     }
 
     // Fin del candado de 5 años: 7 días antes y el día.
@@ -173,7 +185,7 @@ export function alertasProximoRetiro(casos: RetiroPagado[], hoy: FechaISO, p: { 
 }
 
 // Alertas del trámite antes del pago: dejan de aplicar cuando el caso ya está pagado o cerrado.
-const DEL_TRAMITE = new Set(["DIA46_PROXIMO", "DIA46_HOY", "CANDADO5_FIN", "CUENTA_3_5_ANIOS", "PROSPECTO_SIN_CONTACTO", "PROSPECTO_FRIO",
+const DEL_TRAMITE = new Set(["DIA46_PROXIMO", "DIA46_HOY", "TRAMITE_LISTO", "CANDADO5_FIN", "CUENTA_3_5_ANIOS", "PROSPECTO_SIN_CONTACTO", "PROSPECTO_FRIO",
   "EXPEDIENTE_DETENIDO", "DOC_POR_VENCER", "CONTRATO_POR_VENCER", "AFORE_SIN_RESOLUCION", "SLA_15_RIESGO", "SLA_15_VENCIDO", "RIESGO_SEMANAS"]);
 
 /** ¿Sigue vigente una alerta según la etapa actual de su caso? (sin caso, siempre). */
