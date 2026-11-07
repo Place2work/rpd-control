@@ -1,4 +1,5 @@
 import { Banknote, CalendarClock, Receipt } from "lucide-react";
+import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatoFecha, isoDe } from "@/components/rpd/insignia-dia46";
@@ -275,6 +276,20 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
               </div>
               {rol === "director" && <Casilla id="confirmo_doble" etiqueta="Confirmo que vendedor y referidor cobran ambos (si el caso tiene los dos)" />}
             </FormularioAccion>
+            {/* Las listas solo muestran a quien ya está dado de alta: si alguna está vacía, se dice dónde darlo de alta. */}
+            {(d.vendedores.length === 0 || d.referidores.length === 0 || d.socios.length === 0) && (
+              <ul className="mt-3 grid gap-1 text-xs text-ink-muted">
+                {d.vendedores.length === 0 && (
+                  <li>No hay vendedores todavía: créalos con rol «Vendedor» en {rol === "director" ? <Link href="/configuracion?seccion=usuarios" className="text-brand underline">Configuración → Usuarios</Link> : "Configuración → Usuarios (Director)"}.</li>
+                )}
+                {d.referidores.length === 0 && (
+                  <li>No hay referidores todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y socios</Link>.</li>
+                )}
+                {d.socios.length === 0 && (
+                  <li>No hay socios licenciatarios todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y socios</Link>.</li>
+                )}
+              </ul>
+            )}
           </CardContent>
         </Card>
       )}
