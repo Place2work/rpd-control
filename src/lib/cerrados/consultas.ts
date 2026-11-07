@@ -6,7 +6,7 @@ import { conUsuario } from "@/lib/db/prisma";
 import { parametrosFechas } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import type { ClienteCerrado } from "@/lib/reglas/cerrados";
-import { hoyCDMX } from "@/lib/tiempo";
+import { hoyCDMX, inicioDiaCDMX } from "@/lib/tiempo";
 
 const iso = (d: Date) => d.toISOString().slice(0, 10);
 
@@ -47,4 +47,22 @@ export async function listarCerrados(s: Sesion): Promise<ClienteCerrado[]> {
 export async function vendedoresParaFiltro(s: Sesion) {
   if (s.usuario.rol === "vendedor") return [];
   return conUsuario(s.claims, (tx) => tx.usuario.findMany({ where: { rol: "vendedor", archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }), s.ip);
+}
+
+/** Movimientos del mes para el embudo de Hoy: etapas alcanzadas (historial) y pagos de la Afore (con RLS). */
+export async function movimientosDelMes(s: Sesion, mes: string) {
+  const [a, m] = mes.split("-").map(Number);
+  const siguiente = m === 12 ? `${a + 1}-01-01` : `${a}-${String(m + 1).padStart(2, "0")}-01`;
+  return conUsuario(s.claims, async (tx) => {
+    const [historial, pagos] = await Promise.all([
+      // historial.fecha es un momento (timestamptz): el mes va de las 00:00 a las 00:00 de la Ciudad de México.
+      tx.historialEtapa.findMany({ where: { fecha: { gte: inicioDiaCDMX(`${mes}-01`), lt: inicioDiaCDMX(siguiente) }, caso: { tipo_servicio: "RETIRO_DESEMPLEO", archivado_at: null } }, select: { caso_id: true, etapa_nueva: true } }),
+      // fecha_deposito es un día (DATE): se compara tal cual.
+      tx.pagoAfore.findMany({ where: { archivado_at: null, fecha_deposito: { gte: new Date(`${mes}-01T00:00:00Z`), lt: new Date(`${siguiente}T00:00:00Z`) } }, select: { caso_id: true, monto_neto: true } }),
+    ]);
+    return {
+      movimientos: historial.map((h) => ({ casoId: h.caso_id, etapa: h.etapa_nueva })),
+      pagos: pagos.map((p) => ({ casoId: p.caso_id, neto: Number(p.monto_neto) })),
+    };
+  }, s.ip);
 }

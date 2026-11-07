@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { filtrarCerrados, resumenCerrados, type ClienteCerrado } from "../cerrados";
+import { embudoDelMes, filtrarCerrados, resumenCerrados, type ClienteCerrado } from "../cerrados";
 
 const HOY = "2026-11-07";
 const c = (x: Partial<ClienteCerrado>): ClienteCerrado => ({
@@ -24,5 +24,21 @@ describe("clientes cerrados", () => {
     expect(filtrarCerrados(filas, { vendedor: "v1" }, HOY).map((x) => x.id)).toEqual(["b"]);
     expect(filtrarCerrados(filas, { vendedor: "sin" }, HOY).map((x) => x.id)).toEqual(["a", "c"]);
     expect(filtrarCerrados(filas, { proximos: 90 }, HOY).map((x) => x.id)).toEqual(["b"]);
+  });
+});
+
+describe("embudo del mes", () => {
+  it("cuenta lo que pasó en el mes aunque el caso se haya dado de alta antes; cada caso una vez", () => {
+    const e = embudoDelMes(9, [
+      { casoId: "rp1", etapa: "CERRADO" }, { casoId: "rp1", etapa: "PAGADO" },
+      { casoId: "rp5", etapa: "PRECALIFICADO" }, { casoId: "rp6", etapa: "EXPEDIENTE" },
+    ], [{ casoId: "rp1", neto: 35193 }, { casoId: "rp7", neto: 0.1 }, { casoId: "rp7", neto: 0.2 }]);
+    expect(e).toEqual({ altas: 9, precalificados: 2, contratos: 1, pagados: 2, retirado: 35193.3 });
+  });
+  it("un caso que saltó a cerrado por el dinero no cuenta como precalificado ni contrato", () => {
+    expect(embudoDelMes(0, [{ casoId: "rp1", etapa: "CERRADO" }], [])).toMatchObject({ precalificados: 0, contratos: 0, pagados: 1 });
+  });
+  it("sin movimientos todo en cero", () => {
+    expect(embudoDelMes(0, [], [])).toEqual({ altas: 0, precalificados: 0, contratos: 0, pagados: 0, retirado: 0 });
   });
 });

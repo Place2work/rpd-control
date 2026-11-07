@@ -43,3 +43,29 @@ export function resumenCerrados(filas: ClienteCerrado[], hoy: FechaISO) {
     sinComprobante: filas.filter((c) => c.comprobantes.con < c.comprobantes.de).length,
   };
 }
+
+// ───────────── Embudo del mes (pantalla Hoy) ─────────────
+
+export type MovimientoMes = { casoId: string; etapa: string };
+export type PagoMes = { casoId: string; neto: number };
+
+// Solo etapas por las que el caso pasó de verdad: el salto automático a «Pagado»/«cerrado» por dinero
+// no cuenta como precalificado ni como contrato.
+const DESDE_PRECALIFICADO = new Set(["PRECALIFICADO", "EN_ESPERA", "CONTRATO", "EXPEDIENTE", "INGRESADA", "RESOLUCION"]);
+const DESDE_CONTRATO = new Set(["CONTRATO", "EXPEDIENTE", "INGRESADA", "RESOLUCION"]);
+
+/**
+ * Lo que pasó en el mes (no la cohorte de altas): altas, casos que llegaron a precalificado o a contrato,
+ * retiros que pagó la Afore y cuánto se retiró. Un caso cuenta una vez por renglón.
+ */
+export function embudoDelMes(altas: number, movimientos: MovimientoMes[], pagos: PagoMes[]) {
+  const casos = (etapas: Set<string>) => new Set(movimientos.filter((m) => etapas.has(m.etapa)).map((m) => m.casoId));
+  const pagados = new Set([...pagos.map((p) => p.casoId), ...casos(new Set(["PAGADO", "CERRADO"]))]);
+  return {
+    altas,
+    precalificados: casos(DESDE_PRECALIFICADO).size,
+    contratos: casos(DESDE_CONTRATO).size,
+    pagados: pagados.size,
+    retirado: Math.round(pagos.reduce((a, p) => a + Math.round(p.neto * 100), 0)) / 100,
+  };
+}
