@@ -2,8 +2,8 @@
 // todos los casos abiertos, sin depender de que alguien los abra.
 import "server-only";
 import { prismaSistema } from "@/lib/db/prisma";
-import { parametrosFechas } from "@/lib/parametros";
-import { alertasDelDia, resolverDestinatarios, type CasoAlertable } from "@/lib/reglas/alertas";
+import { parametrosFechas, parametrosVigentes } from "@/lib/parametros";
+import { alertasDelDia, alertasProximoRetiro, resolverDestinatarios, type CasoAlertable, type RetiroPagado } from "@/lib/reglas/alertas";
 import { hoyCDMX } from "@/lib/tiempo";
 
 // Fechas sin hora (DATE) se leen tal cual; momentos (timestamptz) se pasan al día de CDMX.
@@ -75,9 +75,30 @@ export async function generarAlertas(hoy = hoyCDMX()) {
     };
   });
 
+  // Retiros ya pagados por la Afore: aviso para volver a contactar al cliente antes de su próximo retiro.
+  const { AVISO_PROXIMO_RETIRO_DIAS } = await parametrosVigentes(["AVISO_PROXIMO_RETIRO_DIAS"], hoy);
+  const pagados = await db.caso.findMany({
+    where: { archivado_at: null, tipo_servicio: "RETIRO_DESEMPLEO", etapa: { in: ["PAGADO", "CERRADO"] }, pagos_afore: { some: { archivado_at: null } } },
+    select: {
+      id: true, folio: true, owner_id: true, asignado_a: true, vendedor_id: true,
+      persona: { select: { nombre: true, apellido_paterno: true } },
+      pagos_afore: { where: { archivado_at: null }, select: { fecha_deposito: true }, orderBy: { numero: "asc" }, take: 1 },
+    },
+  });
+  const retiros: RetiroPagado[] = pagados.map((c) => ({
+    id: c.id, folio: c.folio, nombre: [c.persona.nombre, c.persona.apellido_paterno].filter(Boolean).join(" "),
+    ownerId: c.owner_id, asignadoA: c.asignado_a, vendedorId: c.vendedor_id, fechaPagoAfore: iso(c.pagos_afore[0].fecha_deposito)!,
+  }));
+
   const directores = (await db.usuario.findMany({ where: { rol: "director", activo: true, archivado_at: null }, select: { id: true } })).map((u) => u.id);
-  const porCaso = new Map(fotos.map((f) => [f.id, f]));
-  const filas = alertasDelDia(fotos, hoy, p).flatMap((a) =>
+  const porCaso = new Map<string, Pick<CasoAlertable, "ownerId" | "asignadoA" | "vendedorId">>([...fotos, ...retiros].map((f) => [f.id, f]));
+  const diasAviso = Number(AVISO_PROXIMO_RETIRO_DIAS);
+  if (!Number.isFinite(diasAviso)) console.error("[alertas] falta el parámetro AVISO_PROXIMO_RETIRO_DIAS");
+  const nuevas = [
+    ...alertasDelDia(fotos, hoy, p),
+    ...(Number.isFinite(diasAviso) ? alertasProximoRetiro(retiros, hoy, { ANIOS_CANDADO_RETIRO: p.ANIOS_CANDADO_RETIRO, AVISO_PROXIMO_RETIRO_DIAS: diasAviso }) : []),
+  ];
+  const filas = nuevas.flatMap((a) =>
     resolverDestinatarios(a, porCaso.get(a.casoId)!, directores).map((usuario) => ({
       regla: a.regla, caso_id: a.casoId, severidad: a.severidad, mensaje: a.mensaje, fecha_disparo: dia(hoy),
       asignado_a: usuario, clave_dedup: a.clave,
@@ -86,5 +107,5 @@ export async function generarAlertas(hoy = hoyCDMX()) {
   // UNIQUE (clave_dedup, asignado_a): lo que ya existía no se vuelve a crear.
   const creadas = filas.length ? await db.alerta.createMany({ data: filas, skipDuplicates: true }) : { count: 0 };
 
-  return { fecha: hoy, casos_revisados: casos.length, alertas_nuevas: creadas.count, documentos_vencidos: vencidos.count, pospuestas_reactivadas: reactivadas.count };
+  return { fecha: hoy, casos_revisados: casos.length + retiros.length, alertas_nuevas: creadas.count, documentos_vencidos: vencidos.count, pospuestas_reactivadas: reactivadas.count };
 }

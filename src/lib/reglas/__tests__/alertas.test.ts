@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alertasDelDia, resolverDestinatarios, type CasoAlertable } from "../alertas";
+import { alertasDelDia, alertasProximoRetiro, fechaProximoRetiro, resolverDestinatarios, type CasoAlertable } from "../alertas";
 
 const HOY = "2026-10-27";
 const P = { DIAS_ESPERA_DESEMPLEO: 46, ANIOS_CANDADO_RETIRO: 5, SLA_DIAS_HABILES: 15, inhabiles: new Set(["2026-11-02", "2026-11-16"]) };
@@ -82,5 +82,24 @@ describe("destinatarios", () => {
   });
   it("sin asesor asignado, lo del asesor va al Director", () => {
     expect(resolverDestinatarios({ ...a, para: ["asesor"] }, { ...base, asignadoA: null }, ["d1"])).toEqual(["d1"]);
+  });
+});
+
+describe("próximo retiro de clientes que ya cobraron", () => {
+  const P5 = { ANIOS_CANDADO_RETIRO: 5, AVISO_PROXIMO_RETIRO_DIAS: 30 };
+  const pagado = { id: "c9", folio: "RP-0009", nombre: "Rubicel Salgado", ownerId: "o", asignadoA: "a", vendedorId: null, fechaPagoAfore: "2026-11-07" };
+  it("la fecha es 5 años después del depósito (29 de febrero → 28 si no es bisiesto)", () => {
+    expect(fechaProximoRetiro("2026-11-07", P5)).toBe("2031-11-07");
+    expect(fechaProximoRetiro("2028-02-29", P5)).toBe("2033-02-28");
+  });
+  it("avisa 30 días antes y el día; antes de eso, nada", () => {
+    expect(alertasProximoRetiro([pagado], "2031-09-01", P5)).toEqual([]);
+    const previo = alertasProximoRetiro([pagado], "2031-10-08", P5);
+    expect(previo).toHaveLength(1);
+    expect(previo[0]).toMatchObject({ regla: "PROXIMO_RETIRO", clave: "PROXIMO_RETIRO:c9:2031-11-07:previo", para: ["asesor", "director"] });
+    expect(previo[0].mensaje).toContain("en 30 días");
+    const dia = alertasProximoRetiro([pagado], "2031-11-07", P5);
+    expect(dia[0].mensaje).toContain("ya puede volver a retirar");
+    expect(alertasProximoRetiro([pagado], "2031-12-31", P5)).toEqual([]);
   });
 });

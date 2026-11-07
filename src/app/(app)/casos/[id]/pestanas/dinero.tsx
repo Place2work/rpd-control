@@ -1,4 +1,4 @@
-import { Banknote, Receipt } from "lucide-react";
+import { Banknote, CalendarClock, Receipt } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatoFecha, isoDe } from "@/components/rpd/insignia-dia46";
@@ -6,7 +6,8 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
-import { parametrosDinero, parametrosVigentes } from "@/lib/parametros";
+import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
+import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
@@ -26,7 +27,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     return <Card><CardContent className="text-sm text-ink-muted">Los pagos y cobros los registra el asesor. Tus comisiones están en «Comisiones».</CardContent></Card>;
   }
   const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
-  const [{ HONORARIO_RETIRO_PCT }, { MODALIDAD_B_MENSUALIDADES_MAX }] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"])]);
+  const [{ HONORARIO_RETIRO_PCT }, { MODALIDAD_B_MENSUALIDADES_MAX }, pf] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"]), parametrosFechas(hoyCDMX())]);
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
   const pactado = caso.contrato_pct === null ? null : Number(caso.contrato_pct);
   const pct = pctHonorarioRetiro(pactado, { HONORARIO_RETIRO_PCT });
@@ -42,6 +43,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
   }), sesion.ip);
 
   const permitidos = pagosAforePermitidos(d.modalidad, Number(MODALIDAD_B_MENSUALIDADES_MAX) || 1);
+  const conMensualidades = permitidos > 1;
+  const proximo = d.pagos[0] ? fechaProximoRetiro(isoDe(d.pagos[0].fecha_deposito)!, pf) : null;
   const vivos = d.cobros.filter((c) => c.estado !== "cancelado");
   const porCobrar = vivos.filter((c) => c.estado === "por_cobrar");
   const m = margenCaso(vivos.map((c) => ({ honorario: Number(c.honorario_total), iva: Number(c.iva), estado: c.estado })), d.comisiones.map((k) => ({ monto: Number(k.monto), estado: k.estado })));
@@ -86,7 +89,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
 
       {esRetiro && (
         <Card>
-          <CardHeader><CardTitle>Pagos de la Afore</CardTitle><span className="text-sm text-ink-muted">{d.modalidad === "B" ? `${d.pagos.length} de ${permitidos} mensualidades (modalidad B)` : `${d.pagos.length} de 1 · pago único`}</span></CardHeader>
+          <CardHeader><CardTitle>Pagos de la Afore</CardTitle><span className="text-sm text-ink-muted">{conMensualidades ? `${d.pagos.length} de ${permitidos} mensualidades (modalidad B)` : `${d.pagos.length} de 1 · pago único`}</span></CardHeader>
           <CardContent className="grid gap-4">
             {d.pagos.length > 0 && (
               <Tabla encabezados={["#", "Depósito", "Bruto", "ISR", "Neto", ""]}>
@@ -115,11 +118,12 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
             )}
             {d.pagos.length >= permitidos && (
               <p className="rounded-[var(--radius-boton)] bg-exito-tint p-3 text-sm text-exito-texto">
-                {d.modalidad === "B" ? "Ya están registradas todas las mensualidades." : "Pago de la Afore registrado. El retiro por desempleo se paga una sola vez (modalidad A); si un dato está mal, usa «Corregir»."}
+                {conMensualidades ? "Ya están registradas todas las mensualidades." : "Pago de la Afore registrado. El retiro por desempleo se paga una sola vez; si un dato está mal, usa «Corregir»."}
               </p>
             )}
+            {proximo && <ProximoRetiro fecha={proximo} anios={pf.ANIOS_CANDADO_RETIRO} deposito={isoDe(d.pagos[0].fecha_deposito)!} />}
             {d.pagos.length < permitidos && (
-              <FormularioAccion accion={registrarPagoAfore.bind(null, caso.id)} boton={d.modalidad === "B" ? `Registrar mensualidad ${d.pagos.length + 1}` : "Registrar el pago de la Afore"}
+              <FormularioAccion accion={registrarPagoAfore.bind(null, caso.id)} boton={conMensualidades ? `Registrar mensualidad ${d.pagos.length + 1}` : "Registrar el pago de la Afore"}
                 confirmar={d.pagos.length > 0 ? `¿Registrar la mensualidad ${d.pagos.length + 1}? Revisa que sea un depósito nuevo de la Afore, no el mismo de antes.` : undefined}
                 etiquetas={{ fecha_deposito: "Fecha del depósito", monto_bruto: "Monto bruto", isr_retenido: "ISR retenido" }}>
                 <div className="grid gap-3 sm:grid-cols-3">
@@ -278,5 +282,18 @@ function Lista({ id, etiqueta, valor, opciones }: { id: string; etiqueta: string
         {opciones.map((o) => <option key={o.id} value={o.id}>{o.nombre}</option>)}
       </select>
     </Campo>
+  );
+}
+
+/** Leyenda al terminar el retiro: cuándo puede volver a retirar el cliente (art. 191-II). */
+export function ProximoRetiro({ fecha, anios, deposito }: { fecha: string; anios: number; deposito: string }) {
+  return (
+    <div role="note" className="flex gap-3 rounded-[var(--radius-boton)] border border-brand/30 bg-brand-tint p-3 text-sm">
+      <CalendarClock className="mt-0.5 size-5 shrink-0 text-brand" aria-hidden />
+      <div>
+        <p className="font-medium text-ink">Próximo retiro por desempleo de este cliente: a partir del {formatoFecha(fecha, { dateStyle: "long" })}</p>
+        <p className="text-ink-muted">Solo se puede retirar una vez cada {anios} años; se cuenta desde el depósito de la Afore del {formatoFecha(deposito, { dateStyle: "long" })}. Te avisaremos un mes antes para volver a contactarlo.</p>
+      </div>
+    </div>
   );
 }

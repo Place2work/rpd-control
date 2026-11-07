@@ -8,12 +8,14 @@ import { z } from "zod";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { recalcularComisiones } from "@/lib/dinero/motor";
-import { parametrosDinero, parametrosVigentes } from "@/lib/parametros";
+import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
+import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { desglosarTotal, honorarioDePago, leerPctPactado, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "./acciones";
 
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
+const fechaLarga = (iso: string) => new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" }).format(dia(iso));
 const monto = z.string().trim().transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number({ message: "Escribe un monto" }).finite().min(0, "No puede ser negativo").max(10_000_000));
 const fechaPasada = z.string().min(1, "Escribe la fecha").pipe(z.iso.date({ message: "Fecha no válida" })).refine((v) => v <= hoyCDMX(), "No puede ser futura");
 const METODOS = ["transferencia", "efectivo", "tarjeta"] as const;
@@ -67,7 +69,7 @@ export async function registrarPagoAfore(casoId: string, _p: Resultado, form: Fo
   const { fecha_deposito, monto_bruto } = r.data;
   const isr = r.data.isr_retenido ?? 0;
   const neto = Math.round((monto_bruto - isr) * 100) / 100;
-  const [p, { MODALIDAD_B_MENSUALIDADES_MAX }] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"])]);
+  const [p, { MODALIDAD_B_MENSUALIDADES_MAX }, pf] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"]), parametrosFechas(hoyCDMX())]);
 
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
     const caso = await tx.caso.findUnique({ where: { id: casoId }, select: {
@@ -102,7 +104,8 @@ export async function registrarPagoAfore(casoId: string, _p: Resultado, form: Fo
       data: { caso_id: casoId, pago_afore_id: pago.id, base_calculo: h.base, honorario_total: h.honorario, subtotal: h.subtotal, iva: h.iva, concepto: "honorario", created_by: usuario.id },
     });
     await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id,
-      texto: `Pago ${numero} de la Afore: $${neto.toLocaleString("es-MX", { minimumFractionDigits: 2 })} neto. Honorario por cobrar $${h.honorario.toLocaleString("es-MX", { minimumFractionDigits: 2 })}.` } });
+      texto: `Pago ${numero} de la Afore: $${neto.toLocaleString("es-MX", { minimumFractionDigits: 2 })} neto. Honorario por cobrar $${h.honorario.toLocaleString("es-MX", { minimumFractionDigits: 2 })}.`
+        + (caso.pagos_afore.length === 0 ? ` Próximo retiro por desempleo del cliente: a partir del ${fechaLarga(fechaProximoRetiro(fecha_deposito, pf))}.` : "") } });
     return { ok: true };
   }, ip);
   if (res.ok) await despues(casoId);

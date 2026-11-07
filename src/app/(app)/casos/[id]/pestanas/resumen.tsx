@@ -7,12 +7,14 @@ import { conUsuario } from "@/lib/db/prisma";
 import { parametrosFechas } from "@/lib/parametros";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { ORIGENES } from "@/lib/prospectos/validacion";
+import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { movimientosPosibles, NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { asignarAsesor } from "../acciones-asignacion";
 import { CambiarEtapa } from "../cambiar-etapa";
 import { Dato, isoODefecto, numero, Seleccion } from "../campos";
 import { FormularioAccion } from "../formulario-accion";
+import { ProximoRetiro } from "./dinero";
 
 const ETIQUETA_ORIGEN = Object.fromEntries(ORIGENES) as Record<string, string>;
 const largo = (iso: string | null) => (iso ? formatoFecha(iso, { dateStyle: "long" }) : "—");
@@ -21,12 +23,15 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
   const hoy = hoyCDMX();
   const p = await parametrosFechas(hoy);
   const puedeAsignar = sesion.usuario.rol === "director" || sesion.usuario.rol === "asesor";
-  const [r, asesores] = await conUsuario(sesion.claims, (tx) => Promise.all([
+  const [r, asesores, primerPago] = await conUsuario(sesion.claims, (tx) => Promise.all([
     fotoDelCaso(tx, caso.id, hoy, p),
     puedeAsignar
       ? tx.usuario.findMany({ where: { activo: true, archivado_at: null, rol: { in: ["asesor", "director"] } }, select: { id: true, nombre: true, rol: true }, orderBy: { nombre: "asc" } })
       : Promise.resolve([]),
+    // El vendedor no ve pagos (RLS): para él no hay leyenda.
+    tx.pagoAfore.findFirst({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { numero: "asc" }, select: { fecha_deposito: true } }),
   ]), sesion.ip);
+  const deposito = isoDe(primerPago?.fecha_deposito);
   if (!r) return null;
   const { foto } = r;
   const opciones = movimientosPosibles(foto, sesion.usuario.rol).map((m) => ({ ...m, nombre: NOMBRE_ETAPA[m.destino] }));
@@ -35,6 +40,9 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
+      {esRetiro && deposito && (
+        <div className="lg:col-span-3"><ProximoRetiro fecha={fechaProximoRetiro(deposito, p)} anios={p.ANIOS_CANDADO_RETIRO} deposito={deposito} /></div>
+      )}
       {esRetiro && (
         <Card>
           <CardContent className="flex flex-col items-center gap-1 py-8 text-center">

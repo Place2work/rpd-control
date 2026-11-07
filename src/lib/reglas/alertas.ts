@@ -144,6 +144,34 @@ export function alertasDelDia(casos: CasoAlertable[], hoy: FechaISO, p: Parametr
 }
 
 /** Quién recibe cada alerta. Sin asesor asignado, lo del asesor va al Director (bandeja general). */
+// ───────────── Próximo retiro de clientes que ya cobraron ─────────────
+
+export type RetiroPagado = Pick<CasoAlertable, "id" | "folio" | "nombre" | "ownerId" | "asignadoA" | "vendedorId"> & { fechaPagoAfore: FechaISO };
+
+/** El cliente podrá volver a retirar ANIOS_CANDADO_RETIRO años después del depósito de la Afore (art. 191-II). */
+export function fechaProximoRetiro(fechaPagoAfore: FechaISO, p: { ANIOS_CANDADO_RETIRO: number }): FechaISO {
+  return sumarAnios(fechaPagoAfore, p.ANIOS_CANDADO_RETIRO);
+}
+
+/** Para volver a contactarlo: aviso AVISO_PROXIMO_RETIRO_DIAS antes y el día que ya puede. */
+export function alertasProximoRetiro(casos: RetiroPagado[], hoy: FechaISO, p: { ANIOS_CANDADO_RETIRO: number; AVISO_PROXIMO_RETIRO_DIAS: number }): AlertaNueva[] {
+  const r: AlertaNueva[] = [];
+  for (const c of casos) {
+    const fecha = fechaProximoRetiro(c.fechaPagoAfore, p);
+    const faltan = diasEntre(hoy, fecha);
+    const base = { casoId: c.id, para: ["asesor", "director"] as Destinatario[] };
+    if (faltan > 0 && faltan <= p.AVISO_PROXIMO_RETIRO_DIAS) {
+      r.push({ ...base, regla: "PROXIMO_RETIRO", severidad: "aviso", clave: `PROXIMO_RETIRO:${c.id}:${fecha}:previo`,
+        mensaje: `${c.nombre} (${c.folio}): en ${faltan} ${faltan === 1 ? "día" : "días"} puede volver a retirar por desempleo; contáctalo` });
+    }
+    if (faltan <= 0 && -faltan <= GRACIA) {
+      r.push({ ...base, regla: "PROXIMO_RETIRO", severidad: "aviso", clave: `PROXIMO_RETIRO:${c.id}:${fecha}`,
+        mensaje: `${c.nombre} (${c.folio}): ya puede volver a retirar por desempleo (pasaron ${p.ANIOS_CANDADO_RETIRO} años de su último retiro)` });
+    }
+  }
+  return r;
+}
+
 export function resolverDestinatarios(a: AlertaNueva, c: Pick<CasoAlertable, "ownerId" | "asignadoA" | "vendedorId">, directores: string[]): string[] {
   const ids = new Set<string>();
   for (const d of a.para) {

@@ -176,3 +176,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - El número de pago no se reutiliza: un pago archivado conserva el suyo (antes, registrar después de corregir fallaba).
 - RP-0001: el pago 2 era un doble registro del pago 1 (misma fecha y monto, cobro ya cancelado); se archivó con nota en
   Seguimiento.
+- **Actualización (mismo día):** un solo pago para todos, también en modalidad B (`MODALIDAD_B_MENSUALIDADES_MAX` = 1
+  desde el 7-nov-2026; migración 1600).
+
+## 7-nov-2026 · Próximo retiro del cliente
+
+- Al registrar el pago de la Afore, el caso muestra «Próximo retiro por desempleo de este cliente: a partir del …»
+  (depósito + `ANIOS_CANDADO_RETIRO` años, art. 191-II) en Dinero y en Resumen, y lo anota en Seguimiento.
+- La tarea diaria revisa los retiros en «Pagado por Afore» u «Honorario cobrado»: aviso `PROXIMO_RETIRO` al asesor
+  (o al Director si no hay) y al Director `AVISO_PROXIMO_RETIRO_DIAS` antes (30) y el día que ya puede retirar.
