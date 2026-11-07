@@ -3,6 +3,7 @@
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { hashToken, nuevoToken } from "@/lib/cripto";
 import { conUsuario } from "@/lib/db/prisma";
+import { urlApp } from "@/lib/url";
 
 /** Genera una liga privada nueva y revoca la anterior. El token solo se muestra esta vez. */
 export async function generarLigaCalendario(): Promise<{ url?: string; error?: string }> {
@@ -12,7 +13,7 @@ export async function generarLigaCalendario(): Promise<{ url?: string; error?: s
     await tx.calendarioToken.updateMany({ where: { usuario_id: s.usuario.id, revocado_at: null }, data: { revocado_at: new Date() } });
     await tx.calendarioToken.create({ data: { usuario_id: s.usuario.id, token_hash: hashToken(token) }, select: { id: true } });
   }, s.ip);
-  const base = process.env.APP_URL ?? "https://rpd-control.vercel.app";
+  const base = urlApp();
   return { url: `${base}/api/calendario/${token}.ics` };
 }
 

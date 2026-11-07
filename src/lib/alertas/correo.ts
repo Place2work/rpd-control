@@ -2,8 +2,9 @@
 // Sin datos sensibles en el cuerpo: solo nombre y folio, con liga al caso.
 import "server-only";
 import { prismaSistema } from "@/lib/db/prisma";
+import { urlApp } from "@/lib/url";
 
-const APP_URL = () => process.env.APP_URL ?? "https://rpd-control.vercel.app";
+const APP_URL = urlApp;
 const escapar = (t: string) => t.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" })[c]!);
 
 export async function enviarResumenes(hoy: string) {

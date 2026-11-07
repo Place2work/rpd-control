@@ -10,6 +10,7 @@ import { planNuevaVigencia, validarValor, type TipoParametro } from "@/lib/confi
 import { conUsuario } from "@/lib/db/prisma";
 import { sumarDias as sumar } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
+import { dominioApp } from "@/lib/url";
 
 // `unaVez`: dato que se muestra una sola vez y no se guarda (la contraseña temporal).
 export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; unaVez?: { titulo: string; valor: string; nota?: string } };
@@ -138,7 +139,7 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
   await registrarCuenta(s, cuenta.id, "CLAVE_TEMPORAL");
   revalidatePath("/configuracion");
   return { ok: true, unaVez: { titulo: `Contraseña temporal de ${r.data.nombre}`, valor: cuenta.clave,
-    nota: `Entra en rpd-control.vercel.app con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
+    nota: `Entra en ${dominioApp()} con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
 }
 
 /** Contraseña temporal nueva para quien olvidó la suya. */

@@ -5,6 +5,7 @@ import { createClient } from "@supabase/supabase-js";
 import { prismaSistema } from "@/lib/db/prisma";
 import { claveTemporal } from "./clave";
 import { modoDemo } from "./demo";
+import { urlApp } from "@/lib/url";
 
 function admin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, llave = process.env.SUPABASE_SECRET_KEY;
@@ -12,7 +13,6 @@ function admin() {
   return createClient(url, llave, { auth: { persistSession: false, autoRefreshToken: false } }).auth.admin;
 }
 
-const urlApp = () => process.env.APP_URL ?? "https://rpd-control.vercel.app";
 
 /** Manda la invitación (el correo lleva a definir contraseña y luego al 2FA). Devuelve el id de Auth. */
 export async function invitarCuenta(email: string): Promise<{ id?: string; error?: string }> {
