@@ -4,7 +4,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { actualizarUsuario, cambiarAcceso, invitarUsuario } from "../acciones";
+import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario } from "../acciones";
 import { BotonAccion } from "../boton-accion";
 
 const ROLES = [["asesor", "Asesor"], ["vendedor", "Vendedor"], ["socio", "Socio licenciatario"], ["director", "Director"]] as const;
@@ -56,6 +56,12 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                         <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" valor={u.socio_id} vacia="Ninguno" opciones={opcionesSocio} />
                       </div>
                     </FormularioAccion>
+                    {u.activo && u.id !== sesion.usuario.id && (
+                      <div className="mt-3 border-t border-borde pt-3">
+                        <p className="mb-2 text-xs text-ink-muted">¿Olvidó su contraseña? Genera una temporal y dásela en persona; al entrar pondrá una nueva.</p>
+                        <FormularioAccion accion={claveTemporalUsuario.bind(null, u.id)} boton="Generar contraseña temporal"><span hidden /></FormularioAccion>
+                      </div>
+                    )}
                   </div>
                 </details>
               </li>
@@ -66,16 +72,29 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
 
       <div className="grid content-start gap-4">
         <Card>
-          <CardHeader><CardTitle>Invitar a alguien</CardTitle></CardHeader>
+          <CardHeader><CardTitle>Dar de alta a alguien</CardTitle></CardHeader>
           <CardContent>
-            <FormularioAccion accion={invitarUsuario} boton="Enviar invitación" etiquetas={ETIQUETAS}>
+            <FormularioAccion accion={crearUsuarioConClave} boton="Crear cuenta" etiquetas={ETIQUETAS}>
               <CampoTexto id="nombre" etiqueta="Nombre completo" />
-              <CampoTexto id="email" etiqueta="Correo" tipo="email" />
+              <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
-              <Seleccion id="rol" etiqueta="Rol" valor="asesor" opciones={ROLES} />
+              <Seleccion id="rol" etiqueta="Rol" valor="vendedor" opciones={ROLES} />
               <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" vacia="Ninguno" opciones={opcionesSocio} />
             </FormularioAccion>
-            <p className="mt-3 text-xs text-ink-muted">Le llega un correo para definir su contraseña; al entrar, el sistema le pide activar el segundo factor (app autenticadora).</p>
+            <p className="mt-3 text-xs text-ink-muted">El sistema genera una contraseña temporal y te la muestra una sola vez para que se la entregues. Al entrar, activa la verificación en dos pasos (app autenticadora) y pone su propia contraseña.</p>
+            <details className="mt-4 border-t border-borde pt-3">
+              <summary className="cursor-pointer text-sm font-medium text-brand">Invitar por correo</summary>
+              <p className="mt-2 text-xs text-ink-muted">Requiere configurar el envío de correos (Resend) en Supabase; sin eso la invitación no llega.</p>
+              <div className="mt-3">
+                <FormularioAccion accion={invitarUsuario} boton="Enviar invitación" etiquetas={ETIQUETAS}>
+                  <CampoTexto id="nombre" etiqueta="Nombre completo" />
+                  <CampoTexto id="email" etiqueta="Correo" tipo="email" />
+                  <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
+                  <Seleccion id="rol" etiqueta="Rol" valor="vendedor" opciones={ROLES} />
+                  <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" vacia="Ninguno" opciones={opcionesSocio} />
+                </FormularioAccion>
+              </div>
+            </details>
           </CardContent>
         </Card>
         <Card>

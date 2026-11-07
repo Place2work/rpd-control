@@ -152,3 +152,14 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   precalificación y al contrato. Los pagos ya registrados conservan su honorario. Cada cambio queda en Seguimiento.
   Las comisiones del vendedor no cambian (van sobre el monto de la Afore); el reparto del socio sigue el subtotal cobrado.
 - **Domicilio:** se captura en Datos personales (el mismo campo que usa el contrato).
+
+## 7-nov-2026 · Cuentas con contraseña temporal (sin correo)
+
+- Mientras no haya SMTP propio, el Director da de alta usuarios con una **contraseña temporal** que el sistema genera
+  (4 bloques de 4, sin caracteres confusos, ≈ 92 bits) y muestra una sola vez; no se guarda ni se registra.
+- La cuenta se crea confirmada con `app_metadata.debe_cambiar_clave = true` (el usuario no puede quitarla). El proxy
+  y `obtenerSesion` mandan a `/mfa` y luego a `/contrasena`; ahí la contraseña propia se guarda desde el servidor y la
+  marca se quita en la misma llamada.
+- «Generar contraseña temporal» por usuario sustituye la recuperación por correo. El 2FA no cambia; si alguien pierde
+  su teléfono, el Director tendrá que restablecer el factor en Supabase (pendiente de pantalla).
+- La invitación por correo sigue disponible para cuando se configure Resend.

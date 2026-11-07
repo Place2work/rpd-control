@@ -41,6 +41,9 @@ export async function proxy(request: NextRequest) {
 
   if (!claims) return ir("/login");
   if (claims.aal !== "aal2" && !SIN_2FA.includes(ruta)) return ir("/mfa");
+  // Contraseña temporal (la dio el Director): con 2FA ya activo, lo primero es poner una propia.
+  const debeCambiar = (claims.app_metadata as { debe_cambiar_clave?: boolean } | undefined)?.debe_cambiar_clave === true;
+  if (claims.aal === "aal2" && debeCambiar && ruta !== "/contrasena") return ir("/contrasena");
   if (claims.aal === "aal2" && (ruta === "/mfa" || ruta === "/")) return ir("/hoy");
   return respuesta;
 }

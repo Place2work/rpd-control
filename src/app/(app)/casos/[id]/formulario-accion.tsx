@@ -1,12 +1,13 @@
 "use client";
 
-import { CheckCircle2 } from "lucide-react";
-import { startTransition, useActionState } from "react";
+import { CheckCircle2, Copy } from "lucide-react";
+import { startTransition, useActionState, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Resultado } from "./acciones";
 
+type ConDato = Resultado & { unaVez?: { titulo: string; valor: string; nota?: string } };
 type Props = {
-  accion: (previo: Resultado, form: FormData) => Promise<Resultado>;
+  accion: (previo: ConDato, form: FormData) => Promise<ConDato>;
   children: React.ReactNode;
   boton?: string;
   etiquetas?: Record<string, string>;
@@ -18,7 +19,7 @@ type Props = {
 // Se envía con onSubmit (no con action=) porque React 19 vacía los campos después de cada
 // envío por action: si había un error, el usuario perdía lo que acababa de escribir.
 export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className }: Props) {
-  const [estado, enviar, enviando] = useActionState(accion, {});
+  const [estado, enviar, enviando] = useActionState<ConDato, FormData>(accion, {});
   const errores = Object.entries(estado.errores ?? {});
   return (
     <form
@@ -44,6 +45,7 @@ export function FormularioAccion({ accion, children, boton = "Guardar", etiqueta
           )}
         </div>
       )}
+      {estado.unaVez && !enviando && <DatoUnaVez {...estado.unaVez} />}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={enviando}>{enviando ? "Guardando…" : boton}</Button>
         {estado.ok && !enviando && (
@@ -53,5 +55,22 @@ export function FormularioAccion({ accion, children, boton = "Guardar", etiqueta
         )}
       </div>
     </form>
+  );
+}
+
+// Un dato que no se guarda en ningún lado (p. ej. una contraseña temporal): se ve aquí y se copia.
+function DatoUnaVez({ titulo, valor, nota }: { titulo: string; valor: string; nota?: string }) {
+  const [copiado, setCopiado] = useState(false);
+  return (
+    <div role="status" className="grid gap-2 rounded-[var(--radius-boton)] border border-aviso/40 bg-aviso-tint p-3 text-sm">
+      <p className="font-medium text-ink">{titulo}</p>
+      <div className="flex flex-wrap items-center gap-2">
+        <code className="cifra rounded bg-surface px-3 py-2 font-mono text-base tracking-wide text-ink">{valor}</code>
+        <Button type="button" variant="secundario" className="h-9 px-3" onClick={() => { navigator.clipboard?.writeText(valor).then(() => setCopiado(true)).catch(() => {}); }}>
+          <Copy aria-hidden /> {copiado ? "Copiada" : "Copiar"}
+        </Button>
+      </div>
+      {nota && <p className="text-xs text-ink-muted">{nota}</p>}
+    </div>
   );
 }

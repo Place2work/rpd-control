@@ -3,6 +3,7 @@
 import "server-only";
 import { createClient } from "@supabase/supabase-js";
 import { prismaSistema } from "@/lib/db/prisma";
+import { claveTemporal } from "./clave";
 import { modoDemo } from "./demo";
 
 function admin() {
@@ -37,4 +38,39 @@ export async function bloquearCuenta(id: string, bloquear: boolean): Promise<voi
   if (modoDemo()) return;
   const { error } = await admin().updateUserById(id, { ban_duration: bloquear ? "876000h" : "none" });
   if (error) throw new Error(`Supabase no pudo ${bloquear ? "bloquear" : "desbloquear"} la cuenta: ${error.message}`);
+}
+
+// La marca va en app_metadata: el usuario no la puede quitar desde el navegador.
+const DEBE_CAMBIAR = { debe_cambiar_clave: true };
+
+/** Cuenta ya confirmada con contraseña temporal (sin correo). Al entrar se le exige 2FA y cambiarla. */
+export async function crearCuentaConClave(email: string): Promise<{ id?: string; clave?: string; error?: string }> {
+  const clave = claveTemporal();
+  if (modoDemo()) {
+    const filas = await prismaSistema.$queryRaw<{ id: string }[]>`INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), ${email}) RETURNING id::text`;
+    return { id: filas[0].id, clave };
+  }
+  const { data, error } = await admin().createUser({ email, password: clave, email_confirm: true, app_metadata: DEBE_CAMBIAR });
+  if (error) {
+    if (/already been registered|already exists/i.test(error.message)) return { error: "Ese correo ya tiene cuenta. Si es de alguien del equipo, búscalo en la lista." };
+    return { error: `Supabase no pudo crear la cuenta: ${error.message}` };
+  }
+  return { id: data.user.id, clave };
+}
+
+/** Nueva contraseña temporal para alguien que olvidó la suya (mientras no haya correo de recuperación). */
+export async function restablecerConClave(id: string): Promise<{ clave?: string; error?: string }> {
+  const clave = claveTemporal();
+  if (modoDemo()) return { clave };
+  const { error } = await admin().updateUserById(id, { password: clave, app_metadata: DEBE_CAMBIAR });
+  if (error) return { error: `Supabase no pudo cambiar la contraseña: ${error.message}` };
+  return { clave };
+}
+
+/** El propio usuario fija su contraseña y se quita la marca de cambio obligatorio, en una sola llamada. */
+export async function fijarClavePropia(id: string, clave: string): Promise<{ error?: string }> {
+  if (modoDemo()) return {};
+  const { error } = await admin().updateUserById(id, { password: clave, app_metadata: { debe_cambiar_clave: false } });
+  if (error) return { error: /same|different/i.test(error.message) ? "Usa una contraseña distinta a la temporal." : "No pudimos guardar la contraseña. Intenta con otra." };
+  return {};
 }

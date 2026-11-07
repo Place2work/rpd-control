@@ -3,7 +3,7 @@
 // Configuración (10.9): solo el Director. Todo pasa por RLS (conUsuario) y queda en la bitácora.
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { bloquearCuenta, invitarCuenta } from "@/lib/auth/admin";
+import { bloquearCuenta, crearCuentaConClave, invitarCuenta, restablecerConClave } from "@/lib/auth/admin";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { validarPlantilla } from "@/lib/contratos/plantilla";
 import { planNuevaVigencia, validarValor, type TipoParametro } from "@/lib/configuracion/parametros";
@@ -11,7 +11,8 @@ import { conUsuario } from "@/lib/db/prisma";
 import { sumarDias as sumar } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 
-export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string> };
+// `unaVez`: dato que se muestra una sola vez y no se guarda (la contraseña temporal).
+export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; unaVez?: { titulo: string; valor: string; nota?: string } };
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const iso = (d: Date | null) => (d ? d.toISOString().slice(0, 10) : null);
 const datosDe = (form: FormData) =>
@@ -113,6 +114,39 @@ export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Res
   }), s.ip);
   revalidatePath("/configuracion");
   return { ok: true };
+}
+
+/** Alta sin correo: cuenta con contraseña temporal que el Director entrega en persona. */
+export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await director();
+  if (!s) return { error: "Solo el Director da de alta usuarios." };
+  const r = esquemaUsuario.and(z.object({ email: z.email("Correo no válido").transform((v) => v.toLowerCase()) })).safeParse(datosDe(form));
+  if (!r.success) return { errores: errores(r.error) };
+  const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
+  if (ya) return { errores: { email: "Ese correo ya es usuario del sistema" } };
+  const cuenta = await crearCuentaConClave(r.data.email);
+  if (!cuenta.id || !cuenta.clave) return { error: cuenta.error };
+  await conUsuario(s.claims, (tx) => tx.usuario.create({
+    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono, created_by: s.usuario.id },
+    select: { id: true },
+  }), s.ip);
+  revalidatePath("/configuracion");
+  return { ok: true, unaVez: { titulo: `Contraseña temporal de ${r.data.nombre}`, valor: cuenta.clave,
+    nota: `Entra en rpd-control.vercel.app con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
+}
+
+/** Contraseña temporal nueva para quien olvidó la suya. */
+export async function claveTemporalUsuario(id: string): Promise<Resultado> {
+  const s = await director();
+  if (!s) return { error: "Solo el Director cambia contraseñas." };
+  if (id === s.usuario.id) return { error: "Tu propia contraseña la cambias tú al entrar." };
+  const u = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { id }, select: { nombre: true, email: true, activo: true } }), s.ip);
+  if (!u) return { error: "No encontramos al usuario." };
+  if (!u.activo) return { error: "Primero dale acceso de nuevo." };
+  const r = await restablecerConClave(id);
+  if (!r.clave) return { error: r.error };
+  return { ok: true, unaVez: { titulo: `Contraseña temporal de ${u.nombre}`, valor: r.clave,
+    nota: `La anterior ya no funciona. Al entrar con ${u.email} pondrá una nueva. Su verificación en dos pasos no cambia. No se vuelve a mostrar.` } };
 }
 
 export async function actualizarUsuario(id: string, _p: Resultado, form: FormData): Promise<Resultado> {

@@ -20,6 +20,11 @@ const SESION_DEMO: Sesion = {
   usuario: { id: "00000000-0000-0000-0000-000000000000", nombre: "Irving (demo)", email: "demo@local", rol: "director", socio_id: null },
 };
 
+/** Cuenta con contraseña temporal: la marca vive en app_metadata (solo la cambia el servidor). */
+export function debeCambiarClave(claims: ClaimsUsuario): boolean {
+  return (claims.app_metadata as { debe_cambiar_clave?: boolean } | undefined)?.debe_cambiar_clave === true;
+}
+
 // Una sola verificación por request. Exige 2FA (aal2) y un usuario activo en `usuarios`.
 export const obtenerSesion = cache(async (): Promise<Sesion> => {
   await connection(); // todo lo que depende del usuario se resuelve en cada request
@@ -30,6 +35,7 @@ export const obtenerSesion = cache(async (): Promise<Sesion> => {
   const claims = data?.claims as ClaimsUsuario | undefined;
   if (!claims?.sub) redirect("/login");
   if (claims.aal !== "aal2") redirect("/mfa");
+  if (debeCambiarClave(claims)) redirect("/contrasena");
 
   const ip = (await headers()).get("x-forwarded-for")?.split(",")[0]?.trim() ?? null;
   const usuario = await conUsuario(

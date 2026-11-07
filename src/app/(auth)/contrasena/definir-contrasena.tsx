@@ -6,12 +6,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
+import { MINIMO_CLAVE as MINIMO } from "@/lib/auth/clave";
+import { cambiarClaveTemporal } from "./acciones";
 
-const MINIMO = 12;
-
-// Primera contraseña (invitación) o cambio por recuperación. Si la cuenta ya tiene
-// 2FA, Supabase exige verificarlo antes de cambiar la contraseña.
-export function DefinirContrasena() {
+// Primera contraseña (invitación), cambio por recuperación o reemplazo de la temporal que dio el
+// Director (`temporal`: se guarda desde el servidor). Si la cuenta ya tiene 2FA, Supabase exige
+// verificarlo antes de cambiar la contraseña.
+export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) {
   const router = useRouter();
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -35,6 +36,12 @@ export function DefinirContrasena() {
     setEnviando(true);
     setError(null);
     const supabase = crearClienteNavegador();
+    if (temporal) {
+      const r = await cambiarClaveTemporal(nueva, String(form.get("confirmacion")));
+      if (r.error) { setEnviando(false); return setError(r.error); }
+      await supabase.auth.refreshSession(); // la sesión nueva ya no trae la marca
+      return router.replace("/hoy");
+    }
     const { error } = await supabase.auth.updateUser({ password: nueva });
     setEnviando(false);
     if (error) return setError("No pudimos guardar la contraseña. Intenta con otra o pide una liga nueva.");
@@ -46,6 +53,7 @@ export function DefinirContrasena() {
     <Card>
       <CardContent className="flex flex-col gap-4">
         <h1 className="font-display text-[22px] font-semibold">Define tu contraseña</h1>
+        {temporal && <p className="text-sm text-ink-muted">Entraste con una contraseña temporal. Pon una que solo tú conozcas para continuar.</p>}
         {!listo ? (
           <p className="text-sm text-ink-muted">Cargando…</p>
         ) : (
