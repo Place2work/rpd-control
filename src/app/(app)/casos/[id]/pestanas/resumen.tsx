@@ -9,8 +9,10 @@ import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { ORIGENES } from "@/lib/prospectos/validacion";
 import { movimientosPosibles, NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { hoyCDMX } from "@/lib/tiempo";
+import { asignarAsesor } from "../acciones-asignacion";
 import { CambiarEtapa } from "../cambiar-etapa";
-import { Dato, isoODefecto, numero } from "../campos";
+import { Dato, isoODefecto, numero, Seleccion } from "../campos";
+import { FormularioAccion } from "../formulario-accion";
 
 const ETIQUETA_ORIGEN = Object.fromEntries(ORIGENES) as Record<string, string>;
 const largo = (iso: string | null) => (iso ? formatoFecha(iso, { dateStyle: "long" }) : "—");
@@ -18,7 +20,13 @@ const largo = (iso: string | null) => (iso ? formatoFecha(iso, { dateStyle: "lon
 export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesion: Sesion }) {
   const hoy = hoyCDMX();
   const p = await parametrosFechas(hoy);
-  const r = await conUsuario(sesion.claims, (tx) => fotoDelCaso(tx, caso.id, hoy, p), sesion.ip);
+  const puedeAsignar = sesion.usuario.rol === "director" || sesion.usuario.rol === "asesor";
+  const [r, asesores] = await conUsuario(sesion.claims, (tx) => Promise.all([
+    fotoDelCaso(tx, caso.id, hoy, p),
+    puedeAsignar
+      ? tx.usuario.findMany({ where: { activo: true, archivado_at: null, rol: { in: ["asesor", "director"] } }, select: { id: true, nombre: true, rol: true }, orderBy: { nombre: "asc" } })
+      : Promise.resolve([]),
+  ]), sesion.ip);
   if (!r) return null;
   const { foto } = r;
   const opciones = movimientosPosibles(foto, sesion.usuario.rol).map((m) => ({ ...m, nombre: NOMBRE_ETAPA[m.destino] }));
@@ -63,6 +71,23 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
               fecha_resolucion: isoODefecto(caso.fecha_resolucion),
               honorario_fijo: numero(caso.honorario_fijo),
             }} />
+        </CardContent>
+      </Card>
+
+      <Card className="lg:col-span-3">
+        <CardHeader><CardTitle>Asesor que lleva el trámite</CardTitle><span className="text-sm text-ink-muted">{caso.asignado?.nombre ?? "Bandeja general"}</span></CardHeader>
+        <CardContent>
+          {puedeAsignar ? (
+            <FormularioAccion accion={asignarAsesor.bind(null, caso.id)} boton="Guardar asesor" etiquetas={{ asignado_a: "Asesor" }}>
+              <div className="grid gap-3 sm:grid-cols-2">
+                <Seleccion id="asignado_a" etiqueta="Asesor" valor={caso.asignado_a} vacia="Sin asignar (bandeja general)"
+                  opciones={asesores.map((u) => [u.id, u.rol === "director" ? `${u.nombre} (Director)` : u.nombre] as const)} />
+              </div>
+              <p className="text-xs text-ink-muted">El asesor ve el caso, recibe sus alertas y aparece en el tablero. ¿Falta alguien? Invítalo como «Asesor» en Configuración → Usuarios.</p>
+            </FormularioAccion>
+          ) : (
+            <p className="text-sm text-ink">{caso.asignado?.nombre ?? "Todavía sin asesor"}</p>
+          )}
         </CardContent>
       </Card>
 
