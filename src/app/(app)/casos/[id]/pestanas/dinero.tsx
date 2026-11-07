@@ -8,9 +8,9 @@ import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
-import { margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
-import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
+import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
 import { Comprobante } from "../comprobante";
 import { FormularioAccion } from "../formulario-accion";
@@ -28,7 +28,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     return <Card><CardContent className="text-sm text-ink-muted">Los pagos y cobros los registra el asesor. Tus comisiones están en «Comisiones».</CardContent></Card>;
   }
   const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
-  const [{ HONORARIO_RETIRO_PCT }, { MODALIDAD_B_MENSUALIDADES_MAX }, pf] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"]), parametrosFechas(hoyCDMX())]);
+  const [pDinero, { MODALIDAD_B_MENSUALIDADES_MAX }, pf] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"]), parametrosFechas(hoyCDMX())]);
+  const { HONORARIO_RETIRO_PCT } = pDinero;
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
   const pactado = caso.contrato_pct === null ? null : Number(caso.contrato_pct);
   const pct = pctHonorarioRetiro(pactado, { HONORARIO_RETIRO_PCT });
@@ -45,6 +46,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
 
   const permitidos = pagosAforePermitidos(d.modalidad, Number(MODALIDAD_B_MENSUALIDADES_MAX) || 1);
   const conMensualidades = permitidos > 1;
+  const esperado = caso.monto_afore_esperado === null ? null : Number(caso.monto_afore_esperado);
+  const proyeccion = honorariosProyectados([{ id: caso.id, etapa: caso.etapa, montoEsperado: esperado, pctPactado: pactado, pagosAfore: d.pagos.length }], pDinero).filas[0];
   const proximo = d.pagos[0] ? fechaProximoRetiro(isoDe(d.pagos[0].fecha_deposito)!, pf) : null;
   const vivos = d.cobros.filter((c) => c.estado !== "cancelado");
   const porCobrar = vivos.filter((c) => c.estado === "por_cobrar");
@@ -83,6 +86,31 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
               </FormularioAccion>
             ) : (
               <p className="text-xs text-ink-muted">Solo el Director cambia el porcentaje.</p>
+            )}
+          </CardContent>
+        </Card>
+      )}
+
+      {esRetiro && d.pagos.length === 0 && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Pago esperado de la Afore</CardTitle>
+            {proyeccion && <span className="text-sm text-ink-muted">honorario proyectado <span className="cifra font-display text-lg font-semibold text-brand">{mxn(proyeccion.honorario)}</span></span>}
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-sm text-ink-muted">
+              {proyeccion
+                ? `Cuando la Afore deposite ${mxn(proyeccion.montoEsperado)}, el honorario del ${pctTxt(proyeccion.pct)} será ${mxn(proyeccion.honorario)} (IVA incluido).${caso.fecha_afore_estimada ? ` Depósito estimado: ${corta(caso.fecha_afore_estimada)}.` : ""}`
+                : "¿Ya sabes cuánto va a pagar la Afore? Captúralo para ver el honorario proyectado por cobrar. No cuenta como pago hasta que registres el depósito con su fecha."}
+            </p>
+            {rol !== "socio" && (
+              <FormularioAccion accion={guardarPagoEsperado.bind(null, caso.id)} boton={proyeccion ? "Actualizar" : "Guardar monto esperado"}
+                etiquetas={{ monto_esperado: "Monto esperado", fecha_estimada: "Fecha estimada" }}>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <CampoTexto id="monto_esperado" etiqueta="Monto que pagará la Afore" ayuda="vacío = quitar" inputMode="decimal" placeholder="35,193.00" valor={esperado} />
+                  <CampoTexto id="fecha_estimada" etiqueta="Fecha estimada del depósito" ayuda="opcional" tipo="date" valor={isoDe(caso.fecha_afore_estimada) ?? ""} />
+                </div>
+              </FormularioAccion>
             )}
           </CardContent>
         </Card>
@@ -129,7 +157,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                 etiquetas={{ fecha_deposito: "Fecha del depósito", monto_bruto: "Monto bruto", isr_retenido: "ISR retenido" }}>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <CampoTexto id="fecha_deposito" etiqueta="Fecha del depósito" tipo="date" max={hoyCDMX()} />
-                  <CampoTexto id="monto_bruto" etiqueta="Monto bruto" inputMode="decimal" placeholder="10,000.00" />
+                  <CampoTexto id="monto_bruto" etiqueta="Monto bruto" inputMode="decimal" placeholder="10,000.00" valor={esperado} />
                   <CampoTexto id="isr_retenido" etiqueta="ISR retenido" ayuda="si hubo" inputMode="decimal" placeholder="0.00" />
                 </div>
                 <p className="text-xs text-ink-muted">El honorario del {pctTxt(pct)} (IVA incluido) se calcula sobre el depósito y queda por cobrar.</p>

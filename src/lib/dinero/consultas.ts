@@ -4,7 +4,8 @@ import "server-only";
 import type { Prisma } from "@/generated/prisma/client";
 import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
-import { finDeMes } from "@/lib/reglas/comisiones";
+import { parametrosDinero } from "@/lib/parametros";
+import { finDeMes, honorariosProyectados } from "@/lib/reglas/comisiones";
 
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
@@ -67,4 +68,33 @@ export async function cifrasHoy(s: Sesion, mes: string) {
       meses,
     };
   }, s.ip);
+}
+
+/** Honorarios proyectados: retiros con el pago de la Afore ya conocido pero todavía no depositado. */
+export async function proyecciones(s: Sesion) {
+  const [casos, p] = await Promise.all([
+    conUsuario(s.claims, (tx) => tx.caso.findMany({
+      where: { archivado_at: null, tipo_servicio: "RETIRO_DESEMPLEO", monto_afore_esperado: { not: null } },
+      select: {
+        id: true, folio: true, etapa: true, monto_afore_esperado: true, fecha_afore_estimada: true, contrato_pct: true,
+        persona: { select: { nombre: true, apellido_paterno: true } },
+        _count: { select: { pagos_afore: { where: { archivado_at: null } } } },
+      },
+      orderBy: { fecha_afore_estimada: { sort: "asc", nulls: "last" } },
+    }), s.ip),
+    parametrosDinero(),
+  ]);
+  const r = honorariosProyectados(casos.map((c) => ({
+    id: c.id, etapa: c.etapa, montoEsperado: c.monto_afore_esperado === null ? null : Number(c.monto_afore_esperado),
+    pctPactado: c.contrato_pct === null ? null : Number(c.contrato_pct), pagosAfore: c._count.pagos_afore,
+  })), p);
+  const porId = new Map(casos.map((c) => [c.id, c]));
+  return {
+    total: r.total,
+    filas: r.filas.map((f) => {
+      const c = porId.get(f.id)!;
+      return { ...f, folio: c.folio, nombre: [c.persona.nombre, c.persona.apellido_paterno].filter(Boolean).join(" "),
+        fechaEstimada: c.fecha_afore_estimada ? c.fecha_afore_estimada.toISOString().slice(0, 10) : null };
+    }),
+  };
 }

@@ -361,3 +361,22 @@ export function alertasDinero(casos: CasoConPagos[], comisiones: ComisionPorPaga
   }
   return r;
 }
+
+// ───────────── Honorario proyectado (pago de la Afore todavía no depositado) ─────────────
+
+export type CasoProyectable = { id: string; etapa: string; montoEsperado: number | null; pctPactado: number | null; pagosAfore: number };
+
+/**
+ * Honorario que se cobrará cuando la Afore deposite el monto ya conocido. Solo retiros abiertos con monto
+ * esperado y sin pago registrado (al registrar el pago real, el cobro existe y la proyección deja de contar).
+ */
+export function honorariosProyectados(casos: CasoProyectable[], p: Pick<ParametrosDinero, "HONORARIO_RETIRO_PCT" | "IVA" | "BASE_HONORARIO">) {
+  const filas = casos
+    .filter((c) => c.montoEsperado !== null && c.montoEsperado > 0 && c.pagosAfore === 0 && c.etapa !== "CERRADO" && c.etapa !== "PERDIDO")
+    .map((c) => {
+      const pct = pctHonorarioRetiro(c.pctPactado, p);
+      const h = honorarioDePago({ bruto: c.montoEsperado!, neto: c.montoEsperado! }, { ...p, HONORARIO_RETIRO_PCT: pct });
+      return { id: c.id, montoEsperado: c.montoEsperado!, pct, honorario: h.honorario };
+    });
+  return { filas, total: sumar(filas.map((f) => f.honorario)) };
+}

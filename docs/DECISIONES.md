@@ -218,3 +218,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   Es solo informativo (publicidad, oficina, nómina…): no se descuenta de comisiones ni de cobros.
 - **Prospectos** se ordenan por defecto por fecha para retirar: primero los que ya pueden (el más antiguo arriba),
   luego los que les faltan días y al final sin fecha de baja; en Filtros, «Altas más recientes».
+
+## 7-nov-2026 · Pago esperado de la Afore (honorario proyectado)
+
+- En la pestaña Dinero de un retiro sin pago registrado se captura el monto que pagará la Afore (y una fecha estimada
+  opcional) en `casos.monto_afore_esperado` / `fecha_afore_estimada`. Proyecta el honorario con el % pactado.
+- No es un pago: no mueve la etapa, no cuenta como monto retirado ni genera el próximo retiro. Al registrar el
+  depósito real (con fecha) el formulario ya trae el monto y la proyección deja de contar.
+- Se suma en Hoy («Por cobrar · + proyectado») y en Dinero («Honorario proyectado» con la lista). Migración 2100.

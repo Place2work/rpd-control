@@ -76,6 +76,37 @@ export async function guardarHonorarioPactado(casoId: string, _p: Resultado, for
   return res;
 }
 
+// ───────────── Pago esperado de la Afore (proyección) ─────────────
+
+const esquemaEsperado = z.object({
+  monto_esperado: z.string().trim().transform((v) => (v ? Number(v.replace(/[,$\s]/g, "")) : null))
+    .pipe(z.number({ message: "Escribe un monto" }).finite().positive("Debe ser mayor que 0").max(10_000_000).nullable()),
+  fecha_estimada: z.string().trim().transform((v) => v || null).pipe(z.iso.date({ message: "Fecha no válida" }).nullable()),
+});
+
+/** Lo que pagará la Afore, antes del depósito: proyecta el honorario. Vacío = quitar la proyección. */
+export async function guardarPagoEsperado(casoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol === "vendedor") return { error: "Tu rol no registra montos de la Afore." };
+  const r = esquemaEsperado.safeParse(datosDe(form));
+  if (!r.success) return { errores: errores(r.error) };
+  const { monto_esperado, fecha_estimada } = r.data;
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true } });
+    if (!caso) return { error: "No encontramos el caso." };
+    if (caso.tipo_servicio !== "RETIRO_DESEMPLEO") return { error: "El pago esperado de la Afore es del retiro por desempleo." };
+    await tx.caso.update({ where: { id: casoId }, select: { id: true },
+      data: { monto_afore_esperado: monto_esperado, fecha_afore_estimada: monto_esperado && fecha_estimada ? dia(fecha_estimada) : null } });
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id,
+      texto: monto_esperado
+        ? `Pago esperado de la Afore: $${monto_esperado.toLocaleString("es-MX", { minimumFractionDigits: 2 })}${fecha_estimada ? ` (estimado para el ${fechaLarga(fecha_estimada)})` : ""}.`
+        : "Se quitó el pago esperado de la Afore." } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) revalidatePath(`/casos/${casoId}`);
+  return res;
+}
+
 // ───────────── Pagos de la Afore (retiro: hasta 6) ─────────────
 
 const esquemaPago = z.object({ fecha_deposito: fechaPasada, monto_bruto: monto, isr_retenido: monto.optional() })

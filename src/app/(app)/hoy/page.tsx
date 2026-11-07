@@ -1,7 +1,7 @@
 import { CalendarClock, Filter, LineChart } from "lucide-react";
 import { GraficaBarras } from "@/components/rpd/grafica-barras";
 import { movimientosDelMes } from "@/lib/cerrados/consultas";
-import { cifrasHoy } from "@/lib/dinero/consultas";
+import { cifrasHoy, proyecciones } from "@/lib/dinero/consultas";
 import { altasYCostos } from "@/lib/dinero/costo-alta";
 import { costoAdministrativo } from "@/lib/reglas/costo-alta";
 import { embudoDelMes } from "@/lib/reglas/cerrados";
@@ -36,7 +36,7 @@ export default async function Hoy() {
     listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion), veDinero ? cifrasHoy(sesion, hoy.slice(0, 7)) : null,
     movimientosDelMes(sesion, hoy.slice(0, 7)),
   ]);
-  const costos = veDinero ? await altasYCostos(sesion) : null;
+  const [costos, proy] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion)]) : [null, null];
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
 
   // Próximos día 46 (10.1): retiros que aún no se ingresan, con fecha de baja, en los próximos 14 días.
@@ -62,7 +62,8 @@ export default async function Hoy() {
     ...(dinero ? [
       { t: "Monto retirado del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/dinero" },
       { t: "Honorarios cobrados del mes", v: mxn(dinero.cobradoMes), nota: "con IVA", liga: "/dinero" },
-      { t: "Por cobrar", v: mxn(dinero.porCobrar), nota: `${dinero.cobrosPendientes} ${dinero.cobrosPendientes === 1 ? "cobro" : "cobros"}`, liga: "/dinero" },
+      { t: "Por cobrar", v: mxn(dinero.porCobrar), liga: "/dinero",
+        nota: `${dinero.cobrosPendientes} ${dinero.cobrosPendientes === 1 ? "cobro" : "cobros"}${proy && proy.filas.length ? ` · + ${mxn(proy.total)} proyectado (${proy.filas.length} ${proy.filas.length === 1 ? "caso" : "casos"})` : ""}` },
       { t: "Costo administrativo del mes", v: mxn(costoAlta?.total ?? 0), nota: `${costoAlta?.altas ?? 0} ${costoAlta?.altas === 1 ? "alta" : "altas"} de prospectos`, liga: "/prospectos" },
       { t: "Comisiones por pagar", v: mxn(dinero.comisionesPorPagar), nota: `${dinero.comisionesPendientes} devengadas`, liga: "/comisiones" },
     ] : []),

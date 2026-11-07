@@ -122,3 +122,12 @@ describe("comprobante de la transferencia del honorario", () => {
     expect(await como(U.vendedor, "SELECT comprobante_path FROM cobros WHERE id = $1", [COBRO])).toHaveLength(0);
   });
 });
+
+describe("pago esperado de la Afore (proyección)", () => {
+  it("se guarda en el caso con monto positivo; no crea pagos ni cobros", async () => {
+    const r = await como(U.director, "UPDATE casos SET monto_afore_esperado = 35193, fecha_afore_estimada = '2026-11-20' WHERE id = $1 RETURNING monto_afore_esperado::text", [C2]);
+    expect(r).toEqual([{ monto_afore_esperado: "35193.00" }]);
+    await expect(como(U.director, "UPDATE casos SET monto_afore_esperado = 0 WHERE id = $1", [C2])).rejects.toThrow(/check/i);
+    expect(await como(U.director, "SELECT id FROM pagos_afore WHERE caso_id = $1 AND archivado_at IS NULL", [C2])).toHaveLength(0);
+  });
+});

@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
-  pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro,
+  honorariosProyectados, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro, type CasoProyectable,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
 } from "../comisiones";
 
@@ -188,5 +188,17 @@ describe("8.1 alertas de dinero y 14.2 cuadre", () => {
   });
   it("suma al centavo", () => {
     expect(sumar([0.1, 0.2, 834.48, 1251.73])).toBe(2086.51);
+  });
+});
+
+describe("honorario proyectado antes del depósito de la Afore", () => {
+  const caso = (x: Partial<CasoProyectable>): CasoProyectable => ({ id: "c", etapa: "INGRESADA", montoEsperado: 35193, pctPactado: null, pagosAfore: 0, ...x });
+  it("con el 30% general, $35,193 esperados proyectan $10,557.90; con 22% pactado, $7,742.46", () => {
+    const r = honorariosProyectados([caso({ id: "a" }), caso({ id: "b", pctPactado: 0.22 })], P);
+    expect(r.filas.map((f) => f.honorario)).toEqual([10557.9, 7742.46]);
+    expect(r.total).toBe(18300.36);
+  });
+  it("no proyecta si ya hay pago registrado, si está cerrado o perdido, o sin monto", () => {
+    expect(honorariosProyectados([caso({ pagosAfore: 1 }), caso({ etapa: "CERRADO" }), caso({ etapa: "PERDIDO" }), caso({ montoEsperado: null })], P).filas).toEqual([]);
   });
 });

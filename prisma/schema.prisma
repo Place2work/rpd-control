@@ -499,6 +499,8 @@ model Caso {
   contrato_advertencias      String? // una por renglón (fallecimiento, cláusula TERCERA)
   contrato_regularizacion    String?
   contrato_pct               Decimal?                  @db.Decimal(5, 4)
+  monto_afore_esperado       Decimal?                  @db.Decimal(14, 2) // lo que pagará la Afore (antes del depósito)
+  fecha_afore_estimada       DateTime?                 @db.Date
   contrato_generado_at       DateTime?                 @db.Timestamptz(6)
   m40_desde                  DateTime?                 @db.Date
   m40_hasta                  DateTime?                 @db.Date

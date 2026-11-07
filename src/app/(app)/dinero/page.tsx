@@ -7,7 +7,7 @@ import { GraficaBarras } from "@/components/rpd/grafica-barras";
 import { mesValido, nombreMes, SelectorMes } from "@/components/rpd/selector-mes";
 import { formatoFecha, isoDe } from "@/components/rpd/insignia-dia46";
 import { exigirRol } from "@/lib/auth/sesion";
-import { resumenDinero } from "@/lib/dinero/consultas";
+import { proyecciones, resumenDinero } from "@/lib/dinero/consultas";
 import { mxn } from "@/lib/formato";
 import { diasEntre } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
@@ -21,7 +21,7 @@ export default async function Dinero({ searchParams }: { searchParams: Promise<{
   const sesion = await exigirRol("director", "asesor", "socio");
   const hoy = hoyCDMX();
   const mes = mesValido((await searchParams).mes, hoy.slice(0, 7));
-  const d = await resumenDinero(sesion, mes);
+  const [d, proy] = await Promise.all([resumenDinero(sesion, mes), proyecciones(sesion)]);
   const n = (v: unknown) => Number(v ?? 0);
   const totalPorCobrar = d.porCobrar.reduce((a, c) => a + n(c.honorario_total), 0);
 
@@ -34,12 +34,32 @@ export default async function Dinero({ searchParams }: { searchParams: Promise<{
         </a>
       </Encabezado>
 
-      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="mb-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-5">
         <Cifra titulo="Depositado por la Afore" valor={mxn(n(d.depositos._sum.monto_neto))} nota={`${d.depositos._count} ${d.depositos._count === 1 ? "pago" : "pagos"} · ISR retenido ${mxn(n(d.depositos._sum.isr_retenido))}`} />
         <Cifra titulo="Honorario cobrado" valor={mxn(n(d.cobrado._sum.honorario_total))} nota={`${d.cobrado._count} ${d.cobrado._count === 1 ? "cobro" : "cobros"} en el mes`} />
         <Cifra titulo="Subtotal · IVA" valor={mxn(n(d.cobrado._sum.subtotal))} nota={`IVA trasladado ${mxn(n(d.cobrado._sum.iva))}`} />
         <Cifra titulo="Por cobrar hoy" valor={mxn(totalPorCobrar)} nota={`${d.porCobrar.length} pendientes`} alerta={d.porCobrar.length > 0} />
+        <Cifra titulo="Honorario proyectado" valor={mxn(proy.total)} nota={`${proy.filas.length} ${proy.filas.length === 1 ? "caso" : "casos"}: la Afore aún no deposita`} />
       </div>
+
+      {proy.filas.length > 0 && (
+        <Card className="mb-4">
+          <CardHeader><CardTitle>Honorario proyectado</CardTitle><span className="text-sm text-ink-muted">ya se sabe cuánto pagará la Afore, falta el depósito</span></CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-borde text-sm">
+              {proy.filas.map((f) => (
+                <li key={f.id} className="flex flex-wrap items-center justify-between gap-2 py-2.5">
+                  <Link href={`/casos/${f.id}?tab=dinero`} className="min-w-0 text-ink hover:text-brand">
+                    <span className="font-medium">{f.nombre}</span> <span className="cifra text-ink-muted">{f.folio}</span>
+                    <span className="block text-xs text-ink-muted">La Afore pagará {mxn(f.montoEsperado)}{f.fechaEstimada ? ` · estimado ${formatoFecha(f.fechaEstimada)}` : " · sin fecha estimada"}</span>
+                  </Link>
+                  <span className="cifra font-medium text-brand">{mxn(f.honorario)}</span>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
 
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
