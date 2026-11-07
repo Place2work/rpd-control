@@ -423,6 +423,11 @@ model Persona {
   telefono                 String?
   whatsapp                 String? // E.164
   email                    String?
+  calle                    String?
+  numero_exterior          String?
+  numero_interior          String?
+  colonia                  String?
+  codigo_postal            String? // 5 dígitos
   municipio                String?
   estado                   String?
   estado_civil             EstadoCivil?

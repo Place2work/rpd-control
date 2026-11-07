@@ -131,3 +131,12 @@ describe("pago esperado de la Afore (proyección)", () => {
     expect(await como(U.director, "SELECT id FROM pagos_afore WHERE caso_id = $1 AND archivado_at IS NULL", [C2])).toHaveLength(0);
   });
 });
+
+describe("domicilio por partes", () => {
+  it("las columnas nuevas se leen y escriben con RLS; el C.P. lleva 5 dígitos", async () => {
+    const r = await como(U.director, "UPDATE personas SET calle = 'Santa Elena', numero_exterior = '202', numero_interior = '402 C', colonia = 'Marbella', codigo_postal = '76226' WHERE id = $1 RETURNING codigo_postal", [P]);
+    expect(r).toEqual([{ codigo_postal: "76226" }]);
+    expect(await como(U.vendedor, "SELECT calle, numero_interior, codigo_postal FROM personas WHERE id = $1", [P])).toEqual([{ calle: "Santa Elena", numero_interior: "402 C", codigo_postal: "76226" }]);
+    await expect(como(U.director, "UPDATE personas SET codigo_postal = '7622' WHERE id = $1", [P])).rejects.toThrow(/check/i);
+  });
+});

@@ -16,6 +16,7 @@ import { bimestresEntre, diasEntre, regimenPorPrimeraAlta, sumarDiasHabiles, ven
 import { curpParcial, datosDeCurp, validarCurp, validarNss } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
 import { limpiarNombre } from "@/lib/reglas/nombres";
+import { componerDomicilio } from "@/lib/reglas/domicilio";
 
 export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; faltantes?: string[] };
 
@@ -76,6 +77,7 @@ const esquemaPersona = z.object({
   curp: z.string().nullable().refine((v) => !v || validarCurp(v).valido, "CURP no válida"),
   nss: z.string().nullable().refine((v) => !v || validarNss(v).valido, "NSS no válido"),
   domicilio: z.string().max(300, "Máximo 300 caracteres").nullable(),
+  codigo_postal: z.string().regex(/^\d{5}$/, "Escribe los 5 dígitos").nullable(),
 });
 
 export async function guardarDatosPersonales(casoId: string, personaId: string, _p: Resultado, form: FormData): Promise<Resultado> {
@@ -87,19 +89,26 @@ export async function guardarDatosPersonales(casoId: string, personaId: string, 
     curp: texto(form, "curp"),
     nss: texto(form, "nss"),
     domicilio: texto(form, "domicilio"),
+    codigo_postal: texto(form, "codigo_postal"),
   });
   if (!r.success) return { errores: erroresDe(r.error) };
   const d = r.data;
   const wa = normalizarWhatsapp(d.whatsapp)!;
+  const partes = {
+    calle: texto(form, "calle"), numero_exterior: texto(form, "numero_exterior"), numero_interior: texto(form, "numero_interior"),
+    colonia: texto(form, "colonia"), codigo_postal: d.codigo_postal, municipio: texto(form, "municipio"), estado: texto(form, "estado"),
+  };
+  const partesDomicilio = { calle: partes.calle, numeroExterior: partes.numero_exterior, numeroInterior: partes.numero_interior,
+    colonia: partes.colonia, codigoPostal: partes.codigo_postal, municipio: partes.municipio, estado: partes.estado };
   const nom = limpiarNombre({ nombre: d.nombre, apellido_paterno: texto(form, "apellido_paterno"), apellido_materno: texto(form, "apellido_materno") });
   const data: Prisma.PersonaUpdateInput = {
     ...nom,
     whatsapp: wa,
     telefono: wa,
     email: d.email,
-    domicilio: d.domicilio,
-    municipio: texto(form, "municipio"),
-    estado: texto(form, "estado"),
+    // Domicilio por partes (opcionales); el texto del contrato se arma con ellas. Sin partes, se conserva el escrito.
+    ...partes,
+    domicilio: componerDomicilio(partesDomicilio) ?? d.domicilio,
     estado_civil: (texto(form, "estado_civil") as Prisma.PersonaUpdateInput["estado_civil"]) ?? null,
     beneficiarios_designados: (texto(form, "beneficiarios_designados") ?? "no_sabe") as "si" | "no" | "no_sabe",
   };

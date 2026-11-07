@@ -229,3 +229,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - **Actualización:** el honorario general del retiro vuelve a **30% desde el 7-nov-2026** (26% del 28-oct al 6-nov).
   El campo «Porcentaje pactado con el cliente» siempre viene lleno con el % que aplica; al guardarlo queda fijo para ese
   cliente aunque el general cambie después.
+
+## 7-nov-2026 · Domicilio por partes
+
+- Datos personales captura calle, número exterior, número interior, colonia y código postal (todo opcional) y elige
+  estado y municipio de la lista del INEGI (AGEEML, `public/catalogos/municipios-mx.json`: 32 estados, 2,476
+  municipios). El código postal sugiere el estado; la persona decide.
+- `personas.domicilio` (lo que va en el contrato) se arma con las partes al guardar; sin partes se conserva el texto
+  escrito antes. Valores anteriores que no están en la lista se muestran como «capturado antes». Migración 2200.
