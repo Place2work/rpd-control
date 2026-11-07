@@ -226,3 +226,6 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - No es un pago: no mueve la etapa, no cuenta como monto retirado ni genera el próximo retiro. Al registrar el
   depósito real (con fecha) el formulario ya trae el monto y la proyección deja de contar.
 - Se suma en Hoy («Por cobrar · + proyectado») y en Dinero («Honorario proyectado» con la lista). Migración 2100.
+- **Actualización:** el honorario general del retiro vuelve a **30% desde el 7-nov-2026** (26% del 28-oct al 6-nov).
+  El campo «Porcentaje pactado con el cliente» siempre viene lleno con el % que aplica; al guardarlo queda fijo para ese
+  cliente aunque el general cambie después.

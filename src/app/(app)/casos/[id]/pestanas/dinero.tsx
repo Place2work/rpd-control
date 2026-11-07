@@ -80,8 +80,9 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
             {rol === "director" ? (
               <FormularioAccion accion={guardarHonorarioPactado.bind(null, caso.id)} boton="Guardar porcentaje" etiquetas={{ pct_pactado: "Porcentaje" }}>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <CampoTexto id="pct_pactado" etiqueta="Porcentaje pactado (%)" ayuda="vacío = el general" inputMode="decimal"
-                    placeholder={String(+(HONORARIO_RETIRO_PCT * 100).toFixed(2))} valor={pactado === null ? null : +(pactado * 100).toFixed(2)} />
+                  {/* Siempre viene con el % que hoy aplica a este cliente: solo se cambia si se negoció otro. */}
+                  <CampoTexto id="pct_pactado" etiqueta="Porcentaje pactado con el cliente (%)" ayuda="ej. 30 o 26" inputMode="decimal"
+                    placeholder={String(+(HONORARIO_RETIRO_PCT * 100).toFixed(2))} valor={+(pct * 100).toFixed(2)} />
                 </div>
                 {d.pagos.length > 0 && <p className="text-xs text-aviso">Los {d.pagos.length} pagos ya registrados conservan su honorario. Para recalcular uno, corrígelo y regístralo de nuevo.</p>}
               </FormularioAccion>
