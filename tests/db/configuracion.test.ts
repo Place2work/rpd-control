@@ -65,3 +65,15 @@ describe("configuración solo para el Director", () => {
     expect((await como(D, "SELECT count(*)::int AS n FROM auditoria.auditoria WHERE tabla = 'parametros'"))[0].n).toBeGreaterThan(0);
   });
 });
+
+describe("bitácora de acciones de cuenta", () => {
+  it("solo el Director registra contraseña temporal o restablecer 2FA, y queda a su nombre", async () => {
+    await expect(como(A, "SELECT app.registrar_accion_cuenta($1, 'RESTABLECER_2FA')", [D])).rejects.toThrow(/Solo el Director/);
+    await expect(como(D, "SELECT app.registrar_accion_cuenta($1, 'BORRAR_TODO')", [A])).rejects.toThrow(/no permitida/);
+    await expect(como(D, "SELECT app.registrar_accion_cuenta($1, 'CLAVE_TEMPORAL')", [randomUUID()])).rejects.toThrow(/inexistente/);
+    await como(D, "SELECT app.registrar_accion_cuenta($1, 'RESTABLECER_2FA')", [A]);
+    const filas = await como<{ accion: string; usuario_id: string }>(D, "SELECT accion, usuario_id FROM auditoria.auditoria WHERE registro_id = $1 AND accion = 'RESTABLECER_2FA'", [A]);
+    expect(filas).toEqual([{ accion: "RESTABLECER_2FA", usuario_id: D }]);
+    await expect(como(A, "INSERT INTO auditoria.auditoria (tabla, registro_id, accion) VALUES ('usuarios', 'x', 'CLAVE_TEMPORAL')")).rejects.toThrow();
+  });
+});

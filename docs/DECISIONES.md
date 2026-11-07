@@ -160,6 +160,10 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - La cuenta se crea confirmada con `app_metadata.debe_cambiar_clave = true` (el usuario no puede quitarla). El proxy
   y `obtenerSesion` mandan a `/mfa` y luego a `/contrasena`; ahí la contraseña propia se guarda desde el servidor y la
   marca se quita en la misma llamada.
-- «Generar contraseña temporal» por usuario sustituye la recuperación por correo. El 2FA no cambia; si alguien pierde
-  su teléfono, el Director tendrá que restablecer el factor en Supabase (pendiente de pantalla).
+- «Generar contraseña temporal» por usuario sustituye la recuperación por correo; el 2FA no cambia.
+- «Restablecer verificación en dos pasos» (celular perdido o nuevo): borra todos sus factores en Supabase y le da una
+  contraseña temporal; al entrar inscribe el 2FA en el celular nuevo. Pide confirmación. El Director no puede
+  restablecer el suyo desde la pantalla.
+- Las dos acciones quedan en la bitácora (`CLAVE_TEMPORAL`, `RESTABLECER_2FA`) mediante `app.registrar_accion_cuenta`,
+  que solo el Director puede llamar (migración 1400).
 - La invitación por correo sigue disponible para cuando se configure Resend.

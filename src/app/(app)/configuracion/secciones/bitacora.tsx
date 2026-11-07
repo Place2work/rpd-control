@@ -5,7 +5,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { cn } from "@/lib/utils";
 
-const ACCION: Record<string, string> = { INSERT: "Alta", UPDATE: "Cambio", ARCHIVE: "Archivo", DELETE: "Borrado", VER_SENSIBLE: "Vio dato completo" };
+const ACCION: Record<string, string> = { INSERT: "Alta", UPDATE: "Cambio", ARCHIVE: "Archivo", DELETE: "Borrado", VER_SENSIBLE: "Vio dato completo", CLAVE_TEMPORAL: "Contraseña temporal", RESTABLECER_2FA: "Restableció 2FA" };
 const FILTROS = [["", "Todo"], ["VER_SENSIBLE", "Datos sensibles"], ["resaltado", "Montos y semanas"], ["usuarios", "Usuarios"], ["parametros", "Parámetros"], ["comisiones", "Comisiones"]] as const;
 
 export async function SeccionBitacora({ sesion, filtro }: { sesion: Sesion; filtro: string }) {

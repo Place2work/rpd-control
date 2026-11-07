@@ -3,7 +3,7 @@
 // Configuración (10.9): solo el Director. Todo pasa por RLS (conUsuario) y queda en la bitácora.
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { bloquearCuenta, crearCuentaConClave, invitarCuenta, restablecerConClave } from "@/lib/auth/admin";
+import { bloquearCuenta, crearCuentaConClave, invitarCuenta, restablecerConClave, restablecerVerificacion } from "@/lib/auth/admin";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { validarPlantilla } from "@/lib/contratos/plantilla";
 import { planNuevaVigencia, validarValor, type TipoParametro } from "@/lib/configuracion/parametros";
@@ -116,6 +116,11 @@ export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Res
   return { ok: true };
 }
 
+/** Bitácora de lo que pasa en Supabase Auth (no hay tabla con trigger que lo registre). */
+async function registrarCuenta(s: NonNullable<Awaited<ReturnType<typeof director>>>, id: string, accion: "CLAVE_TEMPORAL" | "RESTABLECER_2FA") {
+  await conUsuario(s.claims, (tx) => tx.$executeRaw`SELECT app.registrar_accion_cuenta(${id}::uuid, ${accion})`, s.ip);
+}
+
 /** Alta sin correo: cuenta con contraseña temporal que el Director entrega en persona. */
 export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promise<Resultado> {
   const s = await director();
@@ -130,6 +135,7 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
     data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono, created_by: s.usuario.id },
     select: { id: true },
   }), s.ip);
+  await registrarCuenta(s, cuenta.id, "CLAVE_TEMPORAL");
   revalidatePath("/configuracion");
   return { ok: true, unaVez: { titulo: `Contraseña temporal de ${r.data.nombre}`, valor: cuenta.clave,
     nota: `Entra en rpd-control.vercel.app con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
@@ -145,8 +151,24 @@ export async function claveTemporalUsuario(id: string): Promise<Resultado> {
   if (!u.activo) return { error: "Primero dale acceso de nuevo." };
   const r = await restablecerConClave(id);
   if (!r.clave) return { error: r.error };
+  await registrarCuenta(s, id, "CLAVE_TEMPORAL");
   return { ok: true, unaVez: { titulo: `Contraseña temporal de ${u.nombre}`, valor: r.clave,
     nota: `La anterior ya no funciona. Al entrar con ${u.email} pondrá una nueva. Su verificación en dos pasos no cambia. No se vuelve a mostrar.` } };
+}
+
+/** Perdió o cambió de celular: se quita su 2FA y recibe una contraseña temporal. */
+export async function restablecerDosPasos(id: string): Promise<Resultado> {
+  const s = await director();
+  if (!s) return { error: "Solo el Director restablece la verificación." };
+  if (id === s.usuario.id) return { error: "La tuya no se restablece desde aquí: pídeselo al administrador técnico." };
+  const u = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { id }, select: { nombre: true, email: true, activo: true } }), s.ip);
+  if (!u) return { error: "No encontramos al usuario." };
+  if (!u.activo) return { error: "Primero dale acceso de nuevo." };
+  const r = await restablecerVerificacion(id);
+  if (!r.clave) return { error: r.error };
+  await registrarCuenta(s, id, "RESTABLECER_2FA");
+  return { ok: true, unaVez: { titulo: `Verificación restablecida · contraseña temporal de ${u.nombre}`, valor: r.clave,
+    nota: `Su celular anterior ya no sirve para entrar. Al entrar con ${u.email} escaneará un código nuevo con la app autenticadora de su celular nuevo y pondrá su propia contraseña. No se vuelve a mostrar.` } };
 }
 
 export async function actualizarUsuario(id: string, _p: Resultado, form: FormData): Promise<Resultado> {

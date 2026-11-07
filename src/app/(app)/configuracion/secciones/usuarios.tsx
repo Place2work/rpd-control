@@ -4,7 +4,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario } from "../acciones";
+import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
 
 const ROLES = [["asesor", "Asesor"], ["vendedor", "Vendedor"], ["socio", "Socio licenciatario"], ["director", "Director"]] as const;
@@ -60,6 +60,9 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                       <div className="mt-3 border-t border-borde pt-3">
                         <p className="mb-2 text-xs text-ink-muted">¿Olvidó su contraseña? Genera una temporal y dásela en persona; al entrar pondrá una nueva.</p>
                         <FormularioAccion accion={claveTemporalUsuario.bind(null, u.id)} boton="Generar contraseña temporal"><span hidden /></FormularioAccion>
+                        <p className="mb-2 mt-4 text-xs text-ink-muted">¿Perdió o cambió de celular y ya no le llega el código? Esto quita su verificación en dos pasos y le da una contraseña temporal; al entrar, la activa en su celular nuevo.</p>
+                        <FormularioAccion accion={restablecerDosPasos.bind(null, u.id)} boton="Restablecer verificación en dos pasos"
+                          confirmar={`¿Restablecer la verificación de ${u.nombre}? Su contraseña y su celular actuales dejan de servir hasta que entre con la temporal.`}><span hidden /></FormularioAccion>
                       </div>
                     )}
                   </div>

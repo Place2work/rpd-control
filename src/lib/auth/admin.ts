@@ -74,3 +74,20 @@ export async function fijarClavePropia(id: string, clave: string): Promise<{ err
   if (error) return { error: /same|different/i.test(error.message) ? "Usa una contraseña distinta a la temporal." : "No pudimos guardar la contraseña. Intenta con otra." };
   return {};
 }
+
+/**
+ * Perdió el celular: se borran todos sus factores (el teléfono viejo ya no sirve para entrar) y se
+ * le da una contraseña temporal. Al entrar vuelve a inscribir el 2FA y pone una contraseña propia.
+ */
+export async function restablecerVerificacion(id: string): Promise<{ clave?: string; borrados?: number; error?: string }> {
+  if (modoDemo()) return { clave: claveTemporal(), borrados: 0 };
+  const mfa = admin().mfa;
+  const { data, error } = await mfa.listFactors({ userId: id });
+  if (error) return { error: `Supabase no pudo leer la verificación: ${error.message}` };
+  for (const f of data.factors) {
+    const r = await mfa.deleteFactor({ id: f.id, userId: id });
+    if (r.error) return { error: `Supabase no pudo quitar el factor: ${r.error.message}` };
+  }
+  const nueva = await restablecerConClave(id);
+  return nueva.clave ? { clave: nueva.clave, borrados: data.factors.length } : { error: nueva.error };
+}

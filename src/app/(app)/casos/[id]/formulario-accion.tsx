@@ -12,13 +12,15 @@ type Props = {
   boton?: string;
   etiquetas?: Record<string, string>;
   className?: string;
+  /** Pregunta antes de enviar (acciones que no se deshacen con un clic). */
+  confirmar?: string;
 };
 
 // Formulario genérico del expediente: los campos llegan como children (renderizados en el
 // servidor) y aquí se muestra el resultado: "Guardado", errores por campo o lo que falta.
 // Se envía con onSubmit (no con action=) porque React 19 vacía los campos después de cada
 // envío por action: si había un error, el usuario perdía lo que acababa de escribir.
-export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className }: Props) {
+export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className, confirmar }: Props) {
   const [estado, enviar, enviando] = useActionState<ConDato, FormData>(accion, {});
   const errores = Object.entries(estado.errores ?? {});
   return (
@@ -26,6 +28,7 @@ export function FormularioAccion({ accion, children, boton = "Guardar", etiqueta
       className={className ?? "grid gap-4"}
       onSubmit={(e) => {
         e.preventDefault();
+        if (confirmar && !window.confirm(confirmar)) return;
         const datos = new FormData(e.currentTarget);
         startTransition(() => enviar(datos));
       }}
