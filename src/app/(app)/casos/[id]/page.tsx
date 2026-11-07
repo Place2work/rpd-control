@@ -15,6 +15,7 @@ import { PestanaImss } from "./pestanas/imss";
 import { PestanaPension } from "./pestanas/pension";
 import { PestanaResumen } from "./pestanas/resumen";
 import { PestanaSeguimiento } from "./pestanas/seguimiento";
+import { InsigniaAfore } from "@/components/rpd/insignia-afore";
 
 export const metadata: Metadata = { title: "Expediente" };
 
@@ -80,6 +81,7 @@ export default async function Expediente({ params, searchParams }: Props) {
             <span>·</span> {caso.servicio.nombre.split(" (")[0]}
             <Badge tono={etapa.tono}>{etapa.texto}</Badge>
             {caso.datos_imss && <span>· {REGIMEN[caso.datos_imss.regimen]}</span>}
+            {caso.datos_afore?.afore && <><span>·</span><InsigniaAfore clave={caso.datos_afore.afore} tamano="sm" /></>}
             <span>· {caso.asignado ? `Asignado a ${caso.asignado.nombre}` : "Bandeja general"}</span>
           </p>
         </div>

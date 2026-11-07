@@ -8,6 +8,7 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { guardarAfore, guardarDictamen, guardarImss } from "../acciones";
 import { Campo, CampoTexto, Casilla, Dato, isoODefecto, numero, Seleccion } from "../campos";
 import { FormularioAccion } from "../formulario-accion";
+import { InsigniaAfore } from "@/components/rpd/insignia-afore";
 
 const REGIMENES = [["L73", "Ley 73"], ["L97", "Ley 97"], ["por_definir", "Por definir"]] as const;
 const ESTADOS_RETIRO = [
@@ -79,7 +80,10 @@ export async function PestanaImss({ caso, sesion }: { caso: CasoDetalle; sesion:
 
       <div className="grid content-start gap-4">
         <Card>
-          <CardHeader><CardTitle>Afore</CardTitle></CardHeader>
+          <CardHeader>
+            <CardTitle>Afore</CardTitle>
+            <InsigniaAfore clave={a?.afore} nombre={afores.find((x) => x.clave === a?.afore)?.nombre} />
+          </CardHeader>
           <CardContent>
             <FormularioAccion accion={guardarAfore.bind(null, caso.id)} etiquetas={ETIQUETAS}>
               <div className="grid gap-4 sm:grid-cols-2">
