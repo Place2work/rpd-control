@@ -215,5 +215,6 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - **Costo administrativo por alta** (`COSTO_ADMIN_ALTA`, $500, con vigencia): cada prospecto dado de alta (sin
   archivados ni desvíos) se valúa con el costo vigente el día de su alta. Se ve en Prospectos (mes y total; respeta el
   filtro de vendedor) y en Hoy. El vendedor no lo ve.
+  Es solo informativo (publicidad, oficina, nómina…): no se descuenta de comisiones ni de cobros.
 - **Prospectos** se ordenan por defecto por fecha para retirar: primero los que ya pueden (el más antiguo arriba),
   luego los que les faltan días y al final sin fecha de baja; en Filtros, «Altas más recientes».
