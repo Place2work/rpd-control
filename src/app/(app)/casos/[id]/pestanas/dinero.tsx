@@ -6,8 +6,8 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
-import { parametrosDinero } from "@/lib/parametros";
-import { margenCaso, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { parametrosDinero, parametrosVigentes } from "@/lib/parametros";
+import { margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
@@ -26,13 +26,14 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     return <Card><CardContent className="text-sm text-ink-muted">Los pagos y cobros los registra el asesor. Tus comisiones están en «Comisiones».</CardContent></Card>;
   }
   const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
-  const { HONORARIO_RETIRO_PCT } = await parametrosDinero();
+  const [{ HONORARIO_RETIRO_PCT }, { MODALIDAD_B_MENSUALIDADES_MAX }] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"])]);
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
   const pactado = caso.contrato_pct === null ? null : Number(caso.contrato_pct);
   const pct = pctHonorarioRetiro(pactado, { HONORARIO_RETIRO_PCT });
   const puedeCanal = rol === "director" || rol === "asesor";
   const d = await conUsuario(sesion.claims, async (tx) => ({
     pagos: await tx.pagoAfore.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { numero: "asc" } }),
+    modalidad: (await tx.calculo.findFirst({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, select: { modalidad_elegida: true } }))?.modalidad_elegida ?? null,
     cobros: await tx.cobro.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { created_at: "asc" }, include: { pago_afore: { select: { numero: true } } } }),
     comisiones: await tx.comision.findMany({ where: { caso_id: caso.id, archivado_at: null, estado: { not: "cancelada" } }, orderBy: { created_at: "asc" } }),
     vendedores: puedeCanal ? await tx.usuario.findMany({ where: { rol: "vendedor", activo: true, archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
@@ -40,6 +41,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     socios: puedeCanal ? await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
   }), sesion.ip);
 
+  const permitidos = pagosAforePermitidos(d.modalidad, Number(MODALIDAD_B_MENSUALIDADES_MAX) || 1);
   const vivos = d.cobros.filter((c) => c.estado !== "cancelado");
   const porCobrar = vivos.filter((c) => c.estado === "por_cobrar");
   const m = margenCaso(vivos.map((c) => ({ honorario: Number(c.honorario_total), iva: Number(c.iva), estado: c.estado })), d.comisiones.map((k) => ({ monto: Number(k.monto), estado: k.estado })));
@@ -84,7 +86,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
 
       {esRetiro && (
         <Card>
-          <CardHeader><CardTitle>Pagos de la Afore</CardTitle><span className="text-sm text-ink-muted">{d.pagos.length} de 6 como máximo</span></CardHeader>
+          <CardHeader><CardTitle>Pagos de la Afore</CardTitle><span className="text-sm text-ink-muted">{d.modalidad === "B" ? `${d.pagos.length} de ${permitidos} mensualidades (modalidad B)` : `${d.pagos.length} de 1 · pago único`}</span></CardHeader>
           <CardContent className="grid gap-4">
             {d.pagos.length > 0 && (
               <Tabla encabezados={["#", "Depósito", "Bruto", "ISR", "Neto", ""]}>
@@ -111,8 +113,14 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                 ))}
               </Tabla>
             )}
-            {d.pagos.length < 6 && (
-              <FormularioAccion accion={registrarPagoAfore.bind(null, caso.id)} boton={`Registrar pago ${d.pagos.length + 1}`}
+            {d.pagos.length >= permitidos && (
+              <p className="rounded-[var(--radius-boton)] bg-exito-tint p-3 text-sm text-exito-texto">
+                {d.modalidad === "B" ? "Ya están registradas todas las mensualidades." : "Pago de la Afore registrado. El retiro por desempleo se paga una sola vez (modalidad A); si un dato está mal, usa «Corregir»."}
+              </p>
+            )}
+            {d.pagos.length < permitidos && (
+              <FormularioAccion accion={registrarPagoAfore.bind(null, caso.id)} boton={d.modalidad === "B" ? `Registrar mensualidad ${d.pagos.length + 1}` : "Registrar el pago de la Afore"}
+                confirmar={d.pagos.length > 0 ? `¿Registrar la mensualidad ${d.pagos.length + 1}? Revisa que sea un depósito nuevo de la Afore, no el mismo de antes.` : undefined}
                 etiquetas={{ fecha_deposito: "Fecha del depósito", monto_bruto: "Monto bruto", isr_retenido: "ISR retenido" }}>
                 <div className="grid gap-3 sm:grid-cols-3">
                   <CampoTexto id="fecha_deposito" etiqueta="Fecha del depósito" tipo="date" max={hoyCDMX()} />

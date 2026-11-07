@@ -8,8 +8,8 @@ import { z } from "zod";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { recalcularComisiones } from "@/lib/dinero/motor";
-import { parametrosDinero } from "@/lib/parametros";
-import { desglosarTotal, honorarioDePago, leerPctPactado, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { parametrosDinero, parametrosVigentes } from "@/lib/parametros";
+import { desglosarTotal, honorarioDePago, leerPctPactado, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "./acciones";
 
@@ -67,14 +67,30 @@ export async function registrarPagoAfore(casoId: string, _p: Resultado, form: Fo
   const { fecha_deposito, monto_bruto } = r.data;
   const isr = r.data.isr_retenido ?? 0;
   const neto = Math.round((monto_bruto - isr) * 100) / 100;
-  const p = await parametrosDinero();
+  const [p, { MODALIDAD_B_MENSUALIDADES_MAX }] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"])]);
 
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
-    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true, etapa: true, contrato_pct: true, pagos_afore: { where: { archivado_at: null }, select: { numero: true } } } });
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: {
+      tipo_servicio: true, etapa: true, contrato_pct: true,
+      pagos_afore: { where: { archivado_at: null }, select: { numero: true, fecha_deposito: true, monto_bruto: true } },
+      calculos: { orderBy: { created_at: "desc" }, take: 1, select: { modalidad_elegida: true } },
+    } });
     if (!caso) return { error: "No encontramos el caso." };
     if (caso.tipo_servicio !== "RETIRO_DESEMPLEO") return { error: "Los pagos de la Afore son del retiro por desempleo. Para otros servicios registra el cobro." };
-    const numero = Math.max(0, ...caso.pagos_afore.map((x) => x.numero)) + 1;
-    if (numero > 6) return { error: "Ya hay 6 pagos registrados (máximo de la modalidad B)." };
+    // Un retiro se paga una sola vez; solo la modalidad B admite mensualidades.
+    const modalidad = caso.calculos[0]?.modalidad_elegida ?? null;
+    const permitidos = pagosAforePermitidos(modalidad, Number(MODALIDAD_B_MENSUALIDADES_MAX) || 1);
+    if (caso.pagos_afore.length >= permitidos) {
+      return { error: modalidad === "B"
+        ? `Ya están registradas las ${permitidos} mensualidades de la modalidad B.`
+        : "Este retiro ya tiene su pago de la Afore. La modalidad A se paga una sola vez; si el pago está mal, corrígelo en lugar de registrar otro." };
+    }
+    const repetido = pagoRepetido({ fecha: fecha_deposito, bruto: monto_bruto },
+      caso.pagos_afore.map((x) => ({ numero: x.numero, fecha: x.fecha_deposito.toISOString().slice(0, 10), bruto: Number(x.monto_bruto) })));
+    if (repetido) return { error: `Ya registraste ese pago (pago ${repetido.numero}: misma fecha y mismo monto).` };
+    // El número no se reutiliza: un pago archivado (corregido) conserva el suyo.
+    const ultimo = await tx.pagoAfore.aggregate({ where: { caso_id: casoId }, _max: { numero: true } });
+    const numero = (ultimo._max.numero ?? 0) + 1;
     const pago = await tx.pagoAfore.create({
       select: { id: true },
       data: { caso_id: casoId, numero, fecha_deposito: dia(fecha_deposito), monto_bruto, isr_retenido: isr, monto_neto: neto, created_by: usuario.id },

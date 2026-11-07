@@ -167,3 +167,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Las dos acciones quedan en la bitácora (`CLAVE_TEMPORAL`, `RESTABLECER_2FA`) mediante `app.registrar_accion_cuenta`,
   que solo el Director puede llamar (migración 1400).
 - La invitación por correo sigue disponible para cuando se configure Resend.
+
+## 7-nov-2026 · Un retiro, un pago de la Afore
+
+- Modalidad A o sin modalidad elegida: **un solo pago** de la Afore por retiro; después el formulario desaparece.
+  Modalidad B: hasta `MODALIDAD_B_MENSUALIDADES_MAX` mensualidades (6; antes estaba escrito en el código), cada una
+  con confirmación. Se rechaza un pago con la misma fecha y monto que uno ya registrado.
+- El número de pago no se reutiliza: un pago archivado conserva el suyo (antes, registrar después de corregir fallaba).
+- RP-0001: el pago 2 era un doble registro del pago 1 (misma fecha y monto, cobro ya cancelado); se archivó con nota en
+  Seguimiento.

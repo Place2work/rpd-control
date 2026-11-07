@@ -16,6 +16,7 @@ const PARAMETROS: { clave: string; valor: string; tipo?: string; descripcion: st
   { clave: "UMA_MENSUAL", valor: "3566.22", descripcion: "UMA mensual", desde: "2026-02-01", hasta: "2027-01-31" },
   { clave: "HONORARIO_RETIRO_PCT", valor: "0.30", descripcion: "Honorario del retiro, IVA incluido" },
   { clave: "IVA", valor: "0.16", descripcion: "Tasa de IVA" },
+  { clave: "MODALIDAD_B_MENSUALIDADES_MAX", valor: "6", tipo: "entero", descripcion: "Pagos máximos de la Afore en modalidad B; la A se paga en uno solo" },
   { clave: "DIAS_ESPERA_DESEMPLEO", valor: "46", tipo: "entero", descripcion: "Fecha elegible = baja + N días naturales (art. 191-II)" },
   { clave: "ANIOS_CANDADO_RETIRO", valor: "5", tipo: "entero", descripcion: "Años entre retiros por desempleo" },
   { clave: "SLA_DIAS_HABILES", valor: "15", tipo: "entero", descripcion: "Días hábiles para ingresar desde expediente completo" },

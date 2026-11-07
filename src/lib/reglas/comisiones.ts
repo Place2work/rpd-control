@@ -53,6 +53,19 @@ export function leerPctPactado(texto: string): { pct: number | null } | { error:
   return { pct: Math.round(n * 100) / 10000 };
 }
 
+/**
+ * Cuántos pagos de la Afore admite un retiro: la modalidad A (o sin modalidad elegida) se paga en una
+ * sola exhibición; la B, en hasta MODALIDAD_B_MENSUALIDADES_MAX mensualidades (7.2).
+ */
+export function pagosAforePermitidos(modalidad: string | null | undefined, maxMensualidadesB: number): number {
+  return modalidad === "B" ? maxMensualidadesB : 1;
+}
+
+/** Un pago con la misma fecha y el mismo monto bruto que otro ya registrado es casi siempre un doble registro. */
+export function pagoRepetido<T extends { fecha: string; bruto: number }>(nuevo: { fecha: string; bruto: number }, previos: T[]): T | null {
+  return previos.find((x) => x.fecha === nuevo.fecha && Math.round(x.bruto * 100) === Math.round(nuevo.bruto * 100)) ?? null;
+}
+
 /** Honorario (HONORARIO_RETIRO_PCT) sobre el depósito (neto o bruto según el parámetro), con su desglose. */
 export function honorarioDePago(pago: Pick<PagoAforeFoto, "bruto" | "neto">, p: Pick<ParametrosDinero, "HONORARIO_RETIRO_PCT" | "IVA" | "BASE_HONORARIO">) {
   const base = baseDePago(pago, p.BASE_HONORARIO);

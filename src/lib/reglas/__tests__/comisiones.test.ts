@@ -2,7 +2,7 @@
 import { describe, expect, it } from "vitest";
 import {
   alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
-  pctHonorarioRetiro,
+  pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
 } from "../comisiones";
 
@@ -39,6 +39,20 @@ describe("2.2 honorario sobre el depósito", () => {
   it("honorario fijo: el IVA es la diferencia y suma exacto", () => {
     const d = desglosarTotal(4999.99, 0.16);
     expect(d.subtotal + d.iva).toBeCloseTo(4999.99, 10);
+  });
+});
+
+describe("pagos de la Afore por retiro", () => {
+  it("modalidad A o sin elegir: un solo pago; B: hasta el máximo de mensualidades", () => {
+    expect(pagosAforePermitidos("A", 6)).toBe(1);
+    expect(pagosAforePermitidos(null, 6)).toBe(1);
+    expect(pagosAforePermitidos("B", 6)).toBe(6);
+  });
+  it("detecta el doble registro (misma fecha y monto), no otra mensualidad", () => {
+    const previos = [{ fecha: "2026-11-07", bruto: 35193 }];
+    expect(pagoRepetido({ fecha: "2026-11-07", bruto: 35193.0 }, previos)).toEqual(previos[0]);
+    expect(pagoRepetido({ fecha: "2026-12-07", bruto: 35193 }, previos)).toBeNull();
+    expect(pagoRepetido({ fecha: "2026-11-07", bruto: 35193.01 }, previos)).toBeNull();
   });
 });
 
