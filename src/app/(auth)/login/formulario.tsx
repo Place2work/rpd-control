@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
+import { InputClave } from "@/components/ui/input-clave";
 
 export function FormularioLogin({ aviso }: { aviso?: string }) {
   const router = useRouter();
@@ -49,7 +50,7 @@ export function FormularioLogin({ aviso }: { aviso?: string }) {
               </div>
               <div className="flex flex-col gap-1.5">
                 <Label htmlFor="password">Contraseña</Label>
-                <Input id="password" name="password" type="password" autoComplete="current-password" required />
+                <InputClave id="password" name="password" autoComplete="current-password" required />
               </div>
               {error && <p role="alert" className="text-sm text-critico">{error}</p>}
               <Button type="submit" disabled={enviando}>{enviando ? "Entrando…" : "Continuar"}</Button>

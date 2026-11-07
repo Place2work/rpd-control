@@ -4,10 +4,11 @@ import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
-import { Input, Label } from "@/components/ui/input";
+import { Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { MINIMO_CLAVE as MINIMO } from "@/lib/auth/clave";
 import { cambiarClaveTemporal } from "./acciones";
+import { InputClave } from "@/components/ui/input-clave";
 
 // Primera contraseña (invitación), cambio por recuperación o reemplazo de la temporal que dio el
 // Director (`temporal`: se guarda desde el servidor). Si la cuenta ya tiene 2FA, Supabase exige
@@ -60,12 +61,12 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
           <form action={guardar} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nueva">Contraseña nueva</Label>
-              <Input id="nueva" name="nueva" type="password" autoComplete="new-password" minLength={MINIMO} required />
+              <InputClave id="nueva" name="nueva" autoComplete="new-password" minLength={MINIMO} required />
               <p className="text-xs text-ink-muted">Mínimo {MINIMO} caracteres. Una frase larga es más segura y fácil de recordar.</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="confirmacion">Repítela</Label>
-              <Input id="confirmacion" name="confirmacion" type="password" autoComplete="new-password" required />
+              <InputClave id="confirmacion" name="confirmacion" autoComplete="new-password" required />
             </div>
             {error && <p role="alert" className="text-sm text-critico">{error}</p>}
             <Button type="submit" disabled={enviando}>{enviando ? "Guardando…" : "Guardar y continuar"}</Button>
