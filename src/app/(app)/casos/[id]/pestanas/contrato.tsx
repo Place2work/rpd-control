@@ -1,4 +1,4 @@
-import { CircleAlert, CircleCheck, FileSignature, ShieldCheck } from "lucide-react";
+import { CircleAlert, CircleCheck, FileCheck2, FileSignature, ShieldCheck } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatoFecha, isoDe } from "@/components/rpd/insignia-dia46";
 import type { Sesion } from "@/lib/auth/sesion";
@@ -12,6 +12,8 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { guardarClienteContrato, guardarCondiciones, guardarParte } from "../acciones-contrato";
 import { Campo, CampoTexto, Dato } from "../campos";
 import { FormularioAccion } from "../formulario-accion";
+import { RevisarDocumento } from "../revisar-documento";
+import { SubirDocumento } from "../subir-documento";
 
 const largo = (d: Date | null | undefined) => (d ? formatoFecha(isoDe(d)!, { dateStyle: "long" }) : "—");
 const boton = "inline-flex h-11 items-center gap-2 rounded-[var(--radius-boton)] px-4 text-sm font-medium md:h-10";
@@ -28,17 +30,28 @@ const FALTA: Record<string, string> = {
   advertencias: "Advertencias del caso (cláusula TERCERA)",
 };
 
+// Tipo de documento de la copia firmada de cada documento para firma.
+const FIRMADO: Record<Clase, string> = { contrato: "Contrato firmado", aviso_privacidad: "Aviso de privacidad firmado" };
+
 export async function PestanaContrato({ caso, sesion }: { caso: CasoDetalle; sesion: Sesion }) {
   const hoy = hoyCDMX();
   const opera = sesion.usuario.rol !== "vendedor";
   const fallec = caso.servicio.clave === "FALLECIMIENTO";
   const fechaPlantilla = isoDe(caso.fecha_contrato) ?? hoy;
-  const [suspensiones, p, plantillas, previa, partes] = await Promise.all([
+  const [suspensiones, p, plantillas, previa, partes, firmados] = await Promise.all([
     conUsuario(sesion.claims, (tx) => tx.suspensionContrato.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { inicio: "desc" } }), sesion.ip).catch(() => []),
     parametrosFechas(hoy),
     Promise.all((["contrato", "aviso_privacidad"] as Clase[]).map((c) => plantillaVigente(caso.tipo_servicio, c, fechaPlantilla))),
     opera ? datosContrato(sesion, caso.id, false) : null,
     opera ? conUsuario(sesion.claims, (tx) => tx.parteCaso.findMany({ where: { caso_id: caso.id, archivado_at: null } }), sesion.ip) : [],
+    // Copias firmadas que ya subieron (y los tipos de documento para subirlas).
+    opera ? conUsuario(sesion.claims, async (tx) => ({
+      tipos: await tx.tipoDocumento.findMany({ where: { nombre: { in: [FIRMADO.contrato, FIRMADO.aviso_privacidad] }, activo: true }, select: { id: true, nombre: true } }),
+      docs: await tx.documento.findMany({
+        where: { caso_id: caso.id, archivado_at: null, tipo: { nombre: { in: [FIRMADO.contrato, FIRMADO.aviso_privacidad] } } },
+        orderBy: { created_at: "desc" }, select: { id: true, estado: true, created_at: true, tipo: { select: { nombre: true } } },
+      }),
+    }), sesion.ip) : { tipos: [], docs: [] },
   ]);
   const vence = isoDe(caso.fecha_vencimiento_contrato);
   const restantes = vence ? diasEntre(hoy, vence) : null;
@@ -80,6 +93,34 @@ export async function PestanaContrato({ caso, sesion }: { caso: CasoDetalle; ses
                       </div>
                     </div>
                   ) : <p className="mt-2 flex items-center gap-1 text-sm text-exito-texto"><CircleCheck className="size-4" aria-hidden /> Listo para generar</p>)}
+                  {(() => {
+                    const tipo = firmados.tipos.find((t) => t.nombre === FIRMADO[clase]);
+                    const subido = firmados.docs.find((d) => d.tipo.nombre === FIRMADO[clase]);
+                    if (!tipo) return null;
+                    return (
+                      <div className="mt-3 border-t border-borde pt-3">
+                        {subido ? (
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="flex items-center gap-1.5 text-sm font-medium text-exito-texto">
+                              <FileCheck2 className="size-4" aria-hidden /> Firmado · subido el {formatoFecha(hoyCDMX(subido.created_at), { dateStyle: "long" })}
+                            </p>
+                            <RevisarDocumento casoId={caso.id} documentoId={subido.id} puedeValidar={false} />
+                          </div>
+                        ) : (
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <p className="text-sm text-ink-muted">¿Ya lo firmó el cliente? Sube la copia firmada (escaneo o foto de cada hoja).</p>
+                            <SubirDocumento casoId={caso.id} tipoId={tipo.id} pideEmision={false} hoy={hoy} textoBoton={clase === "contrato" ? "Subir contrato firmado" : "Subir aviso firmado"} />
+                          </div>
+                        )}
+                        {subido && (
+                          <details className="mt-2">
+                            <summary className="cursor-pointer text-xs text-ink-muted">Subir otra versión</summary>
+                            <div className="mt-2"><SubirDocumento casoId={caso.id} tipoId={tipo.id} pideEmision={false} hoy={hoy} textoBoton="Subir de nuevo" /></div>
+                          </details>
+                        )}
+                      </div>
+                    );
+                  })()}
                 </div>
               ))}
               <p className="flex gap-2 text-xs text-ink-muted"><ShieldCheck className="size-4 shrink-0" aria-hidden /> El PDF lleva CURP y NSS completos: cada vez que lo generas queda registrado en la bitácora.</p>

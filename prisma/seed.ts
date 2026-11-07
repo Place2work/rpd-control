@@ -76,6 +76,8 @@ const DOCUMENTOS: { nombre: string; servicios: string[]; vigencia_dias?: number;
   { nombre: "Certificación de baja del IMSS", servicios: ["RETIRO_DESEMPLEO"], requiere_original: true },
   { nombre: "Comprobante de registro en Afore", servicios: ["RETIRO_DESEMPLEO"] },
   { nombre: "Identificación oficial (INE, cédula, pasaporte o cartilla)", servicios: TODOS },
+  { nombre: "Contrato firmado", servicios: TODOS, obligatorio: false, instrucciones: "El contrato generado por el sistema, firmado por el cliente en todas sus hojas. Escaneado o foto clara de cada hoja (un PDF de preferencia)" },
+  { nombre: "Aviso de privacidad firmado", servicios: TODOS, obligatorio: false, instrucciones: "El aviso de privacidad generado por el sistema, firmado por el cliente. Escaneado o foto clara (un PDF de preferencia)" },
   { nombre: "Comprobante de domicilio", servicios: TODOS, vigencia_dias: 90, instrucciones: "No mayor a 3 meses" },
   { nombre: "Estado de cuenta Afore", servicios: ["RETIRO_DESEMPLEO", "PENSION_L73", "PENSION_L97", "FALLECIMIENTO"] },
   { nombre: "Constancia de semanas cotizadas", servicios: ["RETIRO_DESEMPLEO", "PENSION_L73", "PENSION_L97", "MODALIDAD_40", "PTI_M10", "CORRECCION_NSS"] },

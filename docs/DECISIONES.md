@@ -199,3 +199,9 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - **Clientes cerrados** (menú): casos en «Honorario cobrado» con depósito, honorario, comprobante y próximo retiro;
   contadores del mes/año/total, filtros (mes, vendedor, próximo retiro en N días) y Excel. El vendedor ve los suyos
   sin montos. Hoy muestra «Clientes cerrados del mes»; la tabla de Casos tiene Activos/Cerrados/Todos.
+
+## 7-nov-2026 · Contrato y aviso firmados
+
+- La pestaña Contrato permite subir la copia firmada del contrato y del aviso de privacidad. Son documentos del
+  expediente de tipo «Contrato firmado» y «Aviso de privacidad firmado» (mismo bucket y políticas; el vendedor no los
+  ve). Opcionales: no cambian los requisitos de etapa. Migración 1800.
