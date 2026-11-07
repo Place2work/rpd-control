@@ -21,7 +21,10 @@ import type { Resultado } from "./acciones";
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const fechaLarga = (iso: string) => new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" }).format(dia(iso));
 const monto = z.string().trim().transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number({ message: "Escribe un monto" }).finite().min(0, "No puede ser negativo").max(10_000_000));
-const fechaPasada = z.string().min(1, "Escribe la fecha").pipe(z.iso.date({ message: "Fecha no válida" })).refine((v) => v <= hoyCDMX(), "No puede ser futura");
+// Fechas reales de dinero: ni futuras ni absurdas (un «01/01/0001» puesto para salir del paso no pasa).
+const FECHA_MINIMA = "2000-01-01";
+const fechaPasada = z.string().min(1, "Escribe la fecha").pipe(z.iso.date({ message: "Fecha no válida" }))
+  .refine((v) => v <= hoyCDMX(), "No puede ser futura").refine((v) => v >= FECHA_MINIMA, "Revisa el año: la fecha no es válida");
 const METODOS = ["transferencia", "efectivo", "tarjeta"] as const;
 const CONCEPTOS = ["pago_inicial", "recuperado", "primera_mensualidad", "honorario"] as const;
 const datosDe = (form: FormData) => Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string")) as Record<string, string>;
@@ -334,4 +337,55 @@ export async function verComprobante(casoId: string, cobroId: string): Promise<{
   } catch {
     return { error: "No se pudo abrir el comprobante." };
   }
+}
+
+// ───────────── Corregir un pago de la Afore ─────────────
+
+/** El Director corrige solo la fecha del depósito (el monto y el honorario no cambian). */
+export async function cambiarFechaPagoAfore(casoId: string, pagoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol !== "director") return { error: "Solo el Director corrige pagos registrados." };
+  const r = z.object({ fecha_deposito: fechaPasada }).safeParse(datosDe(form));
+  if (!r.success) return { errores: errores(r.error) };
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    const pago = await tx.pagoAfore.findFirst({ where: { id: pagoId, caso_id: casoId, archivado_at: null }, select: { numero: true, fecha_deposito: true } });
+    if (!pago) return { error: "No encontramos el pago." };
+    await tx.pagoAfore.update({ where: { id: pagoId }, data: { fecha_deposito: dia(r.data.fecha_deposito) }, select: { id: true } });
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id,
+      texto: `Fecha del depósito de la Afore corregida: ${fechaLarga(r.data.fecha_deposito)} (antes ${pago.fecha_deposito.toISOString().slice(0, 10)}).` } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) await despues(casoId);
+  return res;
+}
+
+/**
+ * La Afore todavía no deposita: el pago vuelve a ser «pago esperado» (proyección), su cobro pendiente se cancela
+ * y el caso regresa a la etapa que tenía antes de que el pago lo moviera. Solo si el honorario no se cobró.
+ */
+export async function regresarAPagoEsperado(casoId: string, pagoId: string): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol !== "director") return { error: "Solo el Director corrige pagos registrados." };
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    const pago = await tx.pagoAfore.findFirst({ where: { id: pagoId, caso_id: casoId, archivado_at: null }, include: { cobros: { where: { archivado_at: null } } } });
+    if (!pago) return { error: "No encontramos el pago." };
+    if (pago.cobros.some((c) => c.estado === "cobrado")) return { error: "Su honorario ya se cobró: no puede volver a ser proyección." };
+    const otros = await tx.pagoAfore.count({ where: { caso_id: casoId, archivado_at: null, id: { not: pagoId } } });
+    await tx.cobro.updateMany({ where: { pago_afore_id: pagoId, estado: "por_cobrar" }, data: { estado: "cancelado", motivo_cancelacion: "El pago de la Afore volvió a ser proyección" } });
+    await tx.pagoAfore.update({ where: { id: pagoId }, data: { archivado_at: new Date() }, select: { id: true } });
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { etapa: true } });
+    await tx.caso.update({ where: { id: casoId }, select: { id: true }, data: { monto_afore_esperado: pago.monto_bruto, fecha_afore_estimada: null } });
+    // Si ya no queda pago y el caso avanzó solo por este, regresa a la etapa anterior.
+    if (otros === 0 && caso?.etapa === "PAGADO") {
+      const salto = await tx.historialEtapa.findFirst({ where: { caso_id: casoId, etapa_nueva: "PAGADO" }, orderBy: { fecha: "desc" }, select: { etapa_antes: true } });
+      const antes = salto?.etapa_antes ?? "PROSPECTO";
+      await tx.caso.update({ where: { id: casoId }, data: { etapa: antes, etapa_desde: new Date() }, select: { id: true } });
+      await tx.historialEtapa.create({ data: { caso_id: casoId, etapa_antes: "PAGADO", etapa_nueva: antes, motivo: "El pago de la Afore volvió a ser proyección", usuario_id: usuario.id } });
+    }
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id,
+      texto: `El pago ${pago.numero} de la Afore volvió a ser pago esperado ($${Number(pago.monto_bruto).toLocaleString("es-MX", { minimumFractionDigits: 2 })}); falta la fecha del depósito.` } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) await despues(casoId);
+  return res;
 }

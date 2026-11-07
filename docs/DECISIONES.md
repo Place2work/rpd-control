@@ -243,3 +243,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - «Eliminar» en la línea de tiempo archiva la nota (`eventos.archivado_at/archivado_por`): deja de verse y de contar
   como último contacto; no se borra. Solo notas escritas por personas (nota, llamada, WhatsApp, correo; CHECK
   `eventos_archivar_solo_notas`) y solo su autor o el Director. Los registros del sistema no se eliminan. Migración 2300.
+
+## 7-nov-2026 · Corregir pagos de la Afore
+
+- Las fechas de dinero (depósito, cobro) no aceptan años antes de 2000 ni futuras: RP-0002 tenía un depósito con fecha
+  0001-01-01 capturado para salir del paso, que lo movió a «Pagado por Afore».
+- En «Corregir» de cada pago (solo Director): **Cambiar fecha** (monto y honorario igual), **Regresar a pago esperado**
+  (archiva el pago, cancela su cobro pendiente, deja el monto como proyección y regresa el caso a la etapa previa al
+  salto automático; no si el honorario ya se cobró) y **Archivar** (registro por error).

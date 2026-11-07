@@ -11,7 +11,8 @@ import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/pa
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
-import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
+import { BotonAccion } from "../../../configuracion/boton-accion";
+import { archivarPagoAfore, cambiarFechaPagoAfore, regresarAPagoEsperado, cancelarCobro, guardarCanal, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
 import { Comprobante } from "../comprobante";
 import { FormularioAccion } from "../formulario-accion";
@@ -135,10 +136,23 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                       {rol === "director" && (
                         <details className="text-left">
                           <summary className="cursor-pointer text-xs text-ink-muted">Corregir</summary>
-                          <div className="mt-2 w-64">
-                            <FormularioAccion accion={archivarPagoAfore.bind(null, caso.id, p.id)} boton="Archivar pago" etiquetas={{ motivo: "Motivo" }}>
-                              <CampoTexto id="motivo" etiqueta="Motivo" />
+                          <div className="mt-2 grid w-72 gap-4">
+                            <FormularioAccion accion={cambiarFechaPagoAfore.bind(null, caso.id, p.id)} boton="Cambiar fecha" etiquetas={{ fecha_deposito: "Fecha del depósito" }}>
+                              <CampoTexto id="fecha_deposito" etiqueta="Fecha correcta del depósito" tipo="date" min="2000-01-01" max={hoyCDMX()} valor={isoDe(p.fecha_deposito) ?? ""} />
                             </FormularioAccion>
+                            <div className="grid gap-1 border-t border-borde pt-3">
+                              <p className="text-xs text-ink-muted">¿La Afore todavía no deposita? El monto vuelve a «Pago esperado» (proyección) y el caso regresa a su etapa anterior.</p>
+                              <BotonAccion accion={regresarAPagoEsperado.bind(null, caso.id, p.id)} texto="Regresar a pago esperado"
+                                confirmar={`¿Regresar este pago a «pago esperado»? Su honorario por cobrar se cancela y vuelve a proyectarse; el caso regresa a su etapa anterior.`} />
+                            </div>
+                            <details className="border-t border-borde pt-3">
+                              <summary className="cursor-pointer text-xs text-ink-muted">Archivar el pago (registrado por error)</summary>
+                              <div className="mt-2">
+                                <FormularioAccion accion={archivarPagoAfore.bind(null, caso.id, p.id)} boton="Archivar pago" etiquetas={{ motivo: "Motivo" }}>
+                                  <CampoTexto id="motivo" etiqueta="Motivo" />
+                                </FormularioAccion>
+                              </div>
+                            </details>
                           </div>
                         </details>
                       )}
@@ -158,7 +172,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                 confirmar={d.pagos.length > 0 ? `¿Registrar la mensualidad ${d.pagos.length + 1}? Revisa que sea un depósito nuevo de la Afore, no el mismo de antes.` : undefined}
                 etiquetas={{ fecha_deposito: "Fecha del depósito", monto_bruto: "Monto bruto", isr_retenido: "ISR retenido" }}>
                 <div className="grid gap-3 sm:grid-cols-3">
-                  <CampoTexto id="fecha_deposito" etiqueta="Fecha del depósito" tipo="date" max={hoyCDMX()} />
+                  <CampoTexto id="fecha_deposito" etiqueta="Fecha del depósito" tipo="date" min="2000-01-01" max={hoyCDMX()} />
                   <CampoTexto id="monto_bruto" etiqueta="Monto bruto" inputMode="decimal" placeholder="10,000.00" valor={esperado} />
                   <CampoTexto id="isr_retenido" etiqueta="ISR retenido" ayuda="si hubo" inputMode="decimal" placeholder="0.00" />
                 </div>
