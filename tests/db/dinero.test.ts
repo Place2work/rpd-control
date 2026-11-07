@@ -140,3 +140,13 @@ describe("domicilio por partes", () => {
     await expect(como(U.director, "UPDATE personas SET codigo_postal = '7622' WHERE id = $1", [P])).rejects.toThrow(/check/i);
   });
 });
+
+describe("eliminar notas del seguimiento (se archivan)", () => {
+  it("una nota se archiva; un registro del sistema no; nadie borra", async () => {
+    const [n] = await como<{ id: string }>(U.director, "INSERT INTO eventos (caso_id, tipo, texto, usuario_id) VALUES ($1, 'nota', 'Le marqué', $2) RETURNING id", [C1, U.director]);
+    const [s] = await como<{ id: string }>(U.director, "INSERT INTO eventos (caso_id, tipo, texto, usuario_id) VALUES ($1, 'sistema', 'Alta', $2) RETURNING id", [C1, U.director]);
+    expect(await como(U.director, "UPDATE eventos SET archivado_at = now(), archivado_por = $2 WHERE id = $1 RETURNING id", [n.id, U.director])).toHaveLength(1);
+    await expect(como(U.director, "UPDATE eventos SET archivado_at = now() WHERE id = $1", [s.id])).rejects.toThrow(/eventos_archivar_solo_notas/);
+    await expect(como(U.director, "DELETE FROM eventos WHERE id = $1", [n.id])).rejects.toThrow(/permission denied/);
+  });
+});

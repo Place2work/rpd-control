@@ -371,3 +371,22 @@ export async function cambiarEtapa(casoId: string, _p: Resultado, form: FormData
 }
 
 type FotoCasoResultado = "aprobado" | "rechazado" | "requiere_cita" | null;
+
+// ───────────── Eliminar una nota del seguimiento ─────────────
+
+const NOTAS = ["nota", "llamada", "whatsapp", "correo"] as const;
+
+/** Nadie borra: la nota se archiva (deja de verse y de contar como contacto). Solo su autor o el Director. */
+export async function eliminarNota(casoId: string, eventoId: string): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    const e = await tx.evento.findFirst({ where: { id: eventoId, caso_id: casoId, archivado_at: null }, select: { tipo: true, usuario_id: true } });
+    if (!e) return { error: "Esa nota ya no está." };
+    if (!(NOTAS as readonly string[]).includes(e.tipo)) return { error: "Los registros automáticos del sistema no se eliminan." };
+    if (usuario.rol !== "director" && e.usuario_id !== usuario.id) return { error: "Solo quien escribió la nota o el Director la pueden eliminar." };
+    await tx.evento.update({ where: { id: eventoId }, data: { archivado_at: new Date(), archivado_por: usuario.id }, select: { id: true } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) revalidatePath(`/casos/${casoId}`);
+  return res;
+}

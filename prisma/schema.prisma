@@ -721,6 +721,8 @@ model Evento {
   usuario_id String?    @db.Uuid
   fecha      DateTime   @default(now()) @db.Timestamptz(6)
   created_at DateTime   @default(now()) @db.Timestamptz(6)
+  archivado_at  DateTime? @db.Timestamptz(6) // nota «eliminada»: deja de verse, no se borra
+  archivado_por String?   @db.Uuid
 
   caso    Caso     @relation(fields: [caso_id], references: [id])
   usuario Usuario? @relation(fields: [usuario_id], references: [id])

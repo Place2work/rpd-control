@@ -51,7 +51,7 @@ const seleccionLista = {
   vendedor: { select: { id: true, nombre: true } },
   asignado: { select: { id: true, nombre: true } },
   datos_imss: { select: { fecha_baja: true, regimen: true } },
-  eventos: { select: { fecha: true }, orderBy: { fecha: "desc" as const }, take: 1 },
+  eventos: { where: { archivado_at: null }, select: { fecha: true }, orderBy: { fecha: "desc" as const }, take: 1 },
 } satisfies Prisma.CasoSelect;
 
 export type FilaProspecto = Prisma.CasoGetPayload<{ select: typeof seleccionLista }>;
@@ -131,7 +131,7 @@ export async function obtenerCaso({ claims, ip }: Sesion, id: string) {
           referidor: { select: { nombre: true } },
           datos_imss: true,
           datos_afore: true,
-          eventos: { orderBy: { fecha: "desc" }, take: 50, include: { usuario: { select: { nombre: true } } } },
+          eventos: { where: { archivado_at: null }, orderBy: { fecha: "desc" }, take: 50, include: { usuario: { select: { nombre: true } } } },
         },
       }),
     ip,

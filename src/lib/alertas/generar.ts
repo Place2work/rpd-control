@@ -34,7 +34,7 @@ export async function generarAlertas(hoy = hoyCDMX()) {
       persona: { select: { nombre: true, apellido_paterno: true } },
       datos_imss: { select: { fecha_baja: true } },
       datos_afore: { select: { fecha_apertura_cuenta: true, estado_ultimo_retiro: true, fecha_ultimo_retiro: true } },
-      eventos: { select: { fecha: true, tipo: true }, orderBy: { fecha: "desc" }, take: 30 },
+      eventos: { where: { archivado_at: null }, select: { fecha: true, tipo: true }, orderBy: { fecha: "desc" }, take: 30 },
       documentos: {
         where: { archivado_at: null },
         select: { id: true, estado: true, fecha_vencimiento: true, created_at: true, tipo: { select: { nombre: true } } },

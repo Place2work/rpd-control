@@ -237,3 +237,9 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   municipios). El código postal sugiere el estado; la persona decide.
 - `personas.domicilio` (lo que va en el contrato) se arma con las partes al guardar; sin partes se conserva el texto
   escrito antes. Valores anteriores que no están en la lista se muestran como «capturado antes». Migración 2200.
+
+## 7-nov-2026 · Eliminar notas del seguimiento
+
+- «Eliminar» en la línea de tiempo archiva la nota (`eventos.archivado_at/archivado_por`): deja de verse y de contar
+  como último contacto; no se borra. Solo notas escritas por personas (nota, llamada, WhatsApp, correo; CHECK
+  `eventos_archivar_solo_notas`) y solo su autor o el Director. Los registros del sistema no se eliminan. Migración 2300.
