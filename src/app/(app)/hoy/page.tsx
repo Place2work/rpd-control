@@ -38,6 +38,8 @@ export default async function Hoy() {
   ]);
   const [costos, proy] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion)]) : [null, null];
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
+  // Total de todas las altas (cada una con el costo vigente el día de su alta); no baja aunque el cliente pague.
+  const costoTotal = costos ? costoAdministrativo(costos.altas, costos.vigencias) : null;
 
   // Próximos día 46 (10.1): retiros que aún no se ingresan, con fecha de baja, en los próximos 14 días.
   const proximos = casos
@@ -70,6 +72,7 @@ export default async function Hoy() {
           ? `${proy.filas.length} ${proy.filas.length === 1 ? "prospecto" : "prospectos"} · con lo ya cobrable: ${mxn((Math.round(proy.total * 100) + Math.round(dinero.porCobrar * 100)) / 100)}`
           : "Captura el pago esperado de la Afore en cada caso" },
       { t: "Costo administrativo del mes", v: mxn(costoAlta?.total ?? 0), nota: `${costoAlta?.altas ?? 0} ${costoAlta?.altas === 1 ? "alta" : "altas"} de prospectos`, liga: "/prospectos" },
+      { t: "Costo administrativo total", v: mxn(costoTotal?.total ?? 0), nota: `${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"} desde el inicio`, liga: "/prospectos" },
       { t: "Comisiones por pagar", v: mxn(dinero.comisionesPorPagar), nota: `${dinero.comisionesPendientes} devengadas`, liga: "/comisiones" },
     ] : []),
   ];
