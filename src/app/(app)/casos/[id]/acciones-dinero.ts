@@ -3,10 +3,14 @@
 // Dinero del caso (secciones 2.2, 5.8 y 9): pagos de la Afore, cobros del honorario y canal
 // (vendedor, referidor, socio). Lo registra el usuario con sus permisos (RLS); después el
 // motor recalcula las comisiones del caso.
+import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerSesion } from "@/lib/auth/sesion";
-import { conUsuario } from "@/lib/db/prisma";
+import { conUsuario, type Tx } from "@/lib/db/prisma";
+import { prepararSubida, urlLectura, type Subida } from "@/lib/documentos/almacen";
+import { rutaDocumento, validarComprobante } from "@/lib/documentos/reglas";
+import { etapaPorDinero, NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { recalcularComisiones } from "@/lib/dinero/motor";
 import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
@@ -27,6 +31,23 @@ async function despues(casoId: string) {
   // Si el motor falla, el pago o el cobro ya quedó guardado; la tarea diaria lo reintenta.
   try { await recalcularComisiones([casoId]); } catch (e) { console.error("[comisiones]", casoId, e); }
   revalidatePath(`/casos/${casoId}`);
+}
+
+/** Retiro: el dinero registrado mueve la etapa (pago de la Afore → Pagado; honorario cobrado → cerrado). */
+async function moverPorDinero(tx: Tx, casoId: string, usuarioId: string) {
+  const caso = await tx.caso.findUnique({ where: { id: casoId }, select: {
+    etapa: true, tipo_servicio: true,
+    pagos_afore: { where: { archivado_at: null }, select: { id: true } },
+    cobros: { where: { archivado_at: null }, select: { estado: true } },
+  } });
+  if (!caso || caso.tipo_servicio !== "RETIRO_DESEMPLEO") return;
+  const destino = etapaPorDinero(caso.etapa, { pagosAfore: caso.pagos_afore.length, cobros: caso.cobros.map((c) => c.estado) });
+  if (!destino) return;
+  const motivo = destino === "CERRADO" ? "Honorario cobrado" : "Se registró el pago de la Afore";
+  await tx.caso.update({ where: { id: casoId }, data: { etapa: destino, etapa_desde: new Date() }, select: { id: true } });
+  await tx.historialEtapa.create({ data: { caso_id: casoId, etapa_antes: caso.etapa, etapa_nueva: destino, motivo, usuario_id: usuarioId } });
+  await tx.evento.create({ data: { caso_id: casoId, tipo: "cambio_etapa", usuario_id: usuarioId,
+    texto: `Avanzó a «${NOMBRE_ETAPA[destino]}» (antes «${NOMBRE_ETAPA[caso.etapa]}») porque ${motivo === "Honorario cobrado" ? "se cobró el honorario" : "se registró el pago de la Afore"}.` } });
 }
 
 // ───────────── Honorario pactado (retiro) ─────────────
@@ -106,6 +127,7 @@ export async function registrarPagoAfore(casoId: string, _p: Resultado, form: Fo
     await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id,
       texto: `Pago ${numero} de la Afore: $${neto.toLocaleString("es-MX", { minimumFractionDigits: 2 })} neto. Honorario por cobrar $${h.honorario.toLocaleString("es-MX", { minimumFractionDigits: 2 })}.`
         + (caso.pagos_afore.length === 0 ? ` Próximo retiro por desempleo del cliente: a partir del ${fechaLarga(fechaProximoRetiro(fecha_deposito, pf))}.` : "") } });
+    await moverPorDinero(tx, casoId, usuario.id);
     return { ok: true };
   }, ip);
   if (res.ok) await despues(casoId);
@@ -153,6 +175,7 @@ export async function marcarCobrado(casoId: string, cobroId: string, _p: Resulta
     });
     if (n.count === 0) return { error: "Ese cobro ya no está pendiente." };
     await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id, texto: `Honorario cobrado (${d.metodo}${d.factura_folio ? `, factura ${d.factura_folio}` : ""})` } });
+    await moverPorDinero(tx, casoId, usuario.id);
     return { ok: true };
   }, ip);
   if (res.ok) await despues(casoId);
@@ -198,6 +221,7 @@ export async function cancelarCobro(casoId: string, cobroId: string, _p: Resulta
     const n = await tx.cobro.updateMany({ where: { id: cobroId, caso_id: casoId, estado: { not: "cancelado" } }, data: { estado: "cancelado", motivo_cancelacion: motivo } });
     if (!n.count) return { error: "Ese cobro ya estaba cancelado." };
     await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id, texto: `Cobro cancelado: ${motivo}` } });
+    await moverPorDinero(tx, casoId, usuario.id);
     return { ok: true };
   }, ip);
   if (res.ok) await despues(casoId);
@@ -231,4 +255,52 @@ export async function guardarCanal(casoId: string, _p: Resultado, form: FormData
   }, ip);
   if (res.ok) await despues(casoId);
   return res;
+}
+
+// ───────────── Comprobante de la transferencia del cliente ─────────────
+
+/** Liga firmada para subir el comprobante directo al almacén (misma carpeta y políticas que el expediente). */
+export async function prepararComprobante(casoId: string, cobroId: string, mime: string, bytes: number): Promise<{ subida?: Subida; error?: string }> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol === "vendedor") return { error: "Tu rol no sube comprobantes." };
+  const problema = validarComprobante(mime, bytes);
+  if (problema) return { error: problema };
+  const cobro = await conUsuario(claims, (tx) => tx.cobro.findFirst({ where: { id: cobroId, caso_id: casoId, archivado_at: null, estado: { not: "cancelado" } }, select: { id: true } }), ip);
+  if (!cobro) return { error: "No encontramos ese cobro." };
+  try {
+    return { subida: await prepararSubida(rutaDocumento(casoId, randomUUID(), mime)) };
+  } catch {
+    return { error: "No se pudo preparar la subida. Intenta de nuevo." };
+  }
+}
+
+export async function registrarComprobante(casoId: string, cobroId: string, ruta: string, mime: string): Promise<{ ok?: boolean; error?: string }> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol === "vendedor") return { error: "Tu rol no sube comprobantes." };
+  if (!ruta.startsWith(`${casoId}/`) || !/^[0-9a-f-]{36}\/[0-9a-f-]{36}\.[a-z]{3,4}$/.test(ruta)) return { error: "Ruta de archivo no válida." };
+  if (validarComprobante(mime, 1)) return { error: "Formato no válido." };
+  const res = await conUsuario(claims, async (tx) => {
+    const n = await tx.cobro.updateMany({
+      where: { id: cobroId, caso_id: casoId, archivado_at: null, estado: { not: "cancelado" } },
+      data: { comprobante_path: ruta, comprobante_mime: mime, comprobante_at: new Date(), comprobante_por: usuario.id },
+    });
+    if (!n.count) return { error: "No encontramos ese cobro." };
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "documento", usuario_id: usuario.id, texto: "Se subió el comprobante de pago del honorario" } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) revalidatePath(`/casos/${casoId}`);
+  return res;
+}
+
+/** Liga de 10 minutos para ver el comprobante (RLS del cobro y políticas del bucket). */
+export async function verComprobante(casoId: string, cobroId: string): Promise<{ url?: string; error?: string }> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol === "vendedor") return { error: "Tu rol no ve comprobantes." };
+  const cobro = await conUsuario(claims, (tx) => tx.cobro.findFirst({ where: { id: cobroId, caso_id: casoId }, select: { comprobante_path: true } }), ip);
+  if (!cobro?.comprobante_path) return { error: "Este cobro no tiene comprobante." };
+  try {
+    return { url: await urlLectura(cobro.comprobante_path) };
+  } catch {
+    return { error: "No se pudo abrir el comprobante." };
+  }
 }

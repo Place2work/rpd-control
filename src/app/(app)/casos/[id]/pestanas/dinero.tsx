@@ -12,6 +12,7 @@ import { margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/regl
 import { hoyCDMX } from "@/lib/tiempo";
 import { archivarPagoAfore, cancelarCobro, guardarCanal, guardarHonorarioPactado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
+import { Comprobante } from "../comprobante";
 import { FormularioAccion } from "../formulario-accion";
 
 const corta = (d: Date | null) => (d ? formatoFecha(isoDe(d)!, { dateStyle: "medium" }) : "—");
@@ -161,6 +162,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                   {c.estado === "cobrado" && ` · cobrado el ${corta(c.fecha_cobro)} por ${c.metodo}${c.referencia ? ` (${c.referencia})` : ""}${c.factura_folio ? ` · factura ${c.factura_folio}` : ""}`}
                   {c.estado === "cancelado" && ` · ${c.motivo_cancelacion}`}
                 </p>
+                {c.estado !== "cancelado" && <Comprobante casoId={caso.id} cobroId={c.id} tiene={Boolean(c.comprobante_path)} />}
+                {c.estado === "cobrado" && !c.comprobante_path && <p className="mt-1 text-xs text-aviso">Falta el comprobante de la transferencia.</p>}
                 {c.estado === "por_cobrar" && (
                   <details className="mt-2">
                     <summary className="cursor-pointer text-sm font-medium text-brand">Marcar como cobrado</summary>

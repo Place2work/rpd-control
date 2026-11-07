@@ -28,3 +28,11 @@ export function estadoVisible(estado: EstadoVisible, fechaVencimiento: string | 
   if (fechaVencimiento && fechaVencimiento < hoy && (estado === "validado" || estado === "recibido")) return "vencido";
   return estado;
 }
+
+/** Comprobante de transferencia del honorario: foto o PDF; sin mínimo de tamaño (una captura de pantalla pesa poco). */
+export function validarComprobante(mime: string, bytes: number): string | null {
+  if (!(TIPOS_PERMITIDOS as readonly string[]).includes(mime)) return "Sube una foto (JPG, PNG, WEBP, HEIC) o un PDF";
+  if (bytes > MAX_BYTES) return "El archivo pesa más de 15 MB";
+  if (bytes <= 0) return "El archivo está vacío";
+  return null;
+}

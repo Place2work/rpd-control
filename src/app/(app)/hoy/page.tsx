@@ -46,6 +46,8 @@ export default async function Hoy() {
     { t: "Prospectos activos", v: String(casos.filter((c) => ETAPAS_PROSPECTO.includes(c.etapa)).length), liga: "/prospectos" },
     { t: "Casos en trámite", v: String(casos.filter((c) => EN_TRAMITE.has(c.etapa)).length), liga: "/casos" },
     { t: "Listos para retirar esta semana", v: String(proximos.filter(({ d }) => d.diasFaltan <= 7).length) },
+    { t: "Clientes cerrados del mes", v: String(casos.filter((c) => c.etapa === "CERRADO" && hoyCDMX(c.etapa_desde).slice(0, 7) === hoy.slice(0, 7)).length),
+      nota: `${casos.filter((c) => c.etapa === "CERRADO").length} en total`, liga: "/clientes-cerrados" },
     { t: "SLA en riesgo", v: String(slaEnRiesgo), nota: "casos con alerta de 15 días hábiles", liga: "#alertas" },
     ...(dinero ? [
       { t: "Monto retirado del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/dinero" },
@@ -72,7 +74,7 @@ export default async function Hoy() {
   return (
     <>
       <Encabezado titulo={`Hola, ${usuario.nombre.split(" ")[0]}`} descripcion={fecha.charAt(0).toUpperCase() + fecha.slice(1)} />
-      <section aria-label="Indicadores" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-4">
+      <section aria-label="Indicadores" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-3">
         {INDICADORES.map(({ t, v, nota, liga }) => {
           const contenido = (
             <>

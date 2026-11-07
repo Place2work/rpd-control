@@ -185,3 +185,17 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   (depósito + `ANIOS_CANDADO_RETIRO` años, art. 191-II) en Dinero y en Resumen, y lo anota en Seguimiento.
 - La tarea diaria revisa los retiros en «Pagado por Afore» u «Honorario cobrado»: aviso `PROXIMO_RETIRO` al asesor
   (o al Director si no hay) y al Director `AVISO_PROXIMO_RETIRO_DIAS` antes (30) y el día que ya puede retirar.
+
+## 7-nov-2026 · Comprobante, el dinero mueve la etapa y «Clientes cerrados»
+
+- **Comprobante de transferencia:** cada cobro puede llevar el comprobante (foto o PDF, sin mínimo de tamaño) en el
+  bucket privado «expedientes», carpeta del caso (CHECK `cobros_comprobante_en_su_caso`); se ve con liga de 10 min.
+  El vendedor no lo ve ni lo sube. Migración 1700.
+- **El dinero mueve la etapa del retiro** (excepción a «no salta etapas»): al registrar el pago de la Afore → «Pagado
+  por Afore»; con todos los honorarios cobrados → «Honorario cobrado» (cerrado). Queda en historial y Seguimiento.
+  Un caso cerrado no regresa a «Pagado».
+- Con el caso pagado o cerrado dejan de mostrarse las alertas del trámite (día 46, prospecto, expediente, plazos);
+  siguen las de dinero y la del próximo retiro.
+- **Clientes cerrados** (menú): casos en «Honorario cobrado» con depósito, honorario, comprobante y próximo retiro;
+  contadores del mes/año/total, filtros (mes, vendedor, próximo retiro en N días) y Excel. El vendedor ve los suyos
+  sin montos. Hoy muestra «Clientes cerrados del mes»; la tabla de Casos tiene Activos/Cerrados/Todos.

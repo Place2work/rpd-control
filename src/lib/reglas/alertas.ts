@@ -172,6 +172,19 @@ export function alertasProximoRetiro(casos: RetiroPagado[], hoy: FechaISO, p: { 
   return r;
 }
 
+// Alertas del trámite antes del pago: dejan de aplicar cuando el caso ya está pagado o cerrado.
+const DEL_TRAMITE = new Set(["DIA46_PROXIMO", "DIA46_HOY", "CANDADO5_FIN", "CUENTA_3_5_ANIOS", "PROSPECTO_SIN_CONTACTO", "PROSPECTO_FRIO",
+  "EXPEDIENTE_DETENIDO", "DOC_POR_VENCER", "CONTRATO_POR_VENCER", "AFORE_SIN_RESOLUCION", "SLA_15_RIESGO", "SLA_15_VENCIDO", "RIESGO_SEMANAS"]);
+
+/** ¿Sigue vigente una alerta según la etapa actual de su caso? (sin caso, siempre). */
+export function alertaVigente(regla: string, etapa: string | null | undefined): boolean {
+  if (etapa === "PAGADO" || etapa === "CERRADO") {
+    if (DEL_TRAMITE.has(regla)) return false;
+    if (etapa === "CERRADO" && (regla === "HONORARIO_POR_COBRAR" || regla === "PAGO_AFORE_PENDIENTE")) return false;
+  }
+  return true;
+}
+
 export function resolverDestinatarios(a: AlertaNueva, c: Pick<CasoAlertable, "ownerId" | "asignadoA" | "vendedorId">, directores: string[]): string[] {
   const ids = new Set<string>();
   for (const d of a.para) {

@@ -111,3 +111,14 @@ describe("comisiones (9.3: cada beneficiario ve su estado de cuenta y nada más)
     expect(r.rows[0].n).toBeGreaterThan(0);
   });
 });
+
+describe("comprobante de la transferencia del honorario", () => {
+  it("lo guarda quien opera el caso, solo dentro de la carpeta del caso; el vendedor no lo toca ni lo ve", async () => {
+    const ruta = `${C1}/${randomUUID()}.jpg`;
+    const r = await como(U.director, "UPDATE cobros SET comprobante_path = $2, comprobante_mime = 'image/jpeg', comprobante_at = now(), comprobante_por = $3 WHERE id = $1 RETURNING comprobante_path", [COBRO, ruta, U.director]);
+    expect(r).toEqual([{ comprobante_path: ruta }]);
+    await expect(como(U.director, "UPDATE cobros SET comprobante_path = $2 WHERE id = $1", [COBRO, `${C2}/${randomUUID()}.jpg`])).rejects.toThrow(/cobros_comprobante_en_su_caso/);
+    expect(await como(U.vendedor, "UPDATE cobros SET comprobante_path = NULL WHERE id = $1 RETURNING id", [COBRO])).toHaveLength(0);
+    expect(await como(U.vendedor, "SELECT comprobante_path FROM cobros WHERE id = $1", [COBRO])).toHaveLength(0);
+  });
+});

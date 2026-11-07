@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alertasDelDia, alertasProximoRetiro, fechaProximoRetiro, resolverDestinatarios, type CasoAlertable } from "../alertas";
+import { alertaVigente, alertasDelDia, alertasProximoRetiro, fechaProximoRetiro, resolverDestinatarios, type CasoAlertable } from "../alertas";
 
 const HOY = "2026-10-27";
 const P = { DIAS_ESPERA_DESEMPLEO: 46, ANIOS_CANDADO_RETIRO: 5, SLA_DIAS_HABILES: 15, inhabiles: new Set(["2026-11-02", "2026-11-16"]) };
@@ -101,5 +101,19 @@ describe("próximo retiro de clientes que ya cobraron", () => {
     const dia = alertasProximoRetiro([pagado], "2031-11-07", P5);
     expect(dia[0].mensaje).toContain("ya puede volver a retirar");
     expect(alertasProximoRetiro([pagado], "2031-12-31", P5)).toEqual([]);
+  });
+});
+
+describe("alertas que dejan de aplicar cuando el caso cobró", () => {
+  it("pagado: se apagan las del trámite (día 46, prospecto, plazos); siguen las de dinero", () => {
+    expect(alertaVigente("DIA46_HOY", "PAGADO")).toBe(false);
+    expect(alertaVigente("PROSPECTO_SIN_CONTACTO", "PAGADO")).toBe(false);
+    expect(alertaVigente("HONORARIO_POR_COBRAR", "PAGADO")).toBe(true);
+  });
+  it("cerrado: también se apaga el honorario por cobrar; el próximo retiro sigue", () => {
+    expect(alertaVigente("HONORARIO_POR_COBRAR", "CERRADO")).toBe(false);
+    expect(alertaVigente("PROXIMO_RETIRO", "CERRADO")).toBe(true);
+    expect(alertaVigente("DIA46_HOY", "PROSPECTO")).toBe(true);
+    expect(alertaVigente("COMISION_POR_PAGAR", null)).toBe(true);
   });
 });

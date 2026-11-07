@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { estadoVisible, rutaDocumento, validarArchivo } from "./reglas";
+import { estadoVisible, rutaDocumento, validarArchivo, validarComprobante } from "./reglas";
 
 describe("archivos del expediente", () => {
   it("acepta fotos y PDF dentro de los límites", () => {
@@ -18,5 +18,17 @@ describe("archivos del expediente", () => {
     expect(estadoVisible("validado", "2026-10-01", "2026-10-27")).toBe("vencido");
     expect(estadoVisible("validado", "2026-12-01", "2026-10-27")).toBe("validado");
     expect(estadoVisible("rechazado", "2026-10-01", "2026-10-27")).toBe("rechazado");
+  });
+});
+
+describe("comprobante de transferencia", () => {
+  it("acepta una captura de pantalla chica (sin el mínimo de 256 KB de las fotos para la Afore)", () => {
+    expect(validarComprobante("image/png", 80_000)).toBeNull();
+    expect(validarComprobante("application/pdf", 40_000)).toBeNull();
+  });
+  it("rechaza otros formatos, vacíos y archivos de más de 15 MB", () => {
+    expect(validarComprobante("text/plain", 1000)).toMatch(/foto|PDF/);
+    expect(validarComprobante("image/jpeg", 0)).toMatch(/vacío/);
+    expect(validarComprobante("image/jpeg", 16 * 1024 * 1024)).toMatch(/15 MB/);
   });
 });

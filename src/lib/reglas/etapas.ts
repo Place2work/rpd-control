@@ -186,3 +186,16 @@ export function validarTransicion(c: FotoCaso, destino: Etapa, rol: Rol, motivo:
   }
   return faltantes;
 }
+
+/**
+ * Retiro: el dinero mueve la etapa (decisión 7-nov-2026). El pago de la Afore prueba que el trámite se
+ * hizo (→ «Pagado por Afore») y, con todos los honorarios cobrados, el caso se cierra (→ «Honorario
+ * cobrado»). Es la única excepción a «no salta etapas». Devuelve la etapa nueva o null si no cambia.
+ */
+export function etapaPorDinero(actual: Etapa, dinero: { pagosAfore: number; cobros: ("por_cobrar" | "cobrado" | "cancelado")[] }): Etapa | null {
+  if (dinero.pagosAfore === 0) return null;
+  const vivos = dinero.cobros.filter((c) => c !== "cancelado");
+  const destino: Etapa = vivos.length > 0 && vivos.every((c) => c === "cobrado") ? "CERRADO" : "PAGADO";
+  if (actual === destino || (actual === "CERRADO" && destino === "PAGADO")) return null;
+  return destino;
+}

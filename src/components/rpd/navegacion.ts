@@ -1,6 +1,7 @@
 import {
   Banknote,
   CalendarDays,
+  CircleCheckBig,
   FolderKanban,
   HandCoins,
   LayoutDashboard,
@@ -21,6 +22,7 @@ export const MODULOS: Modulo[] = [
   { href: "/prospectos", titulo: "Prospectos", icono: UserPlus, roles: TODOS, movil: true },
   { href: "/casos", titulo: "Casos", icono: FolderKanban, roles: TODOS, movil: true },
   { href: "/calendario", titulo: "Calendario", icono: CalendarDays, roles: TODOS, movil: true },
+  { href: "/clientes-cerrados", titulo: "Clientes cerrados", icono: CircleCheckBig, roles: TODOS },
   { href: "/dinero", titulo: "Dinero", icono: Banknote, roles: ["director", "asesor", "socio"] },
   { href: "/comisiones", titulo: "Comisiones", icono: HandCoins, roles: TODOS },
   { href: "/reportes", titulo: "Reportes", icono: BarChart3, roles: ["director", "asesor"] },

@@ -1,6 +1,7 @@
 import "server-only";
 import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario, prismaSistema } from "@/lib/db/prisma";
+import { alertaVigente } from "@/lib/reglas/alertas";
 
 const ORDEN = { critica: 0, aviso: 1, info: 2 } as const;
 
@@ -17,7 +18,7 @@ export async function misAlertas({ claims, ip, usuario }: Sesion) {
   const [alertas, plantillas] = await Promise.all([
     conUsuario(claims, (tx) => tx.alerta.findMany({
       where: { asignado_a: usuario.id, estado: "activa" },
-      include: { caso: { select: { id: true, folio: true, persona: { select: { nombre: true, whatsapp: true } } } } },
+      include: { caso: { select: { id: true, folio: true, etapa: true, persona: { select: { nombre: true, whatsapp: true } } } } },
       orderBy: { fecha_disparo: "desc" },
       take: 100,
     }), ip),
@@ -25,6 +26,7 @@ export async function misAlertas({ claims, ip, usuario }: Sesion) {
   ]);
   const cuerpo = new Map(plantillas.map((p) => [p.clave, p.cuerpo]));
   return alertas
+    .filter((a) => alertaVigente(a.regla, a.caso?.etapa))
     .sort((a, b) => ORDEN[a.severidad] - ORDEN[b.severidad])
     .map((a) => {
       const clave = PLANTILLA_POR_REGLA[a.regla];
@@ -40,6 +42,7 @@ export async function misAlertas({ claims, ip, usuario }: Sesion) {
 }
 
 export async function contarMisAlertas({ claims, ip, usuario }: Sesion): Promise<{ total: number; criticas: number }> {
-  const r = await conUsuario(claims, (tx) => tx.alerta.groupBy({ by: ["severidad"], where: { asignado_a: usuario.id, estado: "activa" }, _count: true }), ip);
-  return { total: r.reduce((s, x) => s + x._count, 0), criticas: r.find((x) => x.severidad === "critica")?._count ?? 0 };
+  const r = await conUsuario(claims, (tx) => tx.alerta.findMany({ where: { asignado_a: usuario.id, estado: "activa" }, select: { regla: true, severidad: true, caso: { select: { etapa: true } } } }), ip);
+  const vigentes = r.filter((a) => alertaVigente(a.regla, a.caso?.etapa));
+  return { total: vigentes.length, criticas: vigentes.filter((a) => a.severidad === "critica").length };
 }

@@ -808,6 +808,10 @@ model Cobro {
   estado             EstadoCobro @default(por_cobrar)
   concepto           String? // fallecimiento: pago_inicial | recuperado | primera_mensualidad
   motivo_cancelacion String?
+  comprobante_path   String? // transferencia del cliente, en expedientes/<caso>/...
+  comprobante_mime   String?
+  comprobante_at     DateTime?   @db.Timestamptz(6)
+  comprobante_por    String?     @db.Uuid
   created_at         DateTime    @default(now()) @db.Timestamptz(6)
   updated_at         DateTime    @default(now()) @updatedAt @db.Timestamptz(6)
   created_by         String?     @db.Uuid

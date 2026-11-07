@@ -9,6 +9,8 @@ import type { Columna } from "./tablero";
 
 export type FilaCaso = { id: string; folio: string; nombre: string; servicio: string; etapa: string; diasEtapa: number; asignado: string; vendedor: string; alta: string };
 type Orden = "diasEtapa" | "folio" | "nombre" | "alta";
+type Grupo = "activos" | "cerrados" | "todos";
+const enGrupo = (f: FilaCaso, g: Grupo) => g === "todos" || (g === "cerrados" ? f.etapa === "CERRADO" : f.etapa !== "CERRADO" && f.etapa !== "PERDIDO");
 
 const select = "h-11 w-full rounded-[var(--radius-boton)] border border-borde bg-surface px-3 text-sm text-ink md:h-10";
 
@@ -17,6 +19,8 @@ export function TablaCasos({ filas, columnas }: { filas: FilaCaso[]; columnas: C
   const [etapa, setEtapa] = useState("");
   const [servicio, setServicio] = useState("");
   const [asignado, setAsignado] = useState("");
+  // Activos = todo lo que aún se trabaja; Cerrados = honorario cobrado (también en «Clientes cerrados»).
+  const [grupo, setGrupo] = useState<Grupo>("activos");
   const [orden, setOrden] = useState<{ campo: Orden; desc: boolean }>({ campo: "diasEtapa", desc: true });
 
   const servicios = useMemo(() => [...new Set(filas.map((f) => f.servicio))].sort(), [filas]);
@@ -26,10 +30,10 @@ export function TablaCasos({ filas, columnas }: { filas: FilaCaso[]; columnas: C
   const vista = useMemo(() => {
     const t = q.trim().toLowerCase();
     const r = filas.filter((f) => (!t || f.nombre.toLowerCase().includes(t) || f.folio.toLowerCase().includes(t))
-      && (!etapa || f.etapa === etapa) && (!servicio || f.servicio === servicio) && (!asignado || f.asignado === asignado));
+      && enGrupo(f, grupo) && (!etapa || f.etapa === etapa) && (!servicio || f.servicio === servicio) && (!asignado || f.asignado === asignado));
     const s = orden.desc ? -1 : 1;
     return r.sort((a, b) => (a[orden.campo] < b[orden.campo] ? -s : a[orden.campo] > b[orden.campo] ? s : 0));
-  }, [filas, q, etapa, servicio, asignado, orden]);
+  }, [filas, q, etapa, servicio, asignado, orden, grupo]);
 
   const encabezado = (campo: Orden, texto: string) => (
     <th scope="col" aria-sort={orden.campo === campo ? (orden.desc ? "descending" : "ascending") : undefined} className="px-3 py-2 font-medium">
@@ -41,6 +45,14 @@ export function TablaCasos({ filas, columnas }: { filas: FilaCaso[]; columnas: C
 
   return (
     <div className="grid gap-3">
+      <div role="group" aria-label="Mostrar" className="flex flex-wrap gap-1">
+        {([["activos", "Activos"], ["cerrados", "Cerrados"], ["todos", "Todos"]] as const).map(([k, t]) => (
+          <button key={k} type="button" aria-pressed={grupo === k} onClick={() => setGrupo(k)}
+            className={`rounded-[var(--radius-boton)] px-3 py-2 text-sm ${grupo === k ? "bg-brand-tint font-medium text-brand" : "text-ink-muted hover:text-ink"}`}>
+            {t} ({filas.filter((f) => enGrupo(f, k)).length})
+          </button>
+        ))}
+      </div>
       <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
         <div className="grid gap-1.5"><Label htmlFor="t-q">Buscar</Label><Input id="t-q" value={q} onChange={(e) => setQ(e.target.value)} placeholder="Nombre o folio" /></div>
         <div className="grid gap-1.5"><Label htmlFor="t-etapa">Etapa</Label>

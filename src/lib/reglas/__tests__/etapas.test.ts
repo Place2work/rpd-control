@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { movimientosPosibles, requisitos, validarTransicion, type FotoCaso } from "../etapas";
+import { etapaPorDinero, movimientosPosibles, requisitos, validarTransicion, type FotoCaso } from "../etapas";
 
 const base: FotoCaso = {
   embudo: "retiro",
@@ -104,5 +104,24 @@ describe("movimientos y permisos", () => {
     const p: FotoCaso = { ...base, embudo: "pension", etapa: "PLAN_ENTREGADO", fechaContrato: "2026-10-27" };
     expect(destinos(p, "vendedor")).toContain("CONTRATO");
     expect(requisitos(p, "CONTRATO")).toEqual(["Captura el honorario fijo"]);
+  });
+});
+
+describe("el dinero mueve la etapa del retiro", () => {
+  it("sin pago de la Afore no cambia nada", () => {
+    expect(etapaPorDinero("PROSPECTO", { pagosAfore: 0, cobros: [] })).toBeNull();
+  });
+  it("con el pago de la Afore pasa a Pagado, venga de donde venga (aun bloqueado o prospecto)", () => {
+    expect(etapaPorDinero("PROSPECTO", { pagosAfore: 1, cobros: ["por_cobrar"] })).toBe("PAGADO");
+    expect(etapaPorDinero("BLOQUEADO", { pagosAfore: 1, cobros: ["por_cobrar"] })).toBe("PAGADO");
+    expect(etapaPorDinero("PAGADO", { pagosAfore: 1, cobros: ["por_cobrar"] })).toBeNull();
+  });
+  it("con el honorario cobrado se cierra; los cancelados no cuentan", () => {
+    expect(etapaPorDinero("PAGADO", { pagosAfore: 1, cobros: ["cobrado"] })).toBe("CERRADO");
+    expect(etapaPorDinero("PROSPECTO", { pagosAfore: 1, cobros: ["cobrado", "cancelado"] })).toBe("CERRADO");
+    expect(etapaPorDinero("CERRADO", { pagosAfore: 1, cobros: ["cobrado"] })).toBeNull();
+  });
+  it("un caso cerrado no regresa a Pagado por un cobro nuevo pendiente", () => {
+    expect(etapaPorDinero("CERRADO", { pagosAfore: 1, cobros: ["cobrado", "por_cobrar"] })).toBeNull();
   });
 });
