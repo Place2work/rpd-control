@@ -226,6 +226,7 @@ export async function actualizarUsuario(id: string, _p: Resultado, form: FormDat
     // Si ya era asesor de pensiones y no se elige otra ficha, conserva la suya.
     const socio_id = r.data.rol === "socio" ? await ligarFicha(tx, { ...r.data, socio_id: r.data.socio_id ?? actual?.socio_id ?? null }, actual?.email ?? null, s.usuario.id) : null;
     await tx.usuario.update({ where: { id }, select: { id: true }, data: { nombre: r.data.nombre, rol: r.data.rol, socio_id, telefono: r.data.telefono } });
+    if (socio_id) await tx.socio.update({ where: { id: socio_id }, data: { nombre: r.data.nombre }, select: { id: true } });
     return null;
   }, s.ip);
   if (res) return res;
@@ -370,4 +371,26 @@ export async function crearCuentaAsesor(socioId: string, _p: Resultado, form: Fo
   revalidatePath("/configuracion");
   return { ok: true, unaVez: { titulo: `Contraseña temporal de ${ficha.nombre}`, valor: cuenta.clave,
     nota: `Entra en ${dominioApp()} con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
+}
+
+/** Editar la ficha de un asesor de pensiones (nombre y teléfono). Si tiene cuenta, su nombre se iguala. */
+export async function actualizarFicha(socioId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await director();
+  if (!s) return { error: "Solo el Director edita asesores." };
+  const r = z.object({
+    nombre: z.string().trim().min(2, "Escribe el nombre").max(120),
+    telefono: z.string().trim().max(20).optional().transform((v) => (v ? v : null)),
+  }).safeParse(datosDe(form));
+  if (!r.success) return { errores: errores(r.error) };
+  const res = await conUsuario(s.claims, async (tx): Promise<Resultado> => {
+    if (await tx.socio.findFirst({ where: { archivado_at: null, id: { not: socioId }, nombre: { equals: r.data.nombre, mode: "insensitive" } }, select: { id: true } })) {
+      return { errores: { nombre: "Ya hay un asesor de pensiones con ese nombre" } };
+    }
+    const n = await tx.socio.updateMany({ where: { id: socioId, archivado_at: null }, data: { nombre: r.data.nombre, telefono: r.data.telefono } });
+    if (!n.count) return { error: "No encontramos al asesor." };
+    await tx.usuario.updateMany({ where: { socio_id: socioId, rol: "socio" }, data: { nombre: r.data.nombre } });
+    return { ok: true };
+  }, s.ip);
+  if (res.ok) { revalidatePath("/configuracion"); revalidatePath("/comisiones/beneficiarios"); revalidatePath("/hoy"); }
+  return res;
 }

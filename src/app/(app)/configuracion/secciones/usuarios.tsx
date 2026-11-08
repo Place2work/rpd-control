@@ -4,7 +4,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearCuentaAsesor, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
+import { actualizarFicha, actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearCuentaAsesor, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 
@@ -87,6 +87,18 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
               {sinCuenta.map((f) => (
                 <li key={f.id} className="grid gap-2 py-3">
                   <p className="font-medium text-ink">{f.nombre} <span className="text-xs font-normal text-ink-muted">· {pctTxt(Number(f.porcentaje_socio))}{f.telefono ? ` · ${f.telefono}` : ""}</span></p>
+                  <details>
+                    <summary className="cursor-pointer text-xs font-medium text-brand">Editar</summary>
+                    <div className="mt-2 rounded-[var(--radius-boton)] bg-slate-50 p-3">
+                      <FormularioAccion accion={actualizarFicha.bind(null, f.id)} etiquetas={{ nombre: "Nombre", telefono: "Teléfono" }}>
+                        <div className="grid gap-3 sm:grid-cols-2">
+                          <CampoTexto id="nombre" etiqueta="Nombre" valor={f.nombre} />
+                          <CampoTexto id="telefono" etiqueta="Teléfono" tipo="tel" valor={f.telefono} />
+                        </div>
+                        <p className="text-xs text-ink-muted">El nombre cambia en sus casos, comisiones y estados de cuenta. Su % se ajusta en Comisiones → Referidores y asesores.</p>
+                      </FormularioAccion>
+                    </div>
+                  </details>
                   <details>
                     <summary className="cursor-pointer text-xs font-medium text-brand">Crear su cuenta</summary>
                     <div className="mt-2 rounded-[var(--radius-boton)] bg-slate-50 p-3">

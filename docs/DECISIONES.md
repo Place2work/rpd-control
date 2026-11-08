@@ -371,3 +371,5 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - La tabla de Hoy por beneficiario cuenta los casos de cada asesor de pensiones y referidor por familia: Retiro,
   Pensiones (PENSION_L73, PENSION_L97, FALLECIMIENTO) y Otros (solo si hay). Las pensiones muestran «monto por
   definir»: su comisión se define cuando el IMSS resuelva. Los montos siguen siendo solo del retiro (`casosPorBeneficiario`).
+- (8-nov) Configuración → Usuarios: «Editar» en cada asesor de pensiones sin cuenta (nombre y teléfono de su ficha,
+  `actualizarFicha`; nombre repetido se avisa). Al editar un usuario asesor con cuenta, su ficha toma el mismo nombre.
