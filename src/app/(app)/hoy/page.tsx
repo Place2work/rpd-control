@@ -181,12 +181,12 @@ export default async function Hoy() {
                 <thead><tr className="text-left text-xs text-ink-muted">{["Beneficiario", "Tipo", "Retiro", "Pensiones", ...(conOtros ? ["Otros"] : []), "Ya devengado", "Proyectado y estimado", "Total"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
                 <tbody>
                   {filasBenef.map((b) => (
-                    <tr key={b.clave} className="border-t border-borde">
+                    <tr key={b.clave} className="border-t border-borde align-middle">
                       <td className="py-2 pr-3 font-medium text-ink">{b.nombre}</td>
                       <td className="py-2 pr-3 text-ink-muted">{b.tipo === "socio" ? "Asesor de pensiones" : "Referidor"}</td>
-                      <td className="py-2 pr-3">{b.retiro}</td>
-                      <td className="py-2 pr-3">{b.pensiones}{b.pensiones > 0 && <span className="block text-xs text-ink-muted">monto por definir</span>}</td>
-                      {conOtros && <td className="py-2 pr-3">{b.otros}</td>}
+                      <td className="cifra py-2 pr-3">{b.retiro}</td>
+                      <td className="cifra whitespace-nowrap py-2 pr-3">{b.pensiones}{b.pensiones > 0 && <span className="ml-2 font-sans text-xs text-ink-muted">· monto por definir</span>}</td>
+                      {conOtros && <td className="cifra py-2 pr-3">{b.otros}</td>}
                       <td className="cifra py-2 pr-3">{mxn(b.devengado)}</td>
                       <td className="cifra py-2 pr-3">{mxn(b.proyectado)}</td>
                       <td className="cifra py-2 pr-3 font-semibold text-brand">{mxn(b.total)}</td>
