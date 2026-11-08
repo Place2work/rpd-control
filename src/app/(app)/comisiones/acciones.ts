@@ -6,6 +6,7 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { leerBenef } from "@/lib/comisiones/consultas";
 import { cifrar } from "@/lib/cripto";
 import { conUsuario } from "@/lib/db/prisma";
+import { recalcularComisiones } from "@/lib/dinero/motor";
 import { finDeMes, sumar } from "@/lib/reglas/comisiones";
 import { normalizarClabe, validarClabe } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
@@ -84,11 +85,33 @@ export async function crearReferidor(_p: Resultado, form: FormData): Promise<Res
   return { ok: true };
 }
 
+const pct = z.string().trim().min(1, "Escribe el %").transform((v) => Math.round(Number(v.replace("%", "").replace(",", ".")) * 100) / 10000)
+  .pipe(z.number({ message: "Escribe el %" }).min(0, "Entre 0 y 100").max(1, "Entre 0 y 100"));
+const pesos = z.string().trim().min(1, "Escribe el monto").transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number({ message: "Escribe el monto" }).min(0, "No puede ser negativo"));
+
+/** Reparto propio de un asesor de pensiones. Sus comisiones no pagadas se recalculan; las pagadas no cambian. */
+export async function actualizarReparto(socioId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol !== "director") return { error: "Solo el Director ajusta el reparto." };
+  const r = z.object({ porcentaje_socio: pct, costo_administrativo: pesos }).safeParse(datosDe(form));
+  if (!r.success) return { errores: errores(r.error) };
+  const casos = await conUsuario(claims, async (tx) => {
+    const n = await tx.socio.updateMany({ where: { id: socioId, archivado_at: null }, data: r.data });
+    if (!n.count) return null;
+    return tx.caso.findMany({ where: { socio_id: socioId }, select: { id: true } });
+  }, ip);
+  if (!casos) return { error: "No encontramos al asesor." };
+  if (casos.length) {
+    try { await recalcularComisiones(casos.map((c) => c.id)); } catch (e) { console.error("[comisiones]", socioId, e); }
+  }
+  revalidatePath("/comisiones/beneficiarios");
+  revalidatePath("/comisiones");
+  return { ok: true };
+}
+
 export async function crearSocio(_p: Resultado, form: FormData): Promise<Resultado> {
   const { claims, ip, usuario } = await obtenerSesion();
   if (usuario.rol !== "director") return { error: "Solo el Director da de alta asesores de pensiones." };
-  const pct = z.string().trim().transform((v) => Number(v.replace("%", "")) / 100).pipe(z.number().min(0, "Entre 0 y 100").max(1, "Entre 0 y 100"));
-  const pesos = z.string().trim().transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number().min(0, "No puede ser negativo"));
   const r = z.object({ ...contacto, razon_social: opcional, rfc: opcional, porcentaje_socio: pct, costo_administrativo: pesos }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const { clabe: c, ...d } = r.data;

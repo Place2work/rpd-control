@@ -6,7 +6,7 @@ import type { FechaISO } from "./fechas";
 
 export type VigenciaCosto = { desde: FechaISO; hasta: FechaISO | null; monto: number };
 /** costo: el propio de esa alta (null o ausente = el general vigente ese día). */
-export type Alta = { fecha: FechaISO; vendedorId: string | null; costo?: number | null };
+export type Alta = { fecha: FechaISO; asesorId: string | null; costo?: number | null };
 
 /** Costo vigente en una fecha (0 si ese día no había costo configurado). */
 export function costoVigente(fecha: FechaISO, vigencias: VigenciaCosto[]): number {
@@ -21,11 +21,11 @@ export function costoAdministrativo(altas: Alta[], vigencias: VigenciaCosto[], p
 }
 
 /** Una alta por persona: su primer caso (los demás servicios o un desvío de la misma persona no cuentan otra vez). */
-export function altasPorPersona<T extends { personaId: string; fecha: FechaISO; vendedorId: string | null; costo?: number | null }>(casos: T[]): Alta[] {
+export function altasPorPersona<T extends { personaId: string; fecha: FechaISO; asesorId: string | null; costo?: number | null }>(casos: T[]): Alta[] {
   const vistas = new Set<string>();
   return [...casos].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0))
     .filter((c) => !vistas.has(c.personaId) && Boolean(vistas.add(c.personaId)))
-    .map((c) => ({ fecha: c.fecha, vendedorId: c.vendedorId, ...(c.costo != null ? { costo: c.costo } : {}) }));
+    .map((c) => ({ fecha: c.fecha, asesorId: c.asesorId, ...(c.costo != null ? { costo: c.costo } : {}) }));
 }
 
 /** Lee el costo propio de un alta escrito por el Director: vacío = el general; 0 o más, en pesos. */

@@ -6,31 +6,28 @@ import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
-import { hoyCDMX } from "@/lib/tiempo";
+import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
+import { mxn } from "@/lib/formato";
 
-// Llevan cuenta: Analista de expedientes, Vendedor y Director. El asesor de pensiones y el referidor no entran al sistema.
-const ROLES = [["asesor", "Analista de expedientes"], ["vendedor", "Vendedor"], ["director", "Director"]] as const;
+// Llevan cuenta: Analista de expedientes, Asesor de pensiones y Director. El referidor no entra al sistema.
+const ROLES = [["asesor", "Analista de expedientes"], ["socio", "Asesor de pensiones"], ["director", "Director"]] as const;
 const QUE_VE: Record<string, string> = {
   director: "Todo, incluida Configuración, dinero y comisiones de todos.",
   asesor: "Todos los casos y el expediente completo; no ve márgenes ni Configuración.",
-  vendedor: "Solo sus prospectos y casos, sin documentos, sin NSS/CURP completos y sin dinero; ve sus comisiones.",
+  socio: "Solo los clientes de su cartera (los que da de alta o le asignan), su dinero y sus comisiones; no ve Configuración.",
 };
-const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", telefono: "Teléfono" };
+const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", telefono: "Teléfono", socio_id: "Ficha del asesor" };
 
 export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
-  const hoy = hoyCDMX();
-  const { usuarios, esquema } = await conUsuario(sesion.claims, async (tx) => ({
-    usuarios: await tx.usuario.findMany({ orderBy: [{ activo: "desc" }, { nombre: "asc" }], include: { socio: { select: { nombre: true } } } }),
-    // % general del vendedor en el retiro (esquema vigente), para mostrarlo como opción «General».
-    esquema: await tx.esquemaComision.findFirst({
-      where: { tipo: "vendedor", tipo_servicio: "RETIRO_DESEMPLEO", vigente_desde: { lte: new Date(`${hoy}T00:00:00Z`) },
-        OR: [{ vigente_hasta: null }, { vigente_hasta: { gte: new Date(`${hoy}T00:00:00Z`) } }] },
-      orderBy: { vigente_desde: "desc" }, select: { reglas: true },
-    }),
+  const { usuarios, fichas } = await conUsuario(sesion.claims, async (tx) => ({
+    usuarios: await tx.usuario.findMany({ orderBy: [{ activo: "desc" }, { nombre: "asc" }],
+      include: { socio: { select: { nombre: true, porcentaje_socio: true, costo_administrativo: true } } } }),
+    // Fichas de asesores de pensiones (su reparto): se liga una a la cuenta.
+    fichas: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   }), sesion.ip);
-  const general = (esquema?.reglas as { pct?: number } | null)?.pct ?? null;
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
-  const OPCIONES_PCT = Array.from({ length: 39 }, (_, i) => (i + 2) / 200).map((f) => [String(f), pctTxt(f)] as const); // 1% a 20%, de medio en medio
+  const opcionesFicha = fichas.map((f) => [f.id, f.nombre] as const);
+  const ayudaFicha = "solo Asesor de pensiones · vacío = se crea una ficha nueva con su nombre";
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -43,11 +40,10 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-medium text-ink">{u.nombre} {u.id === sesion.usuario.id && <span className="text-xs font-normal text-ink-muted">(tú)</span>}</p>
-                    <p className="text-xs text-ink-muted">{u.email}{u.telefono ? ` · ${u.telefono}` : ""}{u.socio ? ` · ${u.socio.nombre}` : ""}
-                      {u.rol === "vendedor" && ` · comisión ${u.comision_pct ? pctTxt(Number(u.comision_pct)) : `${general ? pctTxt(general) : "—"} (general)`}`}</p>
+                    <p className="text-xs text-ink-muted">{u.email}{u.telefono ? ` · ${u.telefono}` : ""}{u.rol === "socio" && u.socio ? ` · ficha ${u.socio.nombre}: ${pctTxt(Number(u.socio.porcentaje_socio))} después de ${mxn(Number(u.socio.costo_administrativo))}` : ""}</p>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Badge tono={u.rol === "director" ? "tramite" : "prospecto"}>{ROLES.find(([k]) => k === u.rol)?.[1]}</Badge>
+                    <Badge tono={u.rol === "director" ? "tramite" : "prospecto"}>{ETIQUETA_ROL[u.rol]}</Badge>
                     {!u.activo && <Badge tono="critico">Sin acceso</Badge>}
                     {u.id !== sesion.usuario.id && (
                       <BotonAccion accion={cambiarAcceso.bind(null, u.id, !u.activo)} texto={u.activo ? "Quitar acceso" : "Dar acceso"} variante={u.activo ? "fantasma" : "secundario"}
@@ -63,8 +59,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                         <CampoTexto id="nombre" etiqueta="Nombre" valor={u.nombre} />
                         <CampoTexto id="telefono" etiqueta="Teléfono" tipo="tel" valor={u.telefono} />
                         <Seleccion id="rol" etiqueta="Rol" valor={u.rol} opciones={ROLES} />
-                        <Seleccion id="comision_pct" etiqueta="Comisión del vendedor" ayuda="solo rol vendedor · % de lo que paga la Afore"
-                          valor={u.comision_pct ? String(Number(u.comision_pct)) : ""} vacia={`General del esquema${general ? ` (${pctTxt(general)})` : ""}`} opciones={OPCIONES_PCT} />
+                        <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} valor={u.socio_id} vacia={u.socio_id ? "La suya" : "Nueva con su nombre"} opciones={opcionesFicha} />
                       </div>
                     </FormularioAccion>
                     {u.activo && u.id !== sesion.usuario.id && (
@@ -92,7 +87,8 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
               <CampoTexto id="nombre" etiqueta="Nombre completo" />
               <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
-              <Seleccion id="rol" etiqueta="Rol" valor="vendedor" opciones={ROLES} />
+              <Seleccion id="rol" etiqueta="Rol" valor="socio" opciones={ROLES} />
+              <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} vacia="Nueva con su nombre" opciones={opcionesFicha} />
             </FormularioAccion>
             <p className="mt-3 text-xs text-ink-muted">El sistema genera una contraseña temporal y te la muestra una sola vez para que se la entregues. Al entrar, activa la verificación en dos pasos (app autenticadora) y pone su propia contraseña.</p>
             <details className="mt-4 border-t border-borde pt-3">
@@ -103,7 +99,8 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                   <CampoTexto id="nombre" etiqueta="Nombre completo" />
                   <CampoTexto id="email" etiqueta="Correo" tipo="email" />
                   <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
-                  <Seleccion id="rol" etiqueta="Rol" valor="vendedor" opciones={ROLES} />
+                  <Seleccion id="rol" etiqueta="Rol" valor="socio" opciones={ROLES} />
+                  <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} vacia="Nueva con su nombre" opciones={opcionesFicha} />
                 </FormularioAccion>
               </div>
             </details>
@@ -114,7 +111,8 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
           <CardContent>
             <dl className="grid gap-2 text-sm">
               {ROLES.map(([k, t]) => <div key={k}><dt className="font-medium text-ink">{t}</dt><dd className="text-ink-muted">{QUE_VE[k]}</dd></div>)}
-              <div><dt className="font-medium text-ink">Asesores de pensiones y referidores</dt><dd className="text-ink-muted">No llevan cuenta: se dan de alta en Comisiones → Referidores y asesores y se eligen en cada caso para su comisión.</dd></div>
+              <div><dt className="font-medium text-ink">Referidores</dt><dd className="text-ink-muted">No llevan cuenta: se dan de alta en Comisiones → Referidores y asesores y se eligen en cada caso para su comisión.</dd></div>
+              <p className="text-xs text-ink-muted">El reparto de cada asesor de pensiones (% y costo administrativo) se ajusta en Comisiones → Referidores y asesores.</p>
             </dl>
           </CardContent>
         </Card>

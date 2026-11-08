@@ -5,7 +5,7 @@ const V = [
   { desde: "2026-01-01", hasta: "2026-11-30", monto: 500 },
   { desde: "2026-12-01", hasta: null, monto: 650.5 },
 ];
-const alta = (fecha: string, vendedorId: string | null = null): Alta => ({ fecha, vendedorId });
+const alta = (fecha: string, asesorId: string | null = null): Alta => ({ fecha, asesorId });
 
 describe("costo administrativo por alta", () => {
   it("10 prospectos a $500 son $5,000", () => {
@@ -27,10 +27,10 @@ describe("costo administrativo por alta", () => {
 describe("una alta por persona", () => {
   it("un cliente con tres servicios es una sola alta (la primera)", () => {
     const casos = [
-      { personaId: "ana", fecha: "2026-11-06", vendedorId: "v1" }, { personaId: "ana", fecha: "2026-11-06", vendedorId: "v1" },
-      { personaId: "ana", fecha: "2026-11-20", vendedorId: null }, { personaId: "luis", fecha: "2026-10-27", vendedorId: null },
+      { personaId: "ana", fecha: "2026-11-06", asesorId: "v1" }, { personaId: "ana", fecha: "2026-11-06", asesorId: "v1" },
+      { personaId: "ana", fecha: "2026-11-20", asesorId: null }, { personaId: "luis", fecha: "2026-10-27", asesorId: null },
     ];
-    expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-10-27", vendedorId: null }, { fecha: "2026-11-06", vendedorId: "v1" }]);
+    expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-10-27", asesorId: null }, { fecha: "2026-11-06", asesorId: "v1" }]);
     expect(costoAdministrativo(altasPorPersona(casos), V).total).toBe(1000);
   });
 });
@@ -42,10 +42,10 @@ describe("costo propio de un alta", () => {
   });
   it("el costo propio viaja con el alta de la persona (su primer caso)", () => {
     const casos = [
-      { personaId: "eva", fecha: "2026-11-05", vendedorId: null, costo: 0 }, { personaId: "eva", fecha: "2026-11-05", vendedorId: null, costo: 0 },
-      { personaId: "rosa", fecha: "2026-11-06", vendedorId: null, costo: null },
+      { personaId: "eva", fecha: "2026-11-05", asesorId: null, costo: 0 }, { personaId: "eva", fecha: "2026-11-05", asesorId: null, costo: 0 },
+      { personaId: "rosa", fecha: "2026-11-06", asesorId: null, costo: null },
     ];
-    expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-11-05", vendedorId: null, costo: 0 }, { fecha: "2026-11-06", vendedorId: null }]);
+    expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-11-05", asesorId: null, costo: 0 }, { fecha: "2026-11-06", asesorId: null }]);
     expect(costoAdministrativo(altasPorPersona(casos), V).total).toBe(500);
   });
   it("lee lo que escribe el Director", () => {

@@ -13,7 +13,8 @@ const SERVICIO: Record<string, string> = { RETIRO_DESEMPLEO: "Retiro por desempl
 
 export async function SeccionComisiones({ sesion }: { sesion: Sesion }) {
   const hoy = hoyCDMX();
-  const todos = await conUsuario(sesion.claims, (tx) => tx.esquemaComision.findMany({ orderBy: [{ nombre: "asc" }, { version: "desc" }] }), sesion.ip);
+  // Tres esquemas: asesor de pensiones, referidor (y el analista, sin comisión). El vendedor ya no se usa.
+  const todos = await conUsuario(sesion.claims, (tx) => tx.esquemaComision.findMany({ where: { tipo: { not: "vendedor" } }, orderBy: [{ nombre: "asc" }, { version: "desc" }] }), sesion.ip);
   const vigentes = todos.filter((e) => iso(e.vigente_desde)! <= hoy && (e.vigente_hasta === null || iso(e.vigente_hasta)! >= hoy));
   const futuros = todos.filter((e) => iso(e.vigente_desde)! > hoy);
 

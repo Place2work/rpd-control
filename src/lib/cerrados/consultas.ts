@@ -17,10 +17,10 @@ export async function listarCerrados(s: Sesion): Promise<ClienteCerrado[]> {
       where: { archivado_at: null, etapa: "CERRADO" },
       orderBy: { etapa_desde: "desc" },
       select: {
-        id: true, folio: true, etapa_desde: true, tipo_servicio: true, vendedor_id: true,
+        id: true, folio: true, etapa_desde: true, tipo_servicio: true, socio_id: true,
         persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true } },
         servicio: { select: { nombre: true } },
-        vendedor: { select: { nombre: true } },
+        socio: { select: { nombre: true } },
         pagos_afore: { where: { archivado_at: null }, orderBy: { numero: "asc" }, take: 1, select: { fecha_deposito: true, monto_neto: true } },
         cobros: { where: { archivado_at: null, estado: "cobrado" }, select: { honorario_total: true, comprobante_path: true } },
       },
@@ -33,7 +33,8 @@ export async function listarCerrados(s: Sesion): Promise<ClienteCerrado[]> {
       id: c.id, folio: c.folio,
       nombre: [c.persona.nombre, c.persona.apellido_paterno, c.persona.apellido_materno].filter(Boolean).join(" "),
       servicio: c.servicio.nombre.split(" (")[0],
-      vendedorId: c.vendedor_id, vendedor: c.vendedor?.nombre ?? null,
+      // «vendedor» de esta vista = el asesor de pensiones del caso (canal).
+      vendedorId: c.socio_id, vendedor: c.socio?.nombre ?? null,
       cerradoEl: hoyCDMX(c.etapa_desde),
       deposito: pago ? { fecha: iso(pago.fecha_deposito), neto: Number(pago.monto_neto) } : null,
       honorario: veDinero ? Math.round(c.cobros.reduce((a, k) => a + Math.round(Number(k.honorario_total) * 100), 0)) / 100 : null,
@@ -46,7 +47,7 @@ export async function listarCerrados(s: Sesion): Promise<ClienteCerrado[]> {
 /** Vendedores para el filtro (solo quien ve todo el equipo lo necesita). */
 export async function vendedoresParaFiltro(s: Sesion) {
   if (s.usuario.rol === "vendedor") return [];
-  return conUsuario(s.claims, (tx) => tx.usuario.findMany({ where: { rol: "vendedor", archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }), s.ip);
+  return conUsuario(s.claims, (tx) => tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }), s.ip);
 }
 
 /** Movimientos del mes para el embudo de Hoy: etapas alcanzadas (historial) y pagos de la Afore (con RLS). */

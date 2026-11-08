@@ -7,11 +7,10 @@ import { bloquearCuenta, crearCuentaConClave, invitarCuenta, restablecerConClave
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { validarPlantilla } from "@/lib/contratos/plantilla";
 import { planNuevaVigencia, validarValor, type TipoParametro } from "@/lib/configuracion/parametros";
-import { conUsuario } from "@/lib/db/prisma";
+import { conUsuario, type Tx } from "@/lib/db/prisma";
 import { sumarDias as sumar } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { dominioApp } from "@/lib/url";
-import { recalcularComisiones } from "@/lib/dinero/motor";
 
 // `unaVez`: dato que se muestra una sola vez y no se guarda (la contraseña temporal).
 export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; unaVez?: { titulo: string; valor: string; nota?: string } };
@@ -92,15 +91,31 @@ export async function cambiarInhabil(fecha: string, activo: boolean): Promise<Re
 
 // ───────────── Usuarios ─────────────
 
-const ROLES = ["director", "asesor", "vendedor"] as const; // el asesor de pensiones (socio) y el referidor no llevan cuenta
+// Tres esquemas: Analista de expedientes (asesor), Asesor de pensiones (socio, con su ficha de reparto) y referidor (sin cuenta).
+const ROLES = ["director", "asesor", "socio"] as const;
 const esquemaUsuario = z.object({
   nombre: z.string().min(3, "Escribe el nombre completo").max(120),
   rol: z.enum(ROLES, { message: "Elige el rol" }),
   telefono: z.string().max(20).optional().transform((v) => (v ? v : null)),
-  // Vendedor: % propio de comisión del retiro, como fracción ("0.07"); vacío = el del esquema.
-  comision_pct: z.string().optional().transform((v) => (v ? Number(v) : null))
-    .pipe(z.number().gt(0, "Elige un porcentaje").lt(1, "Elige un porcentaje").nullable()),
+  // Asesor de pensiones: su ficha (% y costo del reparto). Vacío = se crea una nueva con su nombre.
+  socio_id: z.string().optional().transform((v) => (v && /^[0-9a-f-]{36}$/i.test(v) ? v : null)),
 });
+
+/** La ficha elegida existe y no la usa otra cuenta activa. */
+async function fichaLibre(tx: Tx, socioId: string | null, usuarioId?: string): Promise<string | null> {
+  if (!socioId) return null;
+  if (!(await tx.socio.findFirst({ where: { id: socioId, archivado_at: null }, select: { id: true } }))) return "Elige un asesor de la lista";
+  const otro = await tx.usuario.findFirst({ where: { socio_id: socioId, activo: true, ...(usuarioId ? { NOT: { id: usuarioId } } : {}) }, select: { nombre: true } });
+  return otro ? `Esa ficha ya es la cuenta de ${otro.nombre}` : null;
+}
+
+/** Ficha del asesor de pensiones: la elegida o una nueva con su nombre (% y costo por omisión, ajustables después). */
+async function ligarFicha(tx: Tx, d: { rol: string; socio_id: string | null; nombre: string; telefono: string | null }, email: string | null, creador: string): Promise<string | null> {
+  if (d.rol !== "socio") return null;
+  if (d.socio_id) return d.socio_id;
+  const nueva = await tx.socio.create({ data: { nombre: d.nombre, telefono: d.telefono, email, created_by: creador }, select: { id: true } });
+  return nueva.id;
+}
 
 export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Resultado> {
   const s = await director();
@@ -110,10 +125,13 @@ export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Res
   if (!r.success) return { errores: errores(r.error) };
   const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
   if (ya) return { errores: { email: "Ese correo ya es usuario del sistema" } };
+  const ocupada = r.data.rol === "socio" ? await conUsuario(s.claims, (tx) => fichaLibre(tx, r.data.socio_id), s.ip) : null;
+  if (ocupada) return { errores: { socio_id: ocupada } };
   const cuenta = await invitarCuenta(r.data.email);
   if (!cuenta.id) return { error: cuenta.error };
-  await conUsuario(s.claims, (tx) => tx.usuario.create({
-    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: null, telefono: r.data.telefono, created_by: s.usuario.id },
+  await conUsuario(s.claims, async (tx) => tx.usuario.create({
+    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, telefono: r.data.telefono, created_by: s.usuario.id,
+      socio_id: await ligarFicha(tx, r.data, r.data.email, s.usuario.id) },
     select: { id: true },
   }), s.ip);
   revalidatePath("/configuracion");
@@ -133,10 +151,13 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
   if (!r.success) return { errores: errores(r.error) };
   const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
   if (ya) return { errores: { email: "Ese correo ya es usuario del sistema" } };
+  const ocupada = r.data.rol === "socio" ? await conUsuario(s.claims, (tx) => fichaLibre(tx, r.data.socio_id), s.ip) : null;
+  if (ocupada) return { errores: { socio_id: ocupada } };
   const cuenta = await crearCuentaConClave(r.data.email);
   if (!cuenta.id || !cuenta.clave) return { error: cuenta.error };
-  await conUsuario(s.claims, (tx) => tx.usuario.create({
-    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: null, telefono: r.data.telefono, created_by: s.usuario.id },
+  await conUsuario(s.claims, async (tx) => tx.usuario.create({
+    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, telefono: r.data.telefono, created_by: s.usuario.id,
+      socio_id: await ligarFicha(tx, r.data, r.data.email, s.usuario.id) },
     select: { id: true },
   }), s.ip);
   await registrarCuenta(s, cuenta.id, "CLAVE_TEMPORAL");
@@ -182,16 +203,16 @@ export async function actualizarUsuario(id: string, _p: Resultado, form: FormDat
   if (!r.success) return { errores: errores(r.error) };
   // El Director no puede quitarse a sí mismo el rol: se quedaría fuera de Configuración.
   if (id === s.usuario.id && r.data.rol !== "director") return { errores: { rol: "No puedes quitarte el rol de Director a ti mismo" } };
-  await conUsuario(s.claims, (tx) => tx.usuario.update({
-    where: { id }, select: { id: true },
-    data: { nombre: r.data.nombre, rol: r.data.rol, socio_id: null, telefono: r.data.telefono,
-      comision_pct: r.data.rol === "vendedor" ? r.data.comision_pct : null },
-  }), s.ip);
-  // Sus comisiones no pagadas se recalculan con el % nuevo (las pagadas no cambian).
-  const casos = await conUsuario(s.claims, (tx) => tx.caso.findMany({ where: { vendedor_id: id }, select: { id: true } }), s.ip);
-  if (casos.length) {
-    try { await recalcularComisiones(casos.map((c) => c.id)); } catch (e) { console.error("[comisiones]", id, e); }
-  }
+  const res = await conUsuario(s.claims, async (tx) => {
+    const ocupada = r.data.rol === "socio" ? await fichaLibre(tx, r.data.socio_id, id) : null;
+    if (ocupada) return { errores: { socio_id: ocupada } };
+    const actual = await tx.usuario.findUnique({ where: { id }, select: { email: true, socio_id: true } });
+    // Si ya era asesor de pensiones y no se elige otra ficha, conserva la suya.
+    const socio_id = r.data.rol === "socio" ? await ligarFicha(tx, { ...r.data, socio_id: r.data.socio_id ?? actual?.socio_id ?? null }, actual?.email ?? null, s.usuario.id) : null;
+    await tx.usuario.update({ where: { id }, select: { id: true }, data: { nombre: r.data.nombre, rol: r.data.rol, socio_id, telefono: r.data.telefono } });
+    return null;
+  }, s.ip);
+  if (res) return res;
   revalidatePath("/configuracion");
   return { ok: true };
 }

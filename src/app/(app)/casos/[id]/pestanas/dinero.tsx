@@ -14,7 +14,7 @@ import { costoVigente } from "@/lib/reglas/costo-alta";
 import { hoyCDMX } from "@/lib/tiempo";
 import { BotonAccion } from "../../../configuracion/boton-accion";
 import { archivarPagoAfore, cambiarFechaPagoAfore, regresarAPagoEsperado, cancelarCobro, guardarCanal, guardarCostoAlta, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
-import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
+import { Campo, CampoTexto, claseSelect, Seleccion } from "../campos";
 import { Comprobante } from "../comprobante";
 import { FormularioAccion } from "../formulario-accion";
 
@@ -42,7 +42,6 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     modalidad: (await tx.calculo.findFirst({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, select: { modalidad_elegida: true } }))?.modalidad_elegida ?? null,
     cobros: await tx.cobro.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { created_at: "asc" }, include: { pago_afore: { select: { numero: true } } } }),
     comisiones: await tx.comision.findMany({ where: { caso_id: caso.id, archivado_at: null, estado: { not: "cancelada" } }, orderBy: { created_at: "asc" } }),
-    vendedores: puedeCanal ? await tx.usuario.findMany({ where: { rol: "vendedor", activo: true, archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
     referidores: puedeCanal ? await tx.referidor.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
     // Alta de la persona (su primer caso) y vigencias del costo general: solo para el Director.
     alta: rol === "director" ? await tx.caso.findFirst({ where: { persona_id: caso.persona_id, archivado_at: null }, orderBy: { created_at: "asc" }, select: { id: true, folio: true, created_at: true, costo_admin_alta: true } }) : null,
@@ -63,7 +62,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
   const costoGeneral = fechaAlta ? costoVigente(fechaAlta, d.vigCosto.map((v) => ({ desde: isoDe(v.vigente_desde)!, hasta: v.vigente_hasta ? isoDe(v.vigente_hasta) : null, monto: Number(v.valor) }))) : 0;
   const costoPropio = d.alta?.costo_admin_alta == null ? null : Number(d.alta.costo_admin_alta);
   const nombreDe = (tipo: string, id: string) =>
-    (tipo === "usuario" ? d.vendedores : tipo === "referidor" ? d.referidores : d.socios).find((x) => x.id === id)?.nombre ?? (tipo === "socio" ? "Socio" : "—");
+    (tipo === "referidor" ? d.referidores : tipo === "socio" ? d.socios : []).find((x) => x.id === id)?.nombre ?? (tipo === "socio" ? "Asesor de pensiones" : "—");
 
   return (
     <div className="grid gap-4">
@@ -287,7 +286,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
         <CardHeader><CardTitle>Comisiones del caso</CardTitle></CardHeader>
         <CardContent>
           {d.comisiones.length === 0 ? (
-            <p className="text-sm text-ink-muted">Sin comisiones. Nacen como estimadas al firmar el contrato si el caso tiene vendedor, referidor o asesor de pensiones.</p>
+            <p className="text-sm text-ink-muted">Sin comisiones. Nacen como estimadas al firmar el contrato si el caso tiene referidor o asesor de pensiones.</p>
           ) : (
             <Tabla encabezados={["Tipo", "Beneficiario", "Regla", "Monto", "Estado"]}>
               {d.comisiones.map((k) => {
@@ -311,20 +310,15 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
         <Card>
           <CardHeader><CardTitle>Canal</CardTitle><Banknote className="size-5 text-ink-muted" aria-hidden /></CardHeader>
           <CardContent>
-            <FormularioAccion accion={guardarCanal.bind(null, caso.id)} etiquetas={{ vendedor_id: "Vendedor" }}>
-              <div className="grid gap-3 sm:grid-cols-3">
-                <Lista id="vendedor_id" etiqueta="Vendedor" valor={caso.vendedor_id} opciones={d.vendedores} />
+            <FormularioAccion accion={guardarCanal.bind(null, caso.id)} etiquetas={{ socio_id: "Asesor de pensiones" }}>
+              <div className="grid gap-3 sm:grid-cols-2">
                 <Lista id="referidor_id" etiqueta="Referidor" valor={caso.referidor_id} opciones={d.referidores} />
                 <Lista id="socio_id" etiqueta="Asesor de pensiones" valor={caso.socio_id} opciones={d.socios} />
               </div>
-              {rol === "director" && <Casilla id="confirmo_doble" etiqueta="Confirmo que vendedor y referidor cobran ambos (si el caso tiene los dos)" />}
             </FormularioAccion>
             {/* Las listas solo muestran a quien ya está dado de alta: si alguna está vacía, se dice dónde darlo de alta. */}
-            {(d.vendedores.length === 0 || d.referidores.length === 0 || d.socios.length === 0) && (
+            {(d.referidores.length === 0 || d.socios.length === 0) && (
               <ul className="mt-3 grid gap-1 text-xs text-ink-muted">
-                {d.vendedores.length === 0 && (
-                  <li>No hay vendedores todavía: créalos con rol «Vendedor» en {rol === "director" ? <Link href="/configuracion?seccion=usuarios" className="text-brand underline">Configuración → Usuarios</Link> : "Configuración → Usuarios (Director)"}.</li>
-                )}
                 {d.referidores.length === 0 && (
                   <li>No hay referidores todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y asesores</Link>.</li>
                 )}

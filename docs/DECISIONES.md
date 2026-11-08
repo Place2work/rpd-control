@@ -283,3 +283,14 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Llevan cuenta: Director, Analista de expedientes y Vendedor. El asesor de pensiones y el referidor no entran al
   sistema: se dan de alta en Comisiones → Referidores y asesores y se eligen en cada caso. El asesor de pensiones
   conserva su reparto ((honorario sin IVA − su costo administrativo) × su %). Migración 2700 (nombre del esquema).
+
+## 8-nov-2026 · Tres esquemas (sin vendedor)
+
+- Solo hay tres figuras: **Analista de expedientes** (cuenta, sin comisión), **Asesor de pensiones** (cuenta, reparto
+  (honorario sin IVA − su costo) × su %, por omisión 40% y $500, ajustable por persona en Comisiones → Referidores y
+  asesores) y **Referidor** (sin cuenta, escalones mensuales). La entrada anterior sobre «sin cuenta» del asesor queda sustituida.
+- La cuenta de un asesor de pensiones se liga a su ficha (rol `socio` + `socio_id`): al crearla se elige una ficha
+  existente o se crea una nueva con su nombre. Una ficha no puede tener dos cuentas activas.
+- Vendedor: ya no se crean cuentas, no aparece en el canal ni en filtros, y sus esquemas se cerraron el 7-nov-2026
+  (migración 2800; no se borran). Los filtros y columnas de Prospectos, Casos y Clientes cerrados muestran al asesor de pensiones.
+- Al ajustar el reparto de un asesor se recalculan sus comisiones no pagadas; las pagadas no cambian.

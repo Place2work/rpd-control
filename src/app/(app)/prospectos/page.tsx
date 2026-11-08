@@ -27,7 +27,7 @@ const telefonoVisible = (e164: string | null) => (e164 ? e164.replace(/^\+52(\d{
 const select = "h-11 w-full rounded-[var(--radius-boton)] border border-borde bg-surface px-3 text-sm text-ink md:h-10";
 const SIN_CONTACTO = [["3", "3 días o más"], ["7", "7 días o más"], ["15", "15 días o más"], ["30", "30 días o más"]] as const;
 
-type Q = { q?: string; origen?: string; servicio?: string; vendedor?: string; regimen?: string; sin_contacto?: string; orden?: string };
+type Q = { q?: string; origen?: string; servicio?: string; asesor?: string; regimen?: string; sin_contacto?: string; orden?: string };
 
 export default async function Prospectos({ searchParams }: { searchParams: Promise<Q> }) {
   const sesion = await obtenerSesion();
@@ -50,12 +50,12 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
       ? fechaElegibleDesempleo(f.datos_imss.fecha_baja.toISOString().slice(0, 10), hoy, p).fecha : null,
     alta: f.created_at.toISOString(),
   })), hoy);
-  // Costo administrativo por alta (respeta el filtro de vendedor).
-  const altasVistas = costos ? costos.altas.filter((a) => !filtro.vendedor || (filtro.vendedor === "sin" ? a.vendedorId === null : a.vendedorId === filtro.vendedor)) : [];
+  // Costo administrativo por alta (respeta el filtro de asesor de pensiones).
+  const altasVistas = costos ? costos.altas.filter((a) => !filtro.asesor || (filtro.asesor === "sin" ? a.asesorId === null : a.asesorId === filtro.asesor)) : [];
   const costoMes = costos ? costoAdministrativo(altasVistas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
   const costoTotal = costos ? costoAdministrativo(altasVistas, costos.vigencias) : null;
   const costoHoy = costos ? costoVigente(hoy, costos.vigencias) : 0;
-  const conFiltros = Boolean(filtro.origen || filtro.servicio || filtro.vendedor || filtro.regimen || minimoSinContacto);
+  const conFiltros = Boolean(filtro.origen || filtro.servicio || filtro.asesor || filtro.regimen || minimoSinContacto);
 
   return (
     <>
@@ -84,10 +84,10 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                     <select id="f-servicio" name="servicio" defaultValue={filtro.servicio ?? ""} className={select}>
                       <option value="">Todos</option>{opciones.servicios.map((s) => <option key={s.clave} value={s.clave}>{s.nombre}</option>)}
                     </select></div>
-                  <div className="grid gap-1.5"><Label htmlFor="f-vendedor">Vendedor</Label>
-                    <select id="f-vendedor" name="vendedor" defaultValue={filtro.vendedor ?? ""} className={select}>
-                      <option value="">Todos</option><option value="sin">Sin vendedor</option>
-                      {opciones.vendedores.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
+                  <div className="grid gap-1.5"><Label htmlFor="f-asesor">Asesor de pensiones</Label>
+                    <select id="f-asesor" name="asesor" defaultValue={filtro.asesor ?? ""} className={select}>
+                      <option value="">Todos</option><option value="sin">Sin asesor</option>
+                      {opciones.asesores.map((u) => <option key={u.id} value={u.id}>{u.nombre}</option>)}
                     </select></div>
                   <div className="grid gap-1.5"><Label htmlFor="f-regimen">Régimen</Label>
                     <select id="f-regimen" name="regimen" defaultValue={filtro.regimen ?? ""} className={select}>
@@ -170,7 +170,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                 </div>
               </dl>
               <p className="text-xs text-ink-muted">
-                {mxn(costoHoy)} por cada prospecto dado de alta, salvo las altas con costo propio (pestaña Dinero del caso){filtro.vendedor ? " · solo del vendedor filtrado" : ""}.
+                {mxn(costoHoy)} por cada prospecto dado de alta, salvo las altas con costo propio (pestaña Dinero del caso){filtro.asesor ? " · solo del asesor filtrado" : ""}.
                 {sesion.usuario.rol === "director" && <> Cámbialo en <Link href="/configuracion?seccion=parametros" className="text-brand underline">Configuración → Parámetros</Link>.</>}
               </p>
             </CardContent>

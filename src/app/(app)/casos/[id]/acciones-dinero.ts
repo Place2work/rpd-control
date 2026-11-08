@@ -290,25 +290,18 @@ export async function cancelarCobro(casoId: string, cobroId: string, _p: Resulta
 
 export async function guardarCanal(casoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const { claims, ip, usuario } = await obtenerSesion();
-  if (usuario.rol !== "director" && usuario.rol !== "asesor") return { error: "Solo el Director o el asesor cambian el canal." };
+  if (usuario.rol !== "director" && usuario.rol !== "asesor") return { error: "Solo el Director o el analista cambian el canal." };
   const uuid = (k: string) => {
     const v = String(form.get(k) ?? "");
     return /^[0-9a-f-]{36}$/i.test(v) ? v : null;
   };
-  const vendedor_id = uuid("vendedor_id");
+  // Esquemas vigentes: referidor y asesor de pensiones (ya no hay vendedor).
   const referidor_id = uuid("referidor_id");
   const socio_id = uuid("socio_id");
-  // Vendedor y referidor a la vez: lo confirma Irving (9.1).
-  if (vendedor_id && referidor_id && (usuario.rol !== "director" || form.get("confirmo_doble") !== "si")) {
-    return { error: usuario.rol === "director"
-      ? "El caso tendría vendedor y referidor: marca la casilla para confirmar que ambos cobran comisión."
-      : "Un caso con vendedor y referidor a la vez lo confirma el Director." };
-  }
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
-    if (vendedor_id && !(await tx.usuario.findFirst({ where: { id: vendedor_id, rol: "vendedor", activo: true }, select: { id: true } }))) return { errores: { vendedor_id: "No es un vendedor activo" } };
-    const n = await tx.caso.updateMany({ where: { id: casoId }, data: { vendedor_id, referidor_id, socio_id } });
+    const n = await tx.caso.updateMany({ where: { id: casoId }, data: { referidor_id, socio_id } });
     if (!n.count) return { error: "No encontramos el caso." };
-    await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id, texto: "Se actualizó el canal (vendedor, referidor o asesor de pensiones)" } });
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id, texto: "Se actualizó el canal (referidor o asesor de pensiones)" } });
     return { ok: true };
   }, ip);
   if (res.ok) await despues(casoId);

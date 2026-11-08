@@ -163,3 +163,20 @@ describe("costo administrativo propio de un alta (solo el Director)", () => {
     await como(U.asesor, "UPDATE casos SET prioridad = 'alta' WHERE id = $1", [C1]);
   });
 });
+
+describe("tres esquemas: analista, asesor de pensiones y referidor", () => {
+  it("desde el 8-nov-2026 no hay esquema de vendedor vigente; el de asesor de pensiones y el de referidor siguen", async () => {
+    const vig = async (tipo: string) => (await db.query(
+      "SELECT count(*)::int n FROM esquemas_comision WHERE tipo = $1 AND vigente_desde <= DATE '2026-11-08' AND (vigente_hasta IS NULL OR vigente_hasta >= DATE '2026-11-08')", [tipo])).rows[0].n;
+    expect(await vig("vendedor")).toBe(0);
+    expect(await vig("socio")).toBeGreaterThan(0);
+    expect(await vig("referido")).toBeGreaterThan(0);
+  });
+  it("el asesor de pensiones da de alta en su cartera y solo el Director ajusta su reparto", async () => {
+    const [u] = await como<{ socio_id: string }>(U.socio, "SELECT socio_id FROM usuarios WHERE id = $1", [U.socio]);
+    expect(u.socio_id).toBe(SOCIO);
+    await expect(como(U.socio, "UPDATE socios SET porcentaje_socio = 0.9 WHERE id = $1 RETURNING id", [SOCIO])).resolves.toHaveLength(0);
+    expect(await como(U.director, "UPDATE socios SET porcentaje_socio = 0.35 WHERE id = $1 RETURNING id", [SOCIO])).toHaveLength(1);
+    await db.query("UPDATE socios SET porcentaje_socio = 0.40 WHERE id = $1", [SOCIO]);
+  });
+});

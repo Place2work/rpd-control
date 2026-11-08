@@ -49,6 +49,7 @@ const seleccionLista = {
   persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true, whatsapp: true, origen: true } },
   servicio: { select: { clave: true, nombre: true, embudo: true } },
   vendedor: { select: { id: true, nombre: true } },
+  socio: { select: { id: true, nombre: true } },
   asignado: { select: { id: true, nombre: true } },
   datos_imss: { select: { fecha_baja: true, regimen: true } },
   eventos: { where: { archivado_at: null }, select: { fecha: true }, orderBy: { fecha: "desc" as const }, take: 1 },
@@ -56,15 +57,15 @@ const seleccionLista = {
 
 export type FilaProspecto = Prisma.CasoGetPayload<{ select: typeof seleccionLista }>;
 
-export type FiltrosProspecto = { origen?: string; servicio?: string; vendedor?: string; regimen?: string };
+export type FiltrosProspecto = { origen?: string; servicio?: string; asesor?: string; regimen?: string };
 
-/** Filtros de la lista (10.2). Los valores desconocidos se ignoran; «sin» en vendedor = sin vendedor. */
+/** Filtros de la lista (10.2). Los valores desconocidos se ignoran; «sin» en asesor = sin asesor de pensiones. */
 function whereFiltros(f: FiltrosProspecto): Prisma.CasoWhereInput {
   const w: Prisma.CasoWhereInput = {};
   if (f.origen && (Object.values(Origen) as string[]).includes(f.origen)) w.persona = { origen: f.origen as Origen };
   if (f.servicio && /^[A-Z0-9_]{2,40}$/.test(f.servicio)) w.servicio = { clave: f.servicio };
-  if (f.vendedor === "sin") w.vendedor_id = null;
-  else if (f.vendedor && /^[0-9a-f-]{36}$/i.test(f.vendedor)) w.vendedor_id = f.vendedor;
+  if (f.asesor === "sin") w.socio_id = null;
+  else if (f.asesor && /^[0-9a-f-]{36}$/i.test(f.asesor)) w.socio_id = f.asesor;
   if (f.regimen === "por_definir") w.OR = [{ datos_imss: null }, { datos_imss: { regimen: "por_definir" } }];
   else if (f.regimen === "L73" || f.regimen === "L97") w.datos_imss = { regimen: f.regimen };
   return w;
@@ -92,13 +93,13 @@ export async function listarProspectos({ claims, ip }: Sesion, q = "", filtros: 
   );
 }
 
-/** Lo que llenan los filtros de Prospectos: servicios activos y quién puede vender. */
+/** Lo que llenan los filtros de Prospectos: servicios activos y asesores de pensiones. */
 export async function opcionesFiltrosProspecto({ claims, ip }: Sesion) {
   return conUsuario(
     claims,
     async (tx) => ({
       servicios: await tx.tipoServicio.findMany({ where: { activo: true }, select: { clave: true, nombre: true }, orderBy: { orden: "asc" } }),
-      vendedores: await tx.usuario.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+      asesores: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
     }),
     ip,
   );
@@ -128,6 +129,7 @@ export async function obtenerCaso({ claims, ip }: Sesion, id: string) {
           servicio: { select: { clave: true, nombre: true, embudo: true } },
           asignado: { select: { nombre: true } },
           vendedor: { select: { nombre: true } },
+          socio: { select: { nombre: true } },
           referidor: { select: { nombre: true } },
           datos_imss: true,
           datos_afore: true,

@@ -129,7 +129,7 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
             <Dato titulo="Ingreso a la Afore" valor={caso.fecha_ingreso_solicitud ? `${largo(isoDe(caso.fecha_ingreso_solicitud))} · acuse ${caso.acuse_afore ?? "—"}` : "—"} />
             <Dato titulo="Límite de resolución de la Afore" valor={largo(isoDe(caso.fecha_limite_resolucion))} />
             <Dato titulo="Origen" valor={ETIQUETA_ORIGEN[caso.persona.origen] ?? caso.persona.origen} />
-            <Dato titulo="Vendedor · referidor" valor={`${caso.vendedor?.nombre ?? "—"} · ${caso.referidor?.nombre ?? "—"}`} />
+            <Dato titulo="Asesor de pensiones · referidor" valor={`${caso.socio?.nombre ?? "—"} · ${caso.referidor?.nombre ?? "—"}`} />
           </dl>
           <p className="mt-4 text-xs text-ink-muted">Todas las fechas y montos son estimados hasta que se verifican con los documentos y la Afore paga.</p>
         </CardContent>

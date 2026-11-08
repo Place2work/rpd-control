@@ -71,9 +71,9 @@ export default async function ClientesCerrados({ searchParams }: { searchParams:
             <div className="grid gap-1.5"><Label htmlFor="mes">Mes de cierre</Label>
               <input id="mes" name="mes" type="month" defaultValue={filtros.mes ?? ""} max={hoy.slice(0, 7)} className={select} /></div>
             {vendedores.length > 0 && (
-              <div className="grid gap-1.5"><Label htmlFor="vendedor">Vendedor</Label>
+              <div className="grid gap-1.5"><Label htmlFor="vendedor">Asesor de pensiones</Label>
                 <select id="vendedor" name="vendedor" defaultValue={filtros.vendedor ?? ""} className={select}>
-                  <option value="">Todos</option><option value="sin">Sin vendedor</option>
+                  <option value="">Todos</option><option value="sin">Sin asesor</option>
                   {vendedores.map((v) => <option key={v.id} value={v.id}>{v.nombre}</option>)}
                 </select></div>
             )}

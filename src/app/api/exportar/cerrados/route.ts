@@ -21,7 +21,7 @@ export async function GET(req: NextRequest) {
     nombre: "Clientes cerrados", titulo: `RetiroPorDesempleo.com · clientes cerrados al ${hoy}`,
     columnas: [
       { clave: "folio", titulo: "Folio" }, { clave: "cliente", titulo: "Cliente", ancho: 32 }, { clave: "servicio", titulo: "Servicio", ancho: 22 },
-      { clave: "vendedor", titulo: "Vendedor", ancho: 20 }, { clave: "cerrado", titulo: "Cerrado", tipo: "fecha", ancho: 12 },
+      { clave: "vendedor", titulo: "Asesor de pensiones", ancho: 22 }, { clave: "cerrado", titulo: "Cerrado", tipo: "fecha", ancho: 12 },
       { clave: "deposito", titulo: "Depósito Afore", tipo: "fecha", ancho: 14 }, { clave: "neto", titulo: "Monto retirado", tipo: "pesos", ancho: 16 },
       { clave: "honorario", titulo: "Honorario cobrado", tipo: "pesos", ancho: 18 }, { clave: "comprobante", titulo: "Comprobante", ancho: 12 },
       { clave: "proximo", titulo: "Próximo retiro", tipo: "fecha", ancho: 14 },

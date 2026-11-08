@@ -7,7 +7,7 @@ import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
 import { CampoTexto } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { crearReferidor, crearSocio } from "../acciones";
+import { actualizarReparto, crearReferidor, crearSocio } from "../acciones";
 
 export const metadata: Metadata = { title: "Referidores y asesores" };
 
@@ -18,7 +18,7 @@ export default async function Beneficiarios() {
   const director = sesion.usuario.rol === "director";
   const { referidores, socios } = await conUsuario(sesion.claims, async (tx) => ({
     referidores: await tx.referidor.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true, telefono: true, banco: true, clabe_ultimos4: true, _count: { select: { casos: true } } }, orderBy: { nombre: "asc" } }),
-    socios: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true, rfc: true, porcentaje_socio: true, costo_administrativo: true, clabe_ultimos4: true, _count: { select: { casos: true } } }, orderBy: { nombre: "asc" } }),
+    socios: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true, rfc: true, porcentaje_socio: true, costo_administrativo: true, clabe_ultimos4: true, usuarios: { where: { activo: true }, select: { email: true } }, _count: { select: { casos: true } } }, orderBy: { nombre: "asc" } }),
   }), sesion.ip);
 
   return (
@@ -63,10 +63,25 @@ export default async function Beneficiarios() {
           <CardContent className="grid gap-4">
             <ul className="divide-y divide-borde text-sm">
               {socios.map((s) => (
-                <li key={s.id} className="flex justify-between gap-2 py-2">
+                <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2">
                   <span><span className="font-medium text-ink">{s.nombre}</span>
                     <span className="block text-xs text-ink-muted">{Number(s.porcentaje_socio) * 100}% después de {mxn(s.costo_administrativo)} administrativos{s.rfc ? ` · ${s.rfc}` : ""}{s.clabe_ultimos4 ? ` · CLABE ···${s.clabe_ultimos4}` : ""}</span></span>
                   <span className="text-xs text-ink-muted">{s._count.casos} {s._count.casos === 1 ? "caso" : "casos"}</span>
+                  <span className="basis-full text-xs text-ink-muted">{s.usuarios[0] ? `Con cuenta: ${s.usuarios[0].email}` : "Sin cuenta · créasela en Configuración → Usuarios con rol «Asesor de pensiones»"}</span>
+                  {director && (
+                    <details className="basis-full">
+                      <summary className="cursor-pointer text-xs font-medium text-brand">Ajustar reparto</summary>
+                      <div className="mt-2">
+                        <FormularioAccion accion={actualizarReparto.bind(null, s.id)} boton="Guardar reparto" etiquetas={ETIQUETAS}>
+                          <div className="grid gap-3 sm:grid-cols-2">
+                            <CampoTexto id="porcentaje_socio" etiqueta="% del asesor" valor={+(Number(s.porcentaje_socio) * 100).toFixed(2)} inputMode="decimal" />
+                            <CampoTexto id="costo_administrativo" etiqueta="Costo administrativo que se descuenta" valor={Number(s.costo_administrativo)} inputMode="decimal" />
+                          </div>
+                          <p className="text-xs text-ink-muted">Fórmula: (honorario sin IVA − costo) × %. Sus comisiones sin pagar se recalculan; las pagadas no cambian.</p>
+                        </FormularioAccion>
+                      </div>
+                    </details>
+                  )}
                 </li>
               ))}
             </ul>

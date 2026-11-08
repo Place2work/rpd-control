@@ -118,14 +118,15 @@ const INHABILES: [string, string, string][] = [
 ];
 
 // ───────────── Esquemas de comisión (9.1) ─────────────
-const ESQUEMAS: { nombre: string; tipo: "vendedor" | "referido" | "socio"; servicio: string | null; reglas: Prisma.InputJsonValue }[] = [
+// El vendedor dejó de usarse el 8-nov-2026 (tres esquemas: analista, asesor de pensiones y referidor): queda cerrado.
+const ESQUEMAS: { nombre: string; tipo: "vendedor" | "referido" | "socio"; servicio: string | null; reglas: Prisma.InputJsonValue; hasta?: string }[] = [
   { nombre: "Vendedor estándar", tipo: "vendedor", servicio: "RETIRO_DESEMPLEO",
-    reglas: { tipo: "porcentaje", pct: 0.05, base: "monto_afore", devenga: "pago_afore_y_cobro" } },
+    reglas: { tipo: "porcentaje", pct: 0.05, base: "monto_afore", devenga: "pago_afore_y_cobro" }, hasta: "2026-11-07" },
   { nombre: "Vendedor estándar", tipo: "vendedor", servicio: "FALLECIMIENTO",
     reglas: { tipo: "compuesto", componentes: [
       { clave: "pago_inicial", fijo_param: "FALLEC_COMISION_INICIAL" },
       { clave: "recuperado", pct_param: "FALLEC_COMISION_PCT_RECUPERADO" },
-      { clave: "primera_mensualidad", fijo_param: "FALLEC_COMISION_MENSUALIDAD" } ] } },
+      { clave: "primera_mensualidad", fijo_param: "FALLEC_COMISION_MENSUALIDAD" } ] }, hasta: "2026-11-07" },
   { nombre: "Referidor", tipo: "referido", servicio: null,
     reglas: { tipo: "escalonado_mensual", cuenta: "honorario_cobrado", escalones: [
       { desde: 1, hasta: 2, monto: 1000 }, { desde: 3, hasta: 10, monto: 2000 }, { desde: 11, hasta: null, monto: 3000 } ] } },
@@ -192,7 +193,7 @@ async function main() {
     const existe = await prisma.esquemaComision.findFirst({ where: { nombre: e.nombre, tipo_servicio: e.servicio, version: 1 } });
     if (!existe) {
       await prisma.esquemaComision.create({
-        data: { nombre: e.nombre, tipo: e.tipo, tipo_servicio: e.servicio, version: 1, reglas: e.reglas, vigente_desde: d("2026-01-01") },
+        data: { nombre: e.nombre, tipo: e.tipo, tipo_servicio: e.servicio, version: 1, reglas: e.reglas, vigente_desde: d("2026-01-01"), vigente_hasta: e.hasta ? d(e.hasta) : null },
       });
     }
   }

@@ -7,7 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Input, Label } from "@/components/ui/input";
 import type { Columna } from "./tablero";
 
-export type FilaCaso = { id: string; folio: string; nombre: string; servicio: string; etapa: string; diasEtapa: number; asignado: string; vendedor: string; alta: string };
+export type FilaCaso = { id: string; folio: string; nombre: string; servicio: string; etapa: string; diasEtapa: number; asignado: string; asesor: string; alta: string };
 type Orden = "diasEtapa" | "folio" | "nombre" | "alta";
 type Grupo = "activos" | "cerrados" | "todos";
 const enGrupo = (f: FilaCaso, g: Grupo) => g === "todos" || (g === "cerrados" ? f.etapa === "CERRADO" : f.etapa !== "CERRADO" && f.etapa !== "PERDIDO");
@@ -74,7 +74,7 @@ export function TablaCasos({ filas, columnas }: { filas: FilaCaso[]; columnas: C
           <thead className="border-b border-borde text-xs text-ink-muted">
             <tr>{encabezado("folio", "Folio")}{encabezado("nombre", "Cliente")}<th scope="col" className="px-3 py-2 font-medium">Servicio</th>
               <th scope="col" className="px-3 py-2 font-medium">Etapa</th>{encabezado("diasEtapa", "Días en etapa")}
-              <th scope="col" className="px-3 py-2 font-medium">Asignado</th><th scope="col" className="px-3 py-2 font-medium">Vendedor</th>{encabezado("alta", "Alta")}</tr>
+              <th scope="col" className="px-3 py-2 font-medium">Analista</th><th scope="col" className="px-3 py-2 font-medium">Asesor de pensiones</th>{encabezado("alta", "Alta")}</tr>
           </thead>
           <tbody>
             {vista.length === 0 ? (
@@ -89,7 +89,7 @@ export function TablaCasos({ filas, columnas }: { filas: FilaCaso[]; columnas: C
                   <td className="px-3 py-2"><Badge tono={c?.tono ?? "prospecto"}>{c?.titulo ?? f.etapa}</Badge></td>
                   <td className="cifra px-3 py-2">{f.diasEtapa}</td>
                   <td className="px-3 py-2 text-ink-muted">{f.asignado}</td>
-                  <td className="px-3 py-2 text-ink-muted">{f.vendedor}</td>
+                  <td className="px-3 py-2 text-ink-muted">{f.asesor}</td>
                   <td className="cifra px-3 py-2 text-ink-muted">{f.alta}</td>
                 </tr>
               );
