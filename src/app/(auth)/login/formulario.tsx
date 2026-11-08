@@ -7,6 +7,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { InputClave } from "@/components/ui/input-clave";
+import { pedirRecuperacion } from "./acciones";
 
 // Recuperar por correo solo cuando Supabase tenga SMTP propio (Resend); sin él, el correo no llega.
 // Se prende con NEXT_PUBLIC_RECUPERAR_POR_CORREO=1 en Vercel y un nuevo despliegue.
@@ -33,9 +34,7 @@ export function FormularioLogin({ aviso }: { aviso?: string }) {
   // La respuesta es la misma exista o no la cuenta, para no revelar qué correos están registrados.
   async function recuperar(form: FormData) {
     setEnviando(true);
-    await crearClienteNavegador().auth.resetPasswordForEmail(String(form.get("email")), {
-      redirectTo: `${window.location.origin}/auth/callback`,
-    });
+    await pedirRecuperacion(String(form.get("email"))).catch(() => null);
     setEnviando(false);
     setModo("enviado");
   }

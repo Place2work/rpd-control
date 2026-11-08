@@ -412,3 +412,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   muestra sin registrar que se generó.
 - Cada activación queda en la bitácora (`registrar_accion_cuenta(..., 'VER_COMO')`, migración 3100). Salir borra la
   cookie; cerrar sesión también.
+
+## 8-nov-2026 · Recuperar contraseña en cualquier dispositivo
+
+- Con Resend activo, la liga de recuperación fallaba al abrirla en otro dispositivo: el navegador pedía el correo en
+  flujo PKCE (la liga solo se canjea donde se pidió). Ahora la solicitud sale del servidor (`pedirRecuperacion`,
+  flujo implícito) y la liga abre en cualquier dispositivo. Las invitaciones ya salían del servidor.
+- Plantillas de Supabase: «Reset password» e «Invite user» en español; sirven con `{{ .ConfirmationURL }}` o con
+  `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=…` (el callback acepta ambos).
