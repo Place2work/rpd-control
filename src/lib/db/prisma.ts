@@ -34,6 +34,8 @@ export type Tx = Parameters<Parameters<typeof base.$transaction>[0]>[0];
 
 export async function conUsuario<T>(claims: ClaimsUsuario, fn: (tx: Tx) => Promise<T>, ip?: string | null): Promise<T> {
   return base.$transaction(async (tx) => {
+    // «Ver como asesor» (Director): la base de datos rechaza cualquier escritura en esta transacción.
+    if (claims.ver_como === true) await tx.$executeRawUnsafe("SET TRANSACTION READ ONLY");
     await tx.$executeRaw`SELECT
       set_config('request.jwt.claims', ${JSON.stringify(claims)}, true),
       set_config('request.headers', ${JSON.stringify({ "x-forwarded-for": ip ?? "" })}, true)`;

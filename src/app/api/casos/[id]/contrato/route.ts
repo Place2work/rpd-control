@@ -33,7 +33,8 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
     bloques: bloques(texto), firmas: r.firmas[clase], fecha: r.fecha,
   });
 
-  await conUsuario(s.claims, async (tx) => {
+  // En «Ver como» (solo lectura) se muestra el PDF sin registrar que se generó.
+  if (!s.verComo) await conUsuario(s.claims, async (tx) => {
     if (clase === "contrato") await tx.caso.update({ where: { id }, data: { contrato_generado_at: new Date() }, select: { id: true } });
     await tx.evento.create({ data: { caso_id: id, tipo: "documento", usuario_id: s.usuario.id, texto: `Se generó ${clase === "contrato" ? "el contrato" : "el aviso de privacidad"} (plantilla v${plantilla.version})` } });
   }, s.ip);

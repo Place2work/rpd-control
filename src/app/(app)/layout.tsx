@@ -7,8 +7,9 @@ import { Marca } from "@/components/rpd/marca";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 import { modoDemo } from "@/lib/auth/demo";
 import { contarMisAlertas } from "@/lib/alertas/consultas";
-import { obtenerSesion } from "@/lib/auth/sesion";
-import { cerrarSesion } from "./acciones";
+import { cookies } from "next/headers";
+import { COOKIE_AVISO_LECTURA, obtenerSesion } from "@/lib/auth/sesion";
+import { cerrarSesion, salirVerComo } from "./acciones";
 
 // Toda pantalla de la app depende del usuario (rol, RLS), así que la navegación espera
 // a la sesión en el servidor. Guía de Next 16 "Authentication with Cache Components".
@@ -28,11 +29,21 @@ async function Estructura({ children }: { children: React.ReactNode }) {
   const { usuario } = sesion;
   const demo = modoDemo();
   const alertas = await contarMisAlertas(sesion).catch(() => ({ total: 0, criticas: 0 }));
+  const avisoLectura = sesion.verComo ? (await cookies()).get(COOKIE_AVISO_LECTURA)?.value === "1" : false;
   return (
     <>
       <BarraLateral rol={usuario.rol} />
       <div className="md:pl-60">
-        <div className="sticky top-0 z-20 flex h-14 items-center justify-between gap-3 border-b border-borde bg-surface/95 px-4 backdrop-blur md:px-8">
+        {sesion.verComo && (
+          <div role="status" className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 border-b border-yellow-300 bg-yellow-100 px-4 py-2 text-sm text-ink md:px-8">
+            <p><span className="font-semibold">Estás viendo como {usuario.nombre}</span> · Asesor de pensiones · solo lectura: nada de lo que hagas aquí se guarda.
+              {avisoLectura && <span className="ml-2 font-semibold text-aviso">No se guardó: sal de «Ver como» para hacer cambios.</span>}</p>
+            <form action={salirVerComo}>
+              <button type="submit" className="rounded-[var(--radius-boton)] bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-ink/90">Salir y volver a Director</button>
+            </form>
+          </div>
+        )}
+        <div className={`sticky ${sesion.verComo ? "top-10" : "top-0"} z-20 flex h-14 items-center justify-between gap-3 border-b border-borde bg-surface/95 px-4 backdrop-blur md:px-8`}>
           <Marca className="origin-left scale-90 md:invisible" />
           <div className="flex items-center gap-3">
             {demo && <span className="hidden rounded-full bg-aviso-tint px-2.5 py-0.5 text-xs font-medium text-aviso sm:inline">Modo demostración</span>}

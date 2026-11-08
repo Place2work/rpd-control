@@ -401,3 +401,14 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   y correo, y la ficha vacía se archivó (sin borrar).
 - Prevención (`fichaParecida`): al crear un asesor con ficha nueva, si ya hay una ficha sin cuenta con el mismo
   teléfono o nombre, se pide elegirla (con correo) o editarla (sin correo). Se revisa antes de crear la cuenta en Auth.
+
+## 8-nov-2026 · «Ver como asesor» (Director, solo lectura)
+
+- Configuración → Usuarios: botón «Ver como» en cada asesor de pensiones con cuenta activa. Guarda una cookie httpOnly
+  (2 h) con su id; `obtenerSesion` solo la respeta si quien entra es Director, y entonces la sesión toma la identidad
+  del asesor (RLS con su id) con `ver_como: true` en los claims.
+- Solo lectura en dos capas: `conUsuario` abre la transacción con `SET TRANSACTION READ ONLY`, y toda acción de
+  servidor se detiene antes de tocar datos (aviso «No se guardó» en la barra amarilla). El contrato en PDF se
+  muestra sin registrar que se generó.
+- Cada activación queda en la bitácora (`registrar_accion_cuenta(..., 'VER_COMO')`, migración 3100). Salir borra la
+  cookie; cerrar sesión también.

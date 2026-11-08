@@ -180,3 +180,23 @@ describe("tres esquemas: analista, asesor de pensiones y referidor", () => {
     await db.query("UPDATE socios SET porcentaje_socio = 0.40 WHERE id = $1", [SOCIO]);
   });
 });
+
+describe("ver como asesor (Director, solo lectura)", () => {
+  it("solo el Director registra VER_COMO en la bitácora; con transacción de solo lectura no se escribe nada", async () => {
+    await como(U.director, "SELECT app.registrar_accion_cuenta($1::uuid, 'VER_COMO')", [U.socio]);
+    expect((await db.query("SELECT count(*)::int n FROM auditoria.auditoria WHERE accion = 'VER_COMO' AND registro_id = $1", [U.socio])).rows[0].n).toBe(1);
+    await expect(como(U.asesor, "SELECT app.registrar_accion_cuenta($1::uuid, 'VER_COMO')", [U.socio])).rejects.toThrow(/Solo el Director/);
+    // Así corre conUsuario en «ver como»: identidad del asesor y READ ONLY.
+    await db.query("BEGIN");
+    try {
+      await db.query("SET TRANSACTION READ ONLY");
+      await db.query("SELECT set_config('request.jwt.claims', $1, true)", [JSON.stringify({ sub: U.socio, aal: "aal2", role: "authenticated", ver_como: true })]);
+      await db.query("SET LOCAL ROLE authenticated");
+      const visibles = await db.query("SELECT id FROM casos WHERE id = $1", [C1]);
+      expect(visibles.rowCount).toBe(1); // C1 es de la cartera del socio
+      await expect(db.query("UPDATE casos SET prioridad = 'alta' WHERE id = $1", [C1])).rejects.toThrow(/read-only/);
+    } finally {
+      await db.query("ROLLBACK");
+    }
+  });
+});

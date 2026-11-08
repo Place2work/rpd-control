@@ -6,6 +6,7 @@ import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { actualizarFicha, actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearCuentaAsesor, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
+import { verComo } from "../../acciones";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 
 // Llevan cuenta: Analista de expedientes, Asesor de pensiones y Director. El referidor no entra al sistema.
@@ -45,6 +46,11 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                   <div className="flex items-center gap-2">
                     <Badge tono={u.rol === "director" ? "tramite" : "prospecto"}>{ETIQUETA_ROL[u.rol]}</Badge>
                     {!u.activo && <Badge tono="critico">Sin acceso</Badge>}
+                    {u.activo && u.rol === "socio" && (
+                      <form action={verComo.bind(null, u.id)}>
+                        <button type="submit" className="h-9 rounded-[var(--radius-boton)] border border-brand px-3 text-sm font-medium text-brand hover:bg-brand-tint">Ver como</button>
+                      </form>
+                    )}
                     {u.id !== sesion.usuario.id && (
                       <BotonAccion accion={cambiarAcceso.bind(null, u.id, !u.activo)} texto={u.activo ? "Quitar acceso" : "Dar acceso"} variante={u.activo ? "fantasma" : "secundario"}
                         confirmar={u.activo ? `¿Quitar el acceso a ${u.nombre}? No podrá entrar ni ver datos. Su historial se conserva.` : undefined} />
