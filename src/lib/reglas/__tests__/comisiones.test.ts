@@ -1,7 +1,7 @@
 // Casos de la sección 9 y 14.1 (T11, T12, T13) con los parámetros de la sección 14.
 import { describe, expect, it } from "vitest";
 import {
-  facturaAsesor, gananciaProyectada, proyectarComisiones, honorarioParaProyectar, comisionesProyectadasPorPagar,
+  casosPorBeneficiario, facturaAsesor, gananciaProyectada, proyectarComisiones, honorarioParaProyectar, comisionesProyectadasPorPagar,
   alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
   honorariosProyectados, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro, type CasoProyectable,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
@@ -284,5 +284,19 @@ describe("ganancia proyectada", () => {
     expect(g.ganancia).toBe(65436.48);
     // IVA del honorario 13,106.36 − IVA acreditable 3,322.02 = 9,784.34
     expect(g).toEqual({ ganancia: 65436.48, ivaNeto: 9784.34, gananciaSinIva: 55652.14 });
+  });
+});
+
+describe("casos por beneficiario y familia de servicio", () => {
+  it("EMMANUEL con un retiro y una pensión; el referidor cuenta aparte; Infonavit va en otros", () => {
+    const e = { id: "e", nombre: "EMMANUEL" }, r = { id: "r", nombre: "Ref" };
+    const t = casosPorBeneficiario([
+      { servicio: "RETIRO_DESEMPLEO", asesor: e, referidor: null }, { servicio: "PENSION_L73", asesor: e, referidor: r },
+      { servicio: "DEVOLUCION_INFONAVIT", asesor: e, referidor: null }, { servicio: "PENSION_L97", asesor: null, referidor: null },
+    ]);
+    expect(t).toEqual([
+      { clave: "socio:e", nombre: "EMMANUEL", tipo: "socio", retiro: 1, pensiones: 1, otros: 1 },
+      { clave: "referidor:r", nombre: "Ref", tipo: "referido", retiro: 0, pensiones: 1, otros: 0 },
+    ]);
   });
 });

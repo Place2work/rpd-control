@@ -68,6 +68,16 @@ export default async function Hoy() {
   const cascada = dinero && ganancia ? cascadaGanancia({ cobrado: dinero.cobradoTotal, proyectado: honorariosProy, comisiones: comisionesTodas, altas: costoTotal?.total ?? 0 }) : null;
   const flujo = dinero && proy ? flujoHonorarios({ hoy, cobradosPorMes: dinero.meses.map((m) => ({ mes: m.mes, total: m.total })), porCobrar: dinero.porCobrar,
     proyectados: proy.filas.map((f) => ({ fecha: f.fechaEstimada, honorario: f.honorario })) }) : null;
+  // Tabla por beneficiario: casos por familia de servicio (retiro, pensiones, otros) + montos de los retiros.
+  const filasBenef = comProy ? [...new Set([...comProy.conteos.map((c) => c.clave), ...comProy.porBeneficiario.map((b) => b.clave)])].map((clave) => {
+    const c = comProy.conteos.find((x) => x.clave === clave);
+    const b = comProy.porBeneficiario.find((x) => x.clave === clave);
+    const devengado = comProy.filas.filter((f) => f.clave === clave && f.origen === "devengada").reduce((a, f) => a + Math.round(f.monto * 100), 0) / 100;
+    const total = b?.monto ?? 0;
+    return { clave, nombre: c?.nombre ?? b!.nombre, tipo: c?.tipo ?? b!.tipo, retiro: c?.retiro ?? 0, pensiones: c?.pensiones ?? 0, otros: c?.otros ?? 0,
+      devengado, proyectado: (Math.round(total * 100) - Math.round(devengado * 100)) / 100, total };
+  }).sort((x, y) => y.total - x.total || y.retiro + y.pensiones - (x.retiro + x.pensiones)) : [];
+  const conOtros = filasBenef.some((f) => f.otros > 0);
   // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
   const slaEnRiesgo = new Set(alertas.filter((a) => a.regla.startsWith("SLA_15")).map((a) => a.casoId)).size;
   const INDICADORES: { t: string; v: string; nota?: string; liga?: string; destacado?: boolean }[] = [
@@ -160,32 +170,32 @@ export default async function Hoy() {
             <CardTitle>Comisiones proyectadas por pagar</CardTitle>
             <Link href="/comisiones#proyectadas" className="text-sm font-medium text-brand hover:underline">Ver detalle</Link>
           </CardHeader>
-          {comProy.porBeneficiario.length === 0 ? (
+          {comProy.porBeneficiario.length === 0 && comProy.conteos.length === 0 ? (
             <p className="px-5 pb-5 pt-2 text-sm text-ink-muted">Sin comisiones por pagar. Elige el asesor de pensiones o el referidor en el Canal de cada caso.</p>
           ) : (
             <div className="overflow-x-auto px-5 pb-5 pt-2">
               {comProy.porBeneficiario.length > 1 && (
                 <div className="mb-3"><GraficaBarras horizontal formato="pesos" datos={comProy.porBeneficiario.map((b) => ({ etiqueta: b.nombre, valor: b.monto }))} alto={120} /></div>
               )}
-              <table className="w-full min-w-[560px] text-sm">
-                <thead><tr className="text-left text-xs text-ink-muted">{["Beneficiario", "Tipo", "Casos", "Ya devengado", "Proyectado y estimado", "Total"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
+              <table className="w-full min-w-[720px] text-sm">
+                <thead><tr className="text-left text-xs text-ink-muted">{["Beneficiario", "Tipo", "Retiro", "Pensiones", ...(conOtros ? ["Otros"] : []), "Ya devengado", "Proyectado y estimado", "Total"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
                 <tbody>
-                  {comProy.porBeneficiario.map((b) => {
-                    const dev = comProy.filas.filter((f) => f.clave === b.clave && f.origen === "devengada").reduce((a, f) => a + Math.round(f.monto * 100), 0) / 100;
-                    return (
-                      <tr key={b.clave} className="border-t border-borde">
-                        <td className="py-2 pr-3 font-medium text-ink">{b.nombre}</td>
-                        <td className="py-2 pr-3 text-ink-muted">{b.tipo === "socio" ? "Asesor de pensiones" : "Referidor"}</td>
-                        <td className="py-2 pr-3">{b.casos}</td>
-                        <td className="cifra py-2 pr-3">{mxn(dev)}</td>
-                        <td className="cifra py-2 pr-3">{mxn((Math.round(b.monto * 100) - Math.round(dev * 100)) / 100)}</td>
-                        <td className="cifra py-2 pr-3 font-semibold text-brand">{mxn(b.monto)}</td>
-                      </tr>
-                    );
-                  })}
+                  {filasBenef.map((b) => (
+                    <tr key={b.clave} className="border-t border-borde">
+                      <td className="py-2 pr-3 font-medium text-ink">{b.nombre}</td>
+                      <td className="py-2 pr-3 text-ink-muted">{b.tipo === "socio" ? "Asesor de pensiones" : "Referidor"}</td>
+                      <td className="py-2 pr-3">{b.retiro}</td>
+                      <td className="py-2 pr-3">{b.pensiones}{b.pensiones > 0 && <span className="block text-xs text-ink-muted">monto por definir</span>}</td>
+                      {conOtros && <td className="py-2 pr-3">{b.otros}</td>}
+                      <td className="cifra py-2 pr-3">{mxn(b.devengado)}</td>
+                      <td className="cifra py-2 pr-3">{mxn(b.proyectado)}</td>
+                      <td className="cifra py-2 pr-3 font-semibold text-brand">{mxn(b.total)}</td>
+                    </tr>
+                  ))}
                 </tbody>
               </table>
-              {comProy.sinMonto > 0 && <p className="mt-2 text-xs text-aviso">{comProy.sinMonto} {comProy.sinMonto === 1 ? "caso con asesor no tiene" : "casos con asesor no tienen"} monto: captura el pago esperado de la Afore.</p>}
+              <p className="mt-2 text-xs text-ink-muted">Montos de retiro por desempleo. Las pensiones se cuentan y su comisión se calcula cuando el IMSS resuelva y registres el cobro.</p>
+              {comProy.sinMonto > 0 && <p className="mt-1 text-xs text-aviso">{comProy.sinMonto} {comProy.sinMonto === 1 ? "retiro con asesor no tiene" : "retiros con asesor no tienen"} monto: captura el pago esperado de la Afore.</p>}
             </div>
           )}
         </Card>

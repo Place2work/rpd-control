@@ -342,7 +342,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                 <div className="grid gap-3 sm:grid-cols-2">
                   <Lista id="referidor_id" etiqueta="Referidor" valor={caso.referidor_id} opciones={d.referidores} />
                   <Lista id="socio_id" etiqueta="Asesor de pensiones" valor={caso.socio_id} opciones={d.socios} />
-                  <p className="text-xs text-ink-muted sm:col-span-2">Este servicio todavía no genera comisiones; solo el retiro por desempleo.</p>
+                  <p className="text-xs text-ink-muted sm:col-span-2">El asesor de pensiones queda registrado y el caso cuenta en su tabla de Hoy. La comisión de este servicio se define cuando el IMSS resuelva (por ahora solo el retiro por desempleo la calcula).</p>
                 </div>
               )}
             </FormularioAccion>

@@ -365,3 +365,9 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - `experimental.instantInsights.validationLevel = "manual-warning"`: toda pantalla depende del usuario (el layout ya
   es `instant = false`); los avisos de navegación instantánea en desarrollo eran falsos positivos.
 - Pendiente del usuario: activar «Leaked password protection» en Supabase → Authentication (si el plan lo permite).
+
+## 8-nov-2026 · Casos de pensión en la tabla de comisiones
+
+- La tabla de Hoy por beneficiario cuenta los casos de cada asesor de pensiones y referidor por familia: Retiro,
+  Pensiones (PENSION_L73, PENSION_L97, FALLECIMIENTO) y Otros (solo si hay). Las pensiones muestran «monto por
+  definir»: su comisión se define cuando el IMSS resuelva. Los montos siguen siendo solo del retiro (`casosPorBeneficiario`).

@@ -501,3 +501,23 @@ export function gananciaProyectada(e: { honorarios: number; comisiones: number; 
   const ivaNeto = ivaHonorario - ivaAcreditable;
   return { ganancia: pesos(ganancia), ivaNeto: pesos(ivaNeto), gananciaSinIva: pesos(ganancia - ivaNeto) };
 }
+
+/** Servicios de pensión (su honorario se conoce cuando el IMSS resuelve; mientras, el monto queda por definir). */
+export const SERVICIOS_PENSION = new Set(["PENSION_L73", "PENSION_L97", "FALLECIMIENTO"]);
+
+export type ConteoBeneficiario = { clave: string; nombre: string; tipo: "socio" | "referido"; retiro: number; pensiones: number; otros: number };
+
+/** Casos de cada asesor de pensiones y referidor, por familia de servicio (retiro, pensiones, otros). */
+export function casosPorBeneficiario(casos: { servicio: string; asesor: { id: string; nombre: string } | null; referidor: { id: string; nombre: string } | null }[]): ConteoBeneficiario[] {
+  const m = new Map<string, ConteoBeneficiario>();
+  const suma = (clave: string, nombre: string, tipo: "socio" | "referido", servicio: string) => {
+    const g = m.get(clave) ?? { clave, nombre, tipo, retiro: 0, pensiones: 0, otros: 0 };
+    if (servicio === "RETIRO_DESEMPLEO") g.retiro++; else if (SERVICIOS_PENSION.has(servicio)) g.pensiones++; else g.otros++;
+    m.set(clave, g);
+  };
+  for (const c of casos) {
+    if (c.asesor) suma(`socio:${c.asesor.id}`, c.asesor.nombre, "socio", c.servicio);
+    if (c.referidor) suma(`referidor:${c.referidor.id}`, c.referidor.nombre, "referido", c.servicio);
+  }
+  return [...m.values()].sort((a, b) => b.retiro + b.pensiones + b.otros - (a.retiro + a.pensiones + a.otros) || a.nombre.localeCompare(b.nombre));
+}

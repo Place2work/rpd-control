@@ -4,7 +4,7 @@ import "server-only";
 import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { parametrosDinero } from "@/lib/parametros";
-import { comisionesProyectadasPorPagar, honorarioParaProyectar, pctHonorarioRetiro, type CasoComisionProyectable, type Escalon } from "@/lib/reglas/comisiones";
+import { casosPorBeneficiario, comisionesProyectadasPorPagar, honorarioParaProyectar, pctHonorarioRetiro, type CasoComisionProyectable, type Escalon } from "@/lib/reglas/comisiones";
 import { costoDeAlta, type VigenciaCosto } from "@/lib/reglas/costo-alta";
 import { hoyCDMX } from "@/lib/tiempo";
 
@@ -43,7 +43,13 @@ export async function comisionesProyectadas(s: Sesion) {
       tx.esquemaComision.findFirst({ where: { tipo: "referido", vigente_desde: { lte: new Date(`${hoy}T00:00:00Z`) },
         OR: [{ vigente_hasta: null }, { vigente_hasta: { gte: new Date(`${hoy}T00:00:00Z`) } }] }, orderBy: { version: "desc" }, select: { reglas: true } }),
     ]);
-    return { casos, primeros, vigencias, refMes, esquema };
+    // Todos los servicios (retiro, pensiones y otros) para contar los casos de cada asesor y referidor.
+    const todos = await tx.caso.findMany({
+      where: { archivado_at: null, etapa: { not: "PERDIDO" },
+        OR: esAsesor ? [{ socio_id: s.usuario.socio_id ?? "00000000-0000-0000-0000-000000000000" }] : [{ socio_id: { not: null } }, { referidor_id: { not: null } }] },
+      select: { tipo_servicio: true, socio: { select: { id: true, nombre: true } }, referidor: { select: { id: true, nombre: true } } },
+    });
+    return { casos, primeros, vigencias, refMes, esquema, todos };
   }, s.ip);
 
   const vig: VigenciaCosto[] = d.vigencias.map((v) => ({ desde: iso(v.vigente_desde)!, hasta: iso(v.vigente_hasta), monto: Number(v.valor) }));
@@ -66,5 +72,6 @@ export async function comisionesProyectadas(s: Sesion) {
       comisiones: c.comisiones.map((k) => ({ tipo: k.tipo, estado: k.estado, monto: Number(k.monto) })),
     };
   });
-  return comisionesProyectadasPorPagar(entrada, { base: p.BASE_REPARTO_SOCIO, iva: p.IVA, escalones: (d.esquema?.reglas as { escalones?: Escalon[] } | null)?.escalones ?? null });
+  const conteos = casosPorBeneficiario(d.todos.map((c) => ({ servicio: c.tipo_servicio, asesor: c.socio, referidor: esAsesor ? null : c.referidor })));
+  return { ...comisionesProyectadasPorPagar(entrada, { base: p.BASE_REPARTO_SOCIO, iva: p.IVA, escalones: (d.esquema?.reglas as { escalones?: Escalon[] } | null)?.escalones ?? null }), conteos };
 }
