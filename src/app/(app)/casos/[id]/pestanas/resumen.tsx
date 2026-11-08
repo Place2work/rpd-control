@@ -94,18 +94,18 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
       </Card>
 
       <Card className="lg:col-span-3">
-        <CardHeader><CardTitle>Asesor que lleva el trámite</CardTitle><span className="text-sm text-ink-muted">{caso.asignado?.nombre ?? "Bandeja general"}</span></CardHeader>
+        <CardHeader><CardTitle>Analista que lleva el expediente</CardTitle><span className="text-sm text-ink-muted">{caso.asignado?.nombre ?? "Bandeja general"}</span></CardHeader>
         <CardContent>
           {puedeAsignar ? (
-            <FormularioAccion accion={asignarAsesor.bind(null, caso.id)} boton="Guardar asesor" etiquetas={{ asignado_a: "Asesor" }}>
+            <FormularioAccion accion={asignarAsesor.bind(null, caso.id)} boton="Guardar analista" etiquetas={{ asignado_a: "Analista" }}>
               <div className="grid gap-3 sm:grid-cols-2">
-                <Seleccion id="asignado_a" etiqueta="Asesor" valor={caso.asignado_a} vacia="Sin asignar (bandeja general)"
+                <Seleccion id="asignado_a" etiqueta="Analista de expedientes" valor={caso.asignado_a} vacia="Sin asignar (bandeja general)"
                   opciones={asesores.map((u) => [u.id, u.rol === "director" ? `${u.nombre} (Director)` : u.nombre] as const)} />
               </div>
-              <p className="text-xs text-ink-muted">El asesor ve el caso, recibe sus alertas y aparece en el tablero. ¿Falta alguien? Invítalo como «Asesor» en Configuración → Usuarios.</p>
+              <p className="text-xs text-ink-muted">El analista ve el caso, recibe sus alertas y aparece en el tablero. ¿Falta alguien? Créale cuenta como «Analista de expedientes» en Configuración → Usuarios.</p>
             </FormularioAccion>
           ) : (
-            <p className="text-sm text-ink">{caso.asignado?.nombre ?? "Todavía sin asesor"}</p>
+            <p className="text-sm text-ink">{caso.asignado?.nombre ?? "Todavía sin analista"}</p>
           )}
         </CardContent>
       </Card>

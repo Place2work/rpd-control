@@ -148,7 +148,7 @@ export async function PestanaImss({ caso, sesion }: { caso: CasoDetalle; sesion:
                 </Campo>
               </FormularioAccion>
             ) : (
-              <p className="text-sm text-ink-muted">Solo un asesor o el Director pueden dictaminar.</p>
+              <p className="text-sm text-ink-muted">Solo un analista o el Director pueden dictaminar.</p>
             )}
           </CardContent>
         </Card>

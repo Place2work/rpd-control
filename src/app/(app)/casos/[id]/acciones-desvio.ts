@@ -16,7 +16,7 @@ const fecha = (iso: string) => new Date(`${iso}T00:00:00Z`);
 
 export async function crearDesvio(casoId: string, _p: ResultadoDesvio, form: FormData): Promise<ResultadoDesvio> {
   const { claims, ip, usuario } = await obtenerSesion();
-  if (usuario.rol === "vendedor") return { error: "El desvío lo decide el asesor o el Director." };
+  if (usuario.rol === "vendedor") return { error: "El desvío lo decide el analista o el Director." };
   const servicio = String(form.get("servicio") ?? "");
 
   const r = await conUsuario(claims, async (tx): Promise<ResultadoDesvio & { nombreServicio?: string }> => {

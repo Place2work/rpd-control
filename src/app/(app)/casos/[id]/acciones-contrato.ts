@@ -24,7 +24,7 @@ async function puede() {
 
 export async function guardarClienteContrato(casoId: string, personaId: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const s = await puede();
-  if (!s) return { error: "El contrato lo prepara el asesor." };
+  if (!s) return { error: "El contrato lo prepara el analista." };
   const r = z.object({ domicilio: opcional(), identificacion: opcional(120), email: z.email("Correo no válido").optional().or(z.literal("")) }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   await conUsuario(s.claims, (tx) => tx.persona.update({
@@ -46,7 +46,7 @@ const esquemaParte = z.object({
 /** Beneficiaria o finado. CURP y NSS solo se reemplazan si se escribe uno nuevo (el actual no viaja al navegador). */
 export async function guardarParte(casoId: string, rol: "beneficiaria" | "finado", _p: Resultado, form: FormData): Promise<Resultado> {
   const s = await puede();
-  if (!s) return { error: "El contrato lo prepara el asesor." };
+  if (!s) return { error: "El contrato lo prepara el analista." };
   const r = esquemaParte.safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const d = r.data;
@@ -70,7 +70,7 @@ export async function guardarParte(casoId: string, rol: "beneficiaria" | "finado
 
 export async function guardarCondiciones(casoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const s = await puede();
-  if (!s) return { error: "El contrato lo prepara el asesor." };
+  if (!s) return { error: "El contrato lo prepara el analista." };
   const pesos = z.string().optional().transform((v) => (v ? Number(v.replace(/[,$\s]/g, "")) : null)).pipe(z.number().min(0, "No puede ser negativo").max(10_000_000).nullable());
   const pct = z.string().optional().transform((v) => (v ? Number(v.replace("%", "")) / 100 : null)).pipe(z.number().min(0, "Entre 0 y 100").max(1, "Entre 0 y 100").nullable());
   const r = z.object({ honorario_fijo: pesos, contrato_pct: pct, contrato_advertencias: opcional(4000), contrato_regularizacion: opcional(300) }).safeParse(datosDe(form));

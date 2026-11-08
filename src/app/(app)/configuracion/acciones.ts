@@ -92,16 +92,15 @@ export async function cambiarInhabil(fecha: string, activo: boolean): Promise<Re
 
 // ───────────── Usuarios ─────────────
 
-const ROLES = ["director", "asesor", "vendedor", "socio"] as const;
+const ROLES = ["director", "asesor", "vendedor"] as const; // el asesor de pensiones (socio) y el referidor no llevan cuenta
 const esquemaUsuario = z.object({
   nombre: z.string().min(3, "Escribe el nombre completo").max(120),
   rol: z.enum(ROLES, { message: "Elige el rol" }),
-  socio_id: z.string().optional().transform((v) => (v ? v : null)),
   telefono: z.string().max(20).optional().transform((v) => (v ? v : null)),
   // Vendedor: % propio de comisión del retiro, como fracción ("0.07"); vacío = el del esquema.
   comision_pct: z.string().optional().transform((v) => (v ? Number(v) : null))
     .pipe(z.number().gt(0, "Elige un porcentaje").lt(1, "Elige un porcentaje").nullable()),
-}).refine((d) => d.rol !== "socio" || d.socio_id, { message: "Un usuario socio debe pertenecer a un socio licenciatario", path: ["socio_id"] });
+});
 
 export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Resultado> {
   const s = await director();
@@ -114,7 +113,7 @@ export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Res
   const cuenta = await invitarCuenta(r.data.email);
   if (!cuenta.id) return { error: cuenta.error };
   await conUsuario(s.claims, (tx) => tx.usuario.create({
-    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono, created_by: s.usuario.id },
+    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: null, telefono: r.data.telefono, created_by: s.usuario.id },
     select: { id: true },
   }), s.ip);
   revalidatePath("/configuracion");
@@ -137,7 +136,7 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
   const cuenta = await crearCuentaConClave(r.data.email);
   if (!cuenta.id || !cuenta.clave) return { error: cuenta.error };
   await conUsuario(s.claims, (tx) => tx.usuario.create({
-    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono, created_by: s.usuario.id },
+    data: { id: cuenta.id!, email: r.data.email, nombre: r.data.nombre, rol: r.data.rol, socio_id: null, telefono: r.data.telefono, created_by: s.usuario.id },
     select: { id: true },
   }), s.ip);
   await registrarCuenta(s, cuenta.id, "CLAVE_TEMPORAL");
@@ -185,7 +184,7 @@ export async function actualizarUsuario(id: string, _p: Resultado, form: FormDat
   if (id === s.usuario.id && r.data.rol !== "director") return { errores: { rol: "No puedes quitarte el rol de Director a ti mismo" } };
   await conUsuario(s.claims, (tx) => tx.usuario.update({
     where: { id }, select: { id: true },
-    data: { nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono,
+    data: { nombre: r.data.nombre, rol: r.data.rol, socio_id: null, telefono: r.data.telefono,
       comision_pct: r.data.rol === "vendedor" ? r.data.comision_pct : null },
   }), s.ip);
   // Sus comisiones no pagadas se recalculan con el % nuevo (las pagadas no cambian).
@@ -291,7 +290,7 @@ export async function nuevaVersionEsquema(id: string, _p: Resultado, form: FormD
       if (![m1, m2, m3].every((x) => Number.isFinite(x) && x >= 0)) return { errores: { monto1: "Montos no válidos" } };
       nuevas = { ...reglas, escalones: [{ desde: 1, hasta: h1, monto: m1 }, { desde: h1 + 1, hasta: h2, monto: m2 }, { desde: h2 + 1, hasta: null, monto: m3 }] };
     } else {
-      return { error: "Este esquema se ajusta en Parámetros (fallecimiento) o en cada socio (reparto)." };
+      return { error: "Este esquema se ajusta en Parámetros (fallecimiento) o en cada asesor de pensiones (reparto)." };
     }
     const hermanas = await tx.esquemaComision.findMany({ where: { nombre: base.nombre, tipo_servicio: base.tipo_servicio }, orderBy: { version: "desc" } });
     if (hermanas.some((v) => iso(v.vigente_desde)! >= desde)) return { errores: { vigente_desde: "Ya hay una versión que empieza en esa fecha o después" } };

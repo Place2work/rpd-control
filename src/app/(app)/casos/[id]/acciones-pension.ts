@@ -27,7 +27,7 @@ const esquemaPlan = z.object({
 /** Guarda el plan y programa un pago pendiente por mes. Meses que salen del plan y no se pagaron se archivan. */
 export async function guardarPlanM40(casoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const s = await obtenerSesion();
-  if (s.usuario.rol === "vendedor") return { error: "El plan de M40 lo lleva el asesor." };
+  if (s.usuario.rol === "vendedor") return { error: "El plan de M40 lo lleva el analista." };
   const r = esquemaPlan.safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const d = r.data;
@@ -61,7 +61,7 @@ export async function guardarPlanM40(casoId: string, _p: Resultado, form: FormDa
 
 export async function registrarPagoM40(casoId: string, pagoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const s = await obtenerSesion();
-  if (s.usuario.rol === "vendedor") return { error: "Los pagos de M40 los registra el asesor." };
+  if (s.usuario.rol === "vendedor") return { error: "Los pagos de M40 los registra el analista." };
   const r = z.object({ fecha_pago: z.iso.date({ message: "Fecha no válida" }).refine((v) => v <= hoyCDMX(), "No puede ser futura") }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const res = await conUsuario(s.claims, async (tx): Promise<Resultado> => {

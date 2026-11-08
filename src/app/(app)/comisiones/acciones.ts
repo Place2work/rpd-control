@@ -86,7 +86,7 @@ export async function crearReferidor(_p: Resultado, form: FormData): Promise<Res
 
 export async function crearSocio(_p: Resultado, form: FormData): Promise<Resultado> {
   const { claims, ip, usuario } = await obtenerSesion();
-  if (usuario.rol !== "director") return { error: "Solo el Director da de alta socios." };
+  if (usuario.rol !== "director") return { error: "Solo el Director da de alta asesores de pensiones." };
   const pct = z.string().trim().transform((v) => Number(v.replace("%", "")) / 100).pipe(z.number().min(0, "Entre 0 y 100").max(1, "Entre 0 y 100"));
   const pesos = z.string().trim().transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number().min(0, "No puede ser negativo"));
   const r = z.object({ ...contacto, razon_social: opcional, rfc: opcional, porcentaje_socio: pct, costo_administrativo: pesos }).safeParse(datosDe(form));
@@ -94,7 +94,7 @@ export async function crearSocio(_p: Resultado, form: FormData): Promise<Resulta
   const { clabe: c, ...d } = r.data;
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
     if (await tx.socio.findFirst({ where: { archivado_at: null, nombre: { equals: d.nombre.trim(), mode: "insensitive" } }, select: { id: true } })) {
-      return { errores: { nombre: "Ya hay un socio con ese nombre" } };
+      return { errores: { nombre: "Ya hay un asesor de pensiones con ese nombre" } };
     }
     await tx.socio.create({ select: { id: true }, data: { ...d, rfc: d.rfc?.toUpperCase(), ...cuenta(c), created_by: usuario.id } });
     return { ok: true };

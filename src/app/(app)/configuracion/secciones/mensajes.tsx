@@ -9,7 +9,7 @@ export async function SeccionMensajes({ sesion }: { sesion: Sesion }) {
   const mensajes = await conUsuario(sesion.claims, (tx) => tx.plantillaMensaje.findMany({ orderBy: { nombre: "asc" } }), sesion.ip);
   return (
     <div className="grid gap-4">
-      <p className="text-sm text-ink-muted">Mensajes que el asesor manda por WhatsApp con un clic (8.3). Variables: {"{nombre} {folio} {fecha} {mes} {monto} {dias} {documentos} {liga_privacidad}"}. En tuteo y sin NSS, CURP ni montos de saldo.</p>
+      <p className="text-sm text-ink-muted">Mensajes que el analista manda por WhatsApp con un clic (8.3). Variables: {"{nombre} {folio} {fecha} {mes} {monto} {dias} {documentos} {liga_privacidad}"}. En tuteo y sin NSS, CURP ni montos de saldo.</p>
       <div className="grid gap-4 lg:grid-cols-2">
         {mensajes.map((m) => (
           <Card key={m.clave}>

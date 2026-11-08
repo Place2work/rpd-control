@@ -20,7 +20,7 @@ const ESTADO: Record<EstadoVisible, { texto: string; tono: "prospecto" | "tramit
 
 export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; sesion: Sesion }) {
   if (sesion.usuario.rol === "vendedor") {
-    return <Card><CardContent className="text-sm text-ink-muted">El expediente lo opera el asesor; tu rol no ve los documentos.</CardContent></Card>;
+    return <Card><CardContent className="text-sm text-ink-muted">El expediente lo opera el analista; tu rol no ve los documentos.</CardContent></Card>;
   }
   const hoy = hoyCDMX();
   const { tipos, docs } = await conUsuario(sesion.claims, async (tx) => ({

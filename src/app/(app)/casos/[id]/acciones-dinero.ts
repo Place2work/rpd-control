@@ -308,7 +308,7 @@ export async function guardarCanal(casoId: string, _p: Resultado, form: FormData
     if (vendedor_id && !(await tx.usuario.findFirst({ where: { id: vendedor_id, rol: "vendedor", activo: true }, select: { id: true } }))) return { errores: { vendedor_id: "No es un vendedor activo" } };
     const n = await tx.caso.updateMany({ where: { id: casoId }, data: { vendedor_id, referidor_id, socio_id } });
     if (!n.count) return { error: "No encontramos el caso." };
-    await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id, texto: "Se actualizó el canal (vendedor, referidor o socio)" } });
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id, texto: "Se actualizó el canal (vendedor, referidor o asesor de pensiones)" } });
     return { ok: true };
   }, ip);
   if (res.ok) await despues(casoId);

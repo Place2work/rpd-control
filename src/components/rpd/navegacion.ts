@@ -31,7 +31,7 @@ export const MODULOS: Modulo[] = [
 
 export const ETIQUETA_ROL: Record<Rol, string> = {
   director: "Director",
-  asesor: "Asesor",
+  asesor: "Analista de expedientes",
   vendedor: "Vendedor",
-  socio: "Socio licenciatario",
+  socio: "Asesor de pensiones",
 };

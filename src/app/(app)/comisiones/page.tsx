@@ -16,7 +16,7 @@ import { liquidar } from "./acciones";
 
 export const metadata: Metadata = { title: "Comisiones" };
 
-const TIPO = { vendedor: "Vendedor", referido: "Referidor", socio: "Socio" } as const;
+const TIPO = { vendedor: "Vendedor", referido: "Referidor", socio: "Asesor de pensiones" } as const;
 const ESTADO = { estimada: ["Estimada", "prospecto"], devengada: ["Por pagar", "tramite"], pagada: ["Pagada", "pagado"], cancelada: ["Cancelada", "prospecto"] } as const;
 const METODOS = [["transferencia", "Transferencia"], ["efectivo", "Efectivo"], ["tarjeta", "Tarjeta"]] as const;
 
@@ -38,14 +38,14 @@ export default async function Comisiones({ searchParams }: { searchParams: Promi
     <>
       <Encabezado titulo="Comisiones" descripcion={director ? "Liquidaciones por beneficiario y mes. Una comisión se paga solo cuando ya entró el dinero que la origina." : "Tu estado de cuenta: estimado, devengado y pagado."}>
         <SelectorMes mes={mes} base={benef && director ? `/comisiones?benef=${claveBenef}` : "/comisiones"} maximo={hoy.slice(0, 7)} />
-        {director && <Link href="/comisiones/beneficiarios" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-boton)] border border-brand px-4 text-sm font-medium text-brand hover:bg-brand-tint"><Users className="size-4" aria-hidden /> Referidores y socios</Link>}
+        {director && <Link href="/comisiones/beneficiarios" className="inline-flex h-10 items-center gap-2 rounded-[var(--radius-boton)] border border-brand px-4 text-sm font-medium text-brand hover:bg-brand-tint"><Users className="size-4" aria-hidden /> Referidores y asesores</Link>}
       </Encabezado>
 
       {director && (
         <Card className="mb-4">
           <CardHeader><CardTitle>{nombreMes(mes)}</CardTitle></CardHeader>
           {resumen.length === 0 ? (
-            <EstadoVacio icono={HandCoins} titulo="Sin comisiones en el mes" texto="Las comisiones nacen estimadas al firmar contrato si el caso tiene vendedor, referidor o socio." />
+            <EstadoVacio icono={HandCoins} titulo="Sin comisiones en el mes" texto="Las comisiones nacen estimadas al firmar contrato si el caso tiene vendedor, referidor o asesor de pensiones." />
           ) : (
             <CardContent>
               <div className="-mx-4 overflow-x-auto px-4">

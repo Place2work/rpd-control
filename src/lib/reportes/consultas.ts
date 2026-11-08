@@ -171,7 +171,7 @@ async function margenCanal(tx: Tx, p: Periodo): Promise<Reporte> {
       SELECT k.caso_id, sum(k.monto) AS comisiones FROM comisiones k JOIN cob ON cob.caso_id = k.caso_id
       WHERE k.estado IN ('devengada', 'pagada') AND k.archivado_at IS NULL GROUP BY 1
     )
-    SELECT CASE WHEN c.socio_id IS NOT NULL THEN 'Socio licenciatario' WHEN c.vendedor_id IS NOT NULL THEN 'Vendedor'
+    SELECT CASE WHEN c.socio_id IS NOT NULL THEN 'Asesor de pensiones' WHEN c.vendedor_id IS NOT NULL THEN 'Vendedor'
                 WHEN c.referidor_id IS NOT NULL THEN 'Referidor' ELSE 'Directo' END AS canal,
       count(*)::int AS casos, sum(cob.honorario)::float AS honorario, sum(cob.iva)::float AS iva, coalesce(sum(com.comisiones), 0)::float AS comisiones
     FROM cob JOIN casos c ON c.id = cob.caso_id LEFT JOIN com ON com.caso_id = cob.caso_id

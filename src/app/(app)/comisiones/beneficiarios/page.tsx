@@ -9,9 +9,9 @@ import { CampoTexto } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { crearReferidor, crearSocio } from "../acciones";
 
-export const metadata: Metadata = { title: "Referidores y socios" };
+export const metadata: Metadata = { title: "Referidores y asesores" };
 
-const ETIQUETAS = { nombre: "Nombre", telefono: "Teléfono", email: "Correo", banco: "Banco", clabe: "CLABE", razon_social: "Razón social", rfc: "RFC", porcentaje_socio: "% del socio", costo_administrativo: "Costo administrativo" };
+const ETIQUETAS = { nombre: "Nombre", telefono: "Teléfono", email: "Correo", banco: "Banco", clabe: "CLABE", razon_social: "Razón social", rfc: "RFC", porcentaje_socio: "% del asesor", costo_administrativo: "Costo administrativo" };
 
 export default async function Beneficiarios() {
   const sesion = await exigirRol("director", "asesor");
@@ -23,7 +23,7 @@ export default async function Beneficiarios() {
 
   return (
     <>
-      <Encabezado titulo="Referidores y socios" descripcion="La CLABE se guarda cifrada; aquí solo ves los últimos 4 dígitos.">
+      <Encabezado titulo="Referidores y asesores de pensiones" descripcion="La CLABE se guarda cifrada; aquí solo ves los últimos 4 dígitos.">
         <div className="flex flex-wrap items-center gap-4">
           {director && <Link href="/configuracion?seccion=usuarios" className="text-sm text-brand underline">Agregar vendedores (Configuración → Usuarios)</Link>}
           <Link href="/comisiones" className="text-sm text-brand underline">Volver a Comisiones</Link>
@@ -59,7 +59,7 @@ export default async function Beneficiarios() {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Socios licenciatarios</CardTitle><span className="text-sm text-ink-muted">{socios.length}</span></CardHeader>
+          <CardHeader><CardTitle>Asesores de pensiones</CardTitle><span className="text-sm text-ink-muted">{socios.length}</span></CardHeader>
           <CardContent className="grid gap-4">
             <ul className="divide-y divide-borde text-sm">
               {socios.map((s) => (
@@ -72,7 +72,7 @@ export default async function Beneficiarios() {
             </ul>
             {director && (
               <details>
-                <summary className="cursor-pointer text-sm font-medium text-brand">Nuevo socio</summary>
+                <summary className="cursor-pointer text-sm font-medium text-brand">Nuevo asesor de pensiones</summary>
                 <div className="mt-3">
                   <FormularioAccion accion={crearSocio} boton="Dar de alta" etiquetas={ETIQUETAS} limpiar>
                     <div className="grid gap-3 sm:grid-cols-2">
@@ -83,7 +83,7 @@ export default async function Beneficiarios() {
                       <CampoTexto id="email" etiqueta="Correo" tipo="email" />
                       <CampoTexto id="banco" etiqueta="Banco" />
                       <CampoTexto id="clabe" etiqueta="CLABE" ayuda="18 dígitos" inputMode="numeric" />
-                      <CampoTexto id="porcentaje_socio" etiqueta="% del socio" valor="40" inputMode="decimal" />
+                      <CampoTexto id="porcentaje_socio" etiqueta="% del asesor" valor="40" inputMode="decimal" />
                       <CampoTexto id="costo_administrativo" etiqueta="Costo administrativo" valor="500" inputMode="decimal" />
                     </div>
                   </FormularioAccion>

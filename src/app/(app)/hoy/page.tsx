@@ -182,7 +182,7 @@ export default async function Hoy() {
               <p className="mt-2 text-xs text-ink-muted">Honorarios cobrados con IVA. El detalle por mes está en <Link href="/dinero" className="text-brand underline">Dinero</Link>.</p>
             </div>
           ) : (
-            <EstadoVacio icono={LineChart} titulo="Sin honorarios cobrados" texto={veDinero ? "Aquí verás los honorarios cobrados por mes." : "Los ingresos solo los ven el Director, los asesores y los socios."} />
+            <EstadoVacio icono={LineChart} titulo="Sin honorarios cobrados" texto={veDinero ? "Aquí verás los honorarios cobrados por mes." : "Los ingresos solo los ven el Director y los analistas de expedientes."} />
           )}
         </Card>
       </div>

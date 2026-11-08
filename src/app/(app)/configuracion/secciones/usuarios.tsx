@@ -8,20 +8,19 @@ import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioCon
 import { BotonAccion } from "../boton-accion";
 import { hoyCDMX } from "@/lib/tiempo";
 
-const ROLES = [["asesor", "Asesor"], ["vendedor", "Vendedor"], ["socio", "Socio licenciatario"], ["director", "Director"]] as const;
+// Llevan cuenta: Analista de expedientes, Vendedor y Director. El asesor de pensiones y el referidor no entran al sistema.
+const ROLES = [["asesor", "Analista de expedientes"], ["vendedor", "Vendedor"], ["director", "Director"]] as const;
 const QUE_VE: Record<string, string> = {
   director: "Todo, incluida Configuración, dinero y comisiones de todos.",
   asesor: "Todos los casos y el expediente completo; no ve márgenes ni Configuración.",
   vendedor: "Solo sus prospectos y casos, sin documentos, sin NSS/CURP completos y sin dinero; ve sus comisiones.",
-  socio: "Solo la cartera de su socio licenciatario y sus comisiones.",
 };
-const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", socio_id: "Socio", telefono: "Teléfono" };
+const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", telefono: "Teléfono" };
 
 export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
   const hoy = hoyCDMX();
-  const { usuarios, socios, esquema } = await conUsuario(sesion.claims, async (tx) => ({
+  const { usuarios, esquema } = await conUsuario(sesion.claims, async (tx) => ({
     usuarios: await tx.usuario.findMany({ orderBy: [{ activo: "desc" }, { nombre: "asc" }], include: { socio: { select: { nombre: true } } } }),
-    socios: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
     // % general del vendedor en el retiro (esquema vigente), para mostrarlo como opción «General».
     esquema: await tx.esquemaComision.findFirst({
       where: { tipo: "vendedor", tipo_servicio: "RETIRO_DESEMPLEO", vigente_desde: { lte: new Date(`${hoy}T00:00:00Z`) },
@@ -32,7 +31,6 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
   const general = (esquema?.reglas as { pct?: number } | null)?.pct ?? null;
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
   const OPCIONES_PCT = Array.from({ length: 39 }, (_, i) => (i + 2) / 200).map((f) => [String(f), pctTxt(f)] as const); // 1% a 20%, de medio en medio
-  const opcionesSocio = socios.map((x) => [x.id, x.nombre] as const);
 
   return (
     <div className="grid gap-4 lg:grid-cols-3">
@@ -65,7 +63,6 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                         <CampoTexto id="nombre" etiqueta="Nombre" valor={u.nombre} />
                         <CampoTexto id="telefono" etiqueta="Teléfono" tipo="tel" valor={u.telefono} />
                         <Seleccion id="rol" etiqueta="Rol" valor={u.rol} opciones={ROLES} />
-                        <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" valor={u.socio_id} vacia="Ninguno" opciones={opcionesSocio} />
                         <Seleccion id="comision_pct" etiqueta="Comisión del vendedor" ayuda="solo rol vendedor · % de lo que paga la Afore"
                           valor={u.comision_pct ? String(Number(u.comision_pct)) : ""} vacia={`General del esquema${general ? ` (${pctTxt(general)})` : ""}`} opciones={OPCIONES_PCT} />
                       </div>
@@ -96,7 +93,6 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
               <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
               <Seleccion id="rol" etiqueta="Rol" valor="vendedor" opciones={ROLES} />
-              <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" vacia="Ninguno" opciones={opcionesSocio} />
             </FormularioAccion>
             <p className="mt-3 text-xs text-ink-muted">El sistema genera una contraseña temporal y te la muestra una sola vez para que se la entregues. Al entrar, activa la verificación en dos pasos (app autenticadora) y pone su propia contraseña.</p>
             <details className="mt-4 border-t border-borde pt-3">
@@ -108,7 +104,6 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                   <CampoTexto id="email" etiqueta="Correo" tipo="email" />
                   <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
                   <Seleccion id="rol" etiqueta="Rol" valor="vendedor" opciones={ROLES} />
-                  <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" vacia="Ninguno" opciones={opcionesSocio} />
                 </FormularioAccion>
               </div>
             </details>
@@ -119,6 +114,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
           <CardContent>
             <dl className="grid gap-2 text-sm">
               {ROLES.map(([k, t]) => <div key={k}><dt className="font-medium text-ink">{t}</dt><dd className="text-ink-muted">{QUE_VE[k]}</dd></div>)}
+              <div><dt className="font-medium text-ink">Asesores de pensiones y referidores</dt><dd className="text-ink-muted">No llevan cuenta: se dan de alta en Comisiones → Referidores y asesores y se eligen en cada caso para su comisión.</dd></div>
             </dl>
           </CardContent>
         </Card>

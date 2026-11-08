@@ -129,7 +129,7 @@ const ESQUEMAS: { nombre: string; tipo: "vendedor" | "referido" | "socio"; servi
   { nombre: "Referidor", tipo: "referido", servicio: null,
     reglas: { tipo: "escalonado_mensual", cuenta: "honorario_cobrado", escalones: [
       { desde: 1, hasta: 2, monto: 1000 }, { desde: 3, hasta: 10, monto: 2000 }, { desde: 11, hasta: null, monto: 3000 } ] } },
-  { nombre: "Socio licenciatario", tipo: "socio", servicio: "RETIRO_DESEMPLEO",
+  { nombre: "Asesor de pensiones", tipo: "socio", servicio: "RETIRO_DESEMPLEO",
     reglas: { tipo: "reparto", costo_admin: 500, pct_socio: 0.4, base_param: "BASE_REPARTO_SOCIO" } },
 ];
 

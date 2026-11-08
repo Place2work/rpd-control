@@ -11,13 +11,13 @@ export async function asignarAsesor(casoId: string, _p: Resultado, form: FormDat
   const { claims, ip, usuario } = await obtenerSesion();
   if (usuario.rol !== "director" && usuario.rol !== "asesor") return { error: "Solo el Director o un asesor asignan el trámite." };
   const id = String(form.get("asignado_a") ?? "").trim() || null;
-  if (id && !/^[0-9a-f-]{36}$/i.test(id)) return { errores: { asignado_a: "Elige un asesor de la lista" } };
+  if (id && !/^[0-9a-f-]{36}$/i.test(id)) return { errores: { asignado_a: "Elige un analista de la lista" } };
 
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
     const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { asignado: { select: { nombre: true } }, asignado_a: true } });
     if (!caso) return { error: "No encontramos el caso." };
     const nuevo = id ? await tx.usuario.findFirst({ where: { id, activo: true, archivado_at: null, rol: { in: ["asesor", "director"] } }, select: { id: true, nombre: true } }) : null;
-    if (id && !nuevo) return { errores: { asignado_a: "Ese usuario no está activo como asesor" } };
+    if (id && !nuevo) return { errores: { asignado_a: "Ese usuario no está activo como analista" } };
     if ((caso.asignado_a ?? null) === (nuevo?.id ?? null)) return { ok: true };
     await tx.caso.update({ where: { id: casoId }, data: { asignado_a: nuevo?.id ?? null }, select: { id: true } });
     await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id,

@@ -14,7 +14,7 @@ const PIE: Record<Clase, (comercial: string) => string> = {
 
 export async function GET(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
   const s = await obtenerSesion();
-  if (s.usuario.rol === "vendedor") return new NextResponse("El contrato lo genera el asesor.", { status: 403 });
+  if (s.usuario.rol === "vendedor") return new NextResponse("El contrato lo genera el analista.", { status: 403 });
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) return new NextResponse("No encontrado", { status: 404 });
   const clase: Clase = req.nextUrl.searchParams.get("doc") === "aviso_privacidad" ? "aviso_privacidad" : "contrato";

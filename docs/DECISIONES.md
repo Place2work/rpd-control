@@ -275,3 +275,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Lo fija solo el Director: en el alta rápida o en la pestaña Dinero del caso. Se guarda en todos los casos vivos de la
   persona (el costo se cuenta una vez por persona, en su primer caso). Un trigger impide que otro rol lo cambie.
 - El alta sigue contando en «altas» aunque su costo sea $0. Migración 2600.
+
+## 8-nov-2026 · Nombres de las figuras
+
+- «Asesor» se llama **Analista de expedientes** y «Socio licenciatario» se llama **Asesor de pensiones**. Solo cambian
+  los nombres en pantalla, PDF y reportes; las claves internas (`asesor`, `socio`) y las reglas de RLS no cambian.
+- Llevan cuenta: Director, Analista de expedientes y Vendedor. El asesor de pensiones y el referidor no entran al
+  sistema: se dan de alta en Comisiones → Referidores y asesores y se eligen en cada caso. El asesor de pensiones
+  conserva su reparto ((honorario sin IVA − su costo administrativo) × su %). Migración 2700 (nombre del esquema).

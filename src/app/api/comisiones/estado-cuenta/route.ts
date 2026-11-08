@@ -8,7 +8,7 @@ import { formatoFechaLarga } from "@/lib/formato";
 import { generarEstadoCuenta, type RenglonEstado } from "@/lib/pdf/estado-cuenta";
 import { hoyCDMX } from "@/lib/tiempo";
 
-const TIPO = { usuario: "Vendedor", referidor: "Referidor", socio: "Socio licenciatario" } as const;
+const TIPO = { usuario: "Vendedor", referidor: "Referidor", socio: "Asesor de pensiones" } as const;
 const ESTADO = { estimada: "Estimada", devengada: "Por pagar", pagada: "Pagada", cancelada: "Cancelada" } as const;
 
 export async function GET(req: NextRequest) {

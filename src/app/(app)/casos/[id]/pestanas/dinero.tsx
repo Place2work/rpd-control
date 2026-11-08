@@ -23,12 +23,12 @@ const METODOS = [["transferencia", "Transferencia"], ["efectivo", "Efectivo"], [
 const CONCEPTOS = [["honorario", "Honorario"], ["pago_inicial", "Pago inicial"], ["recuperado", "% de lo recuperado"], ["primera_mensualidad", "Primera mensualidad"]] as const;
 const ESTADO_COBRO = { por_cobrar: ["Por cobrar", "espera"], cobrado: ["Cobrado", "pagado"], cancelado: ["Cancelado", "prospecto"] } as const;
 const ESTADO_COMISION = { estimada: ["Estimada", "prospecto"], devengada: ["Devengada", "tramite"], pagada: ["Pagada", "pagado"], cancelada: ["Cancelada", "prospecto"] } as const;
-const TIPO_COMISION = { vendedor: "Vendedor", referido: "Referidor", socio: "Socio" } as const;
+const TIPO_COMISION = { vendedor: "Vendedor", referido: "Referidor", socio: "Asesor de pensiones" } as const;
 
 export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesion: Sesion }) {
   const rol = sesion.usuario.rol;
   if (rol === "vendedor") {
-    return <Card><CardContent className="text-sm text-ink-muted">Los pagos y cobros los registra el asesor. Tus comisiones están en «Comisiones».</CardContent></Card>;
+    return <Card><CardContent className="text-sm text-ink-muted">Los pagos y cobros los registra el analista. Tus comisiones están en «Comisiones».</CardContent></Card>;
   }
   const esRetiro = caso.servicio.clave === "RETIRO_DESEMPLEO";
   const [pDinero, { MODALIDAD_B_MENSUALIDADES_MAX }, pf] = await Promise.all([parametrosDinero(), parametrosVigentes(["MODALIDAD_B_MENSUALIDADES_MAX"]), parametrosFechas(hoyCDMX())]);
@@ -287,7 +287,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
         <CardHeader><CardTitle>Comisiones del caso</CardTitle></CardHeader>
         <CardContent>
           {d.comisiones.length === 0 ? (
-            <p className="text-sm text-ink-muted">Sin comisiones. Nacen como estimadas al firmar el contrato si el caso tiene vendedor, referidor o socio.</p>
+            <p className="text-sm text-ink-muted">Sin comisiones. Nacen como estimadas al firmar el contrato si el caso tiene vendedor, referidor o asesor de pensiones.</p>
           ) : (
             <Tabla encabezados={["Tipo", "Beneficiario", "Regla", "Monto", "Estado"]}>
               {d.comisiones.map((k) => {
@@ -315,7 +315,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
               <div className="grid gap-3 sm:grid-cols-3">
                 <Lista id="vendedor_id" etiqueta="Vendedor" valor={caso.vendedor_id} opciones={d.vendedores} />
                 <Lista id="referidor_id" etiqueta="Referidor" valor={caso.referidor_id} opciones={d.referidores} />
-                <Lista id="socio_id" etiqueta="Socio licenciatario" valor={caso.socio_id} opciones={d.socios} />
+                <Lista id="socio_id" etiqueta="Asesor de pensiones" valor={caso.socio_id} opciones={d.socios} />
               </div>
               {rol === "director" && <Casilla id="confirmo_doble" etiqueta="Confirmo que vendedor y referidor cobran ambos (si el caso tiene los dos)" />}
             </FormularioAccion>
@@ -326,10 +326,10 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                   <li>No hay vendedores todavía: créalos con rol «Vendedor» en {rol === "director" ? <Link href="/configuracion?seccion=usuarios" className="text-brand underline">Configuración → Usuarios</Link> : "Configuración → Usuarios (Director)"}.</li>
                 )}
                 {d.referidores.length === 0 && (
-                  <li>No hay referidores todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y socios</Link>.</li>
+                  <li>No hay referidores todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y asesores</Link>.</li>
                 )}
                 {d.socios.length === 0 && (
-                  <li>No hay socios licenciatarios todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y socios</Link>.</li>
+                  <li>No hay asesores de pensiones todavía: dalos de alta en <Link href="/comisiones/beneficiarios" className="text-brand underline">Comisiones → Referidores y asesores</Link>.</li>
                 )}
               </ul>
             )}
