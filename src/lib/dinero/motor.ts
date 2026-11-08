@@ -63,6 +63,7 @@ export async function recalcularComisiones(casoIds: string[], hoy = hoyCDMX()) {
     where: { id: { in: ids } },
     include: {
       socio: { select: { id: true, porcentaje_socio: true, costo_administrativo: true } },
+      vendedor: { select: { comision_pct: true } },
       calculos: { orderBy: { created_at: "desc" }, take: 1, select: { monto_estimado: true } },
       pagos_afore: { where: { archivado_at: null }, orderBy: { numero: "asc" } },
       cobros: { where: { archivado_at: null } },
@@ -80,7 +81,7 @@ export async function recalcularComisiones(casoIds: string[], hoy = hoyCDMX()) {
       contratoFirmado: c.fecha_contrato !== null,
       perdido: c.etapa === "PERDIDO" || c.archivado_at !== null,
       montoEstimado: n(c.calculos[0]?.monto_estimado),
-      vendedorId: c.vendedor_id, referidorId: c.referidor_id,
+      vendedorId: c.vendedor_id, vendedorPct: c.vendedor?.comision_pct == null ? null : Number(c.vendedor.comision_pct), referidorId: c.referidor_id,
       socio: c.socio ? { id: c.socio.id, pct: Number(c.socio.porcentaje_socio), costoAdmin: Number(c.socio.costo_administrativo) } : null,
       pagos: c.pagos_afore.map((x) => ({ id: x.id, numero: x.numero, fecha: iso(x.fecha_deposito)!, bruto: Number(x.monto_bruto), isr: Number(x.isr_retenido), neto: Number(x.monto_neto) })),
       cobros: c.cobros.map((x) => ({ id: x.id, pagoAforeId: x.pago_afore_id, concepto: x.concepto, base: n(x.base_calculo), honorario: Number(x.honorario_total),

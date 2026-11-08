@@ -6,6 +6,7 @@ import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
+import { hoyCDMX } from "@/lib/tiempo";
 
 const ROLES = [["asesor", "Asesor"], ["vendedor", "Vendedor"], ["socio", "Socio licenciatario"], ["director", "Director"]] as const;
 const QUE_VE: Record<string, string> = {
@@ -17,10 +18,20 @@ const QUE_VE: Record<string, string> = {
 const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", socio_id: "Socio", telefono: "Teléfono" };
 
 export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
-  const { usuarios, socios } = await conUsuario(sesion.claims, async (tx) => ({
+  const hoy = hoyCDMX();
+  const { usuarios, socios, esquema } = await conUsuario(sesion.claims, async (tx) => ({
     usuarios: await tx.usuario.findMany({ orderBy: [{ activo: "desc" }, { nombre: "asc" }], include: { socio: { select: { nombre: true } } } }),
     socios: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    // % general del vendedor en el retiro (esquema vigente), para mostrarlo como opción «General».
+    esquema: await tx.esquemaComision.findFirst({
+      where: { tipo: "vendedor", tipo_servicio: "RETIRO_DESEMPLEO", vigente_desde: { lte: new Date(`${hoy}T00:00:00Z`) },
+        OR: [{ vigente_hasta: null }, { vigente_hasta: { gte: new Date(`${hoy}T00:00:00Z`) } }] },
+      orderBy: { vigente_desde: "desc" }, select: { reglas: true },
+    }),
   }), sesion.ip);
+  const general = (esquema?.reglas as { pct?: number } | null)?.pct ?? null;
+  const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
+  const OPCIONES_PCT = Array.from({ length: 39 }, (_, i) => (i + 2) / 200).map((f) => [String(f), pctTxt(f)] as const); // 1% a 20%, de medio en medio
   const opcionesSocio = socios.map((x) => [x.id, x.nombre] as const);
 
   return (
@@ -34,7 +45,8 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-medium text-ink">{u.nombre} {u.id === sesion.usuario.id && <span className="text-xs font-normal text-ink-muted">(tú)</span>}</p>
-                    <p className="text-xs text-ink-muted">{u.email}{u.telefono ? ` · ${u.telefono}` : ""}{u.socio ? ` · ${u.socio.nombre}` : ""}</p>
+                    <p className="text-xs text-ink-muted">{u.email}{u.telefono ? ` · ${u.telefono}` : ""}{u.socio ? ` · ${u.socio.nombre}` : ""}
+                      {u.rol === "vendedor" && ` · comisión ${u.comision_pct ? pctTxt(Number(u.comision_pct)) : `${general ? pctTxt(general) : "—"} (general)`}`}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge tono={u.rol === "director" ? "tramite" : "prospecto"}>{ROLES.find(([k]) => k === u.rol)?.[1]}</Badge>
@@ -54,6 +66,8 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                         <CampoTexto id="telefono" etiqueta="Teléfono" tipo="tel" valor={u.telefono} />
                         <Seleccion id="rol" etiqueta="Rol" valor={u.rol} opciones={ROLES} />
                         <Seleccion id="socio_id" etiqueta="Socio licenciatario" ayuda="solo rol socio" valor={u.socio_id} vacia="Ninguno" opciones={opcionesSocio} />
+                        <Seleccion id="comision_pct" etiqueta="Comisión del vendedor" ayuda="solo rol vendedor · % de lo que paga la Afore"
+                          valor={u.comision_pct ? String(Number(u.comision_pct)) : ""} vacia={`General del esquema${general ? ` (${pctTxt(general)})` : ""}`} opciones={OPCIONES_PCT} />
                       </div>
                     </FormularioAccion>
                     {u.activo && u.id !== sesion.usuario.id && (
@@ -77,7 +91,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
         <Card>
           <CardHeader><CardTitle>Dar de alta a alguien</CardTitle></CardHeader>
           <CardContent>
-            <FormularioAccion accion={crearUsuarioConClave} boton="Crear cuenta" etiquetas={ETIQUETAS}>
+            <FormularioAccion accion={crearUsuarioConClave} boton="Crear cuenta" etiquetas={ETIQUETAS} limpiar>
               <CampoTexto id="nombre" etiqueta="Nombre completo" />
               <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />

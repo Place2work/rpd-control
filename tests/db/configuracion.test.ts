@@ -77,3 +77,11 @@ describe("bitácora de acciones de cuenta", () => {
     await expect(como(A, "INSERT INTO auditoria.auditoria (tabla, registro_id, accion) VALUES ('usuarios', 'x', 'CLAVE_TEMPORAL')")).rejects.toThrow();
   });
 });
+
+describe("porcentaje de comisión por vendedor", () => {
+  it("el Director lo fija entre 0 y 100%; el asesor no puede cambiarlo", async () => {
+    expect(await como(D, "UPDATE usuarios SET comision_pct = 0.07 WHERE id = $1 RETURNING comision_pct::text", [A])).toEqual([{ comision_pct: "0.0700" }]);
+    await expect(como(D, "UPDATE usuarios SET comision_pct = 1.5 WHERE id = $1", [A])).rejects.toThrow();
+    expect(await como(A, "UPDATE usuarios SET comision_pct = 0.2 WHERE id = $1 RETURNING id", [A])).toHaveLength(0);
+  });
+});

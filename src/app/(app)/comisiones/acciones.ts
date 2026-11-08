@@ -71,7 +71,15 @@ export async function crearReferidor(_p: Resultado, form: FormData): Promise<Res
   const r = z.object({ ...contacto, notas: opcional }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const { clabe: c, ...d } = r.data;
-  await conUsuario(claims, (tx) => tx.referidor.create({ select: { id: true }, data: { ...d, ...cuenta(c), created_by: usuario.id } }), ip);
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    // Evita el doble alta (p. ej. dar dos veces «Dar de alta»): el mismo nombre ya registrado se avisa.
+    if (await tx.referidor.findFirst({ where: { archivado_at: null, nombre: { equals: d.nombre.trim(), mode: "insensitive" } }, select: { id: true } })) {
+      return { errores: { nombre: "Ya hay un referidor con ese nombre" } };
+    }
+    await tx.referidor.create({ select: { id: true }, data: { ...d, ...cuenta(c), created_by: usuario.id } });
+    return { ok: true };
+  }, ip);
+  if (!res.ok) return res;
   revalidatePath("/comisiones/beneficiarios");
   return { ok: true };
 }
@@ -84,7 +92,14 @@ export async function crearSocio(_p: Resultado, form: FormData): Promise<Resulta
   const r = z.object({ ...contacto, razon_social: opcional, rfc: opcional, porcentaje_socio: pct, costo_administrativo: pesos }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const { clabe: c, ...d } = r.data;
-  await conUsuario(claims, (tx) => tx.socio.create({ select: { id: true }, data: { ...d, rfc: d.rfc?.toUpperCase(), ...cuenta(c), created_by: usuario.id } }), ip);
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    if (await tx.socio.findFirst({ where: { archivado_at: null, nombre: { equals: d.nombre.trim(), mode: "insensitive" } }, select: { id: true } })) {
+      return { errores: { nombre: "Ya hay un socio con ese nombre" } };
+    }
+    await tx.socio.create({ select: { id: true }, data: { ...d, rfc: d.rfc?.toUpperCase(), ...cuenta(c), created_by: usuario.id } });
+    return { ok: true };
+  }, ip);
+  if (!res.ok) return res;
   revalidatePath("/comisiones/beneficiarios");
   return { ok: true };
 }

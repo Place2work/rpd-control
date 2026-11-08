@@ -251,3 +251,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - En «Corregir» de cada pago (solo Director): **Cambiar fecha** (monto y honorario igual), **Regresar a pago esperado**
   (archiva el pago, cancela su cobro pendiente, deja el monto como proyección y regresa el caso a la etapa previa al
   salto automático; no si el honorario ya se cobró) y **Archivar** (registro por error).
+
+## 8-nov-2026 · Comisión propia por vendedor y altas sin duplicar
+
+- Cada vendedor puede tener su propio % de comisión del retiro (`usuarios.comision_pct`, Configuración → Usuarios →
+  Editar, de 1% a 20% en medios puntos); vacío = el del esquema vigente (5%). Al cambiarlo se recalculan sus comisiones
+  no pagadas; las pagadas no cambian. Migración 2400.
+- Altas de referidores, socios y usuarios: el formulario se limpia al guardar y un nombre ya registrado se avisa (había
+  quedado «JUAN CARVAJAL» dos veces; se archivó el duplicado sin casos).

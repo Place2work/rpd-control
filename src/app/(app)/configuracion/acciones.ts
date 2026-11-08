@@ -11,6 +11,7 @@ import { conUsuario } from "@/lib/db/prisma";
 import { sumarDias as sumar } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { dominioApp } from "@/lib/url";
+import { recalcularComisiones } from "@/lib/dinero/motor";
 
 // `unaVez`: dato que se muestra una sola vez y no se guarda (la contraseña temporal).
 export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; unaVez?: { titulo: string; valor: string; nota?: string } };
@@ -97,6 +98,9 @@ const esquemaUsuario = z.object({
   rol: z.enum(ROLES, { message: "Elige el rol" }),
   socio_id: z.string().optional().transform((v) => (v ? v : null)),
   telefono: z.string().max(20).optional().transform((v) => (v ? v : null)),
+  // Vendedor: % propio de comisión del retiro, como fracción ("0.07"); vacío = el del esquema.
+  comision_pct: z.string().optional().transform((v) => (v ? Number(v) : null))
+    .pipe(z.number().gt(0, "Elige un porcentaje").lt(1, "Elige un porcentaje").nullable()),
 }).refine((d) => d.rol !== "socio" || d.socio_id, { message: "Un usuario socio debe pertenecer a un socio licenciatario", path: ["socio_id"] });
 
 export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Resultado> {
@@ -181,8 +185,14 @@ export async function actualizarUsuario(id: string, _p: Resultado, form: FormDat
   if (id === s.usuario.id && r.data.rol !== "director") return { errores: { rol: "No puedes quitarte el rol de Director a ti mismo" } };
   await conUsuario(s.claims, (tx) => tx.usuario.update({
     where: { id }, select: { id: true },
-    data: { nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono },
+    data: { nombre: r.data.nombre, rol: r.data.rol, socio_id: r.data.rol === "socio" ? r.data.socio_id : null, telefono: r.data.telefono,
+      comision_pct: r.data.rol === "vendedor" ? r.data.comision_pct : null },
   }), s.ip);
+  // Sus comisiones no pagadas se recalculan con el % nuevo (las pagadas no cambian).
+  const casos = await conUsuario(s.claims, (tx) => tx.caso.findMany({ where: { vendedor_id: id }, select: { id: true } }), s.ip);
+  if (casos.length) {
+    try { await recalcularComisiones(casos.map((c) => c.id)); } catch (e) { console.error("[comisiones]", id, e); }
+  }
   revalidatePath("/configuracion");
   return { ok: true };
 }

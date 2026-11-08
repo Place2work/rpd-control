@@ -129,6 +129,7 @@ export type CasoDinero = {
   perdido: boolean;
   montoEstimado: number | null; // del último cálculo (retiro)
   vendedorId: string | null;
+  vendedorPct?: number | null; // % propio del vendedor (retiro); sin él, el del esquema
   referidorId: string | null;
   socio: { id: string; pct: number; costoAdmin: number } | null;
   pagos: PagoAforeFoto[];
@@ -185,7 +186,8 @@ export function comisionesDelCaso(
   if (c.vendedorId && ev) {
     const benef = { tipo: "vendedor" as const, esquemaId: ev.id, beneficiarioTipo: "usuario" as const, beneficiarioId: c.vendedorId };
     if (retiro && ev.reglas.tipo === "porcentaje") {
-      const pct = ev.reglas.pct;
+      // Cada vendedor puede tener su propio %; si no, el del esquema vigente.
+      const pct = c.vendedorPct && c.vendedorPct > 0 ? c.vendedorPct : ev.reglas.pct;
       const cual = p.BASE_COMISION_VENDEDOR === "igual_honorario" ? p.BASE_HONORARIO : p.BASE_COMISION_VENDEDOR;
       const pctTxt = `${+(pct * 100).toFixed(2)}%`;
       if (c.pagos.length === 0 && estima && c.montoEstimado) {

@@ -202,3 +202,14 @@ describe("honorario proyectado antes del depósito de la Afore", () => {
     expect(honorariosProyectados([caso({ pagosAfore: 1 }), caso({ etapa: "CERRADO" }), caso({ etapa: "PERDIDO" }), caso({ montoEsperado: null })], P).filas).toEqual([]);
   });
 });
+
+describe("porcentaje propio de cada vendedor", () => {
+  it("con 7% propio, $35,193 de la Afore dan $2,463.51; sin % propio, el del esquema (5%)", () => {
+    const pago1 = pago(1, 35193);
+    const conPct = comisionesDelCaso(caso({ vendedorId: "v1", vendedorPct: 0.07, pagos: [pago1], cobros: [cobro("p1", 10557.9)] }), E, P, HOY);
+    expect(conPct.find((x) => x.tipo === "vendedor")).toMatchObject({ monto: 2463.51, estado: "devengada" });
+    expect(conPct.find((x) => x.tipo === "vendedor")!.regla).toContain("7%");
+    const sinPct = comisionesDelCaso(caso({ vendedorId: "v1", pagos: [pago1], cobros: [cobro("p1", 10557.9)] }), E, P, HOY);
+    expect(sinPct.find((x) => x.tipo === "vendedor")!.monto).toBe(1759.65);
+  });
+});

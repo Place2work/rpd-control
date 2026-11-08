@@ -1,7 +1,7 @@
 "use client";
 
 import { CheckCircle2, Copy } from "lucide-react";
-import { startTransition, useActionState, useState } from "react";
+import { startTransition, useActionState, useEffect, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
 import type { Resultado } from "./acciones";
 
@@ -14,17 +14,22 @@ type Props = {
   className?: string;
   /** Pregunta antes de enviar (acciones que no se deshacen con un clic). */
   confirmar?: string;
+  /** Altas: vacía los campos al guardar, para no dar de alta dos veces lo mismo. */
+  limpiar?: boolean;
 };
 
 // Formulario genérico del expediente: los campos llegan como children (renderizados en el
 // servidor) y aquí se muestra el resultado: "Guardado", errores por campo o lo que falta.
 // Se envía con onSubmit (no con action=) porque React 19 vacía los campos después de cada
 // envío por action: si había un error, el usuario perdía lo que acababa de escribir.
-export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className, confirmar }: Props) {
+export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className, confirmar, limpiar }: Props) {
   const [estado, enviar, enviando] = useActionState<ConDato, FormData>(accion, {});
+  const forma = useRef<HTMLFormElement>(null);
+  useEffect(() => { if (limpiar && estado.ok) forma.current?.reset(); }, [estado, limpiar]);
   const errores = Object.entries(estado.errores ?? {});
   return (
     <form
+      ref={forma}
       className={className ?? "grid gap-4"}
       onSubmit={(e) => {
         e.preventDefault();

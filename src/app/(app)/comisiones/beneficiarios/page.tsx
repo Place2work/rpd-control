@@ -24,7 +24,10 @@ export default async function Beneficiarios() {
   return (
     <>
       <Encabezado titulo="Referidores y socios" descripcion="La CLABE se guarda cifrada; aquí solo ves los últimos 4 dígitos.">
-        <Link href="/comisiones" className="text-sm text-brand underline">Volver a Comisiones</Link>
+        <div className="flex flex-wrap items-center gap-4">
+          {director && <Link href="/configuracion?seccion=usuarios" className="text-sm text-brand underline">Agregar vendedores (Configuración → Usuarios)</Link>}
+          <Link href="/comisiones" className="text-sm text-brand underline">Volver a Comisiones</Link>
+        </div>
       </Encabezado>
       <div className="grid gap-4 lg:grid-cols-2">
         <Card>
@@ -41,7 +44,7 @@ export default async function Beneficiarios() {
             <details>
               <summary className="cursor-pointer text-sm font-medium text-brand">Nuevo referidor</summary>
               <div className="mt-3">
-                <FormularioAccion accion={crearReferidor} boton="Dar de alta" etiquetas={ETIQUETAS}>
+                <FormularioAccion accion={crearReferidor} boton="Dar de alta" etiquetas={ETIQUETAS} limpiar>
                   <div className="grid gap-3 sm:grid-cols-2">
                     <CampoTexto id="nombre" etiqueta="Nombre" />
                     <CampoTexto id="telefono" etiqueta="Teléfono" tipo="tel" />
@@ -71,7 +74,7 @@ export default async function Beneficiarios() {
               <details>
                 <summary className="cursor-pointer text-sm font-medium text-brand">Nuevo socio</summary>
                 <div className="mt-3">
-                  <FormularioAccion accion={crearSocio} boton="Dar de alta" etiquetas={ETIQUETAS}>
+                  <FormularioAccion accion={crearSocio} boton="Dar de alta" etiquetas={ETIQUETAS} limpiar>
                     <div className="grid gap-3 sm:grid-cols-2">
                       <CampoTexto id="nombre" etiqueta="Nombre" />
                       <CampoTexto id="razon_social" etiqueta="Razón social" ayuda="opcional" />
