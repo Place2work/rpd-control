@@ -345,3 +345,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   IVA neto (IVA del honorario − IVA acreditable de las facturas de los asesores). IVA del parámetro, no fijo.
 - (8-nov) La ganancia suma también lo ya cobrado desde el inicio (p. ej. RP-0001, cliente cerrado) y resta las
   comisiones ya pagadas, para cuadrar con el costo total de las altas. Cuadro en amarillo; «proyectada» en verde.
+
+## 8-nov-2026 · Gráficas de finanzas en Hoy (Director)
+
+- «De dónde sale la ganancia» (cascada): cobrado + por cobrar y proyectado − comisiones − altas = ganancia
+  (`cascadaGanancia`). «Honorarios por mes» (barras apiladas, 12 meses): cobrados y proyectados por la fecha
+  estimada del depósito (`flujoHonorarios`). Comisiones proyectadas por beneficiario (barras) sobre su tabla.
+- Colores validados para daltonismo con el validador del skill de visualización: azul #004AAD, magenta #C2255C,
+  verde #5E9E3A. En celular las etiquetas del eje se abrevian o se espacian.

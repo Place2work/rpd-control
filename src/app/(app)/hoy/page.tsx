@@ -1,5 +1,7 @@
 import { CalendarClock, Filter, LineChart } from "lucide-react";
 import { GraficaBarras } from "@/components/rpd/grafica-barras";
+import { GraficaCascada, GraficaFlujo } from "@/components/rpd/grafica-finanzas";
+import { cascadaGanancia, flujoHonorarios } from "@/lib/reglas/finanzas";
 import { movimientosDelMes } from "@/lib/cerrados/consultas";
 import { cifrasHoy, proyecciones } from "@/lib/dinero/consultas";
 import { altasYCostos } from "@/lib/dinero/costo-alta";
@@ -62,6 +64,10 @@ export default async function Hoy() {
   const comisionesTodas = dinero && comProy ? (cents(comProy.total) + cents(dinero.comisionesPagadas)) / 100 : 0;
   const ganancia = dinero && comProy && costoTotal ? gananciaProyectada({ honorarios: honorariosTodos, comisiones: comisionesTodas, costoAltas: costoTotal.total, iva: pDinero?.IVA ?? 0,
     comisionesAsesor: (comProy.filas.filter((f) => f.tipo === "socio").reduce((a, f) => a + cents(f.monto), 0) + cents(dinero.comisionesPagadasAsesor)) / 100 }) : null;
+  // Gráficas de finanzas (Director): cascada de la ganancia y honorarios por mes (cobrados y proyectados).
+  const cascada = dinero && ganancia ? cascadaGanancia({ cobrado: dinero.cobradoTotal, proyectado: honorariosProy, comisiones: comisionesTodas, altas: costoTotal?.total ?? 0 }) : null;
+  const flujo = dinero && proy ? flujoHonorarios({ hoy, cobradosPorMes: dinero.meses.map((m) => ({ mes: m.mes, total: m.total })), porCobrar: dinero.porCobrar,
+    proyectados: proy.filas.map((f) => ({ fecha: f.fechaEstimada, honorario: f.honorario })) }) : null;
   // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
   const slaEnRiesgo = new Set(alertas.filter((a) => a.regla.startsWith("SLA_15")).map((a) => a.casoId)).size;
   const INDICADORES: { t: string; v: string; nota?: string; liga?: string; destacado?: boolean }[] = [
@@ -129,6 +135,24 @@ export default async function Hoy() {
           );
         })}
       </section>
+      {usuario.rol === "director" && cascada && flujo && (
+        <div className="mb-6 grid gap-4 lg:grid-cols-2">
+          <Card>
+            <CardHeader><CardTitle>De dónde sale la ganancia</CardTitle></CardHeader>
+            <div className="px-5 pb-5 pt-2">
+              <GraficaCascada pasos={cascada} />
+              <p className="mt-2 text-xs text-ink-muted">Azul: lo que entra (cobrado; por cobrar y proyectado) · magenta: comisiones y costo de altas · verde: ganancia proyectada con IVA (sin IVA: {mxn(ganancia!.gananciaSinIva)}).</p>
+            </div>
+          </Card>
+          <Card>
+            <CardHeader><CardTitle>Honorarios por mes</CardTitle></CardHeader>
+            <div className="px-5 pb-5 pt-2">
+              <GraficaFlujo meses={flujo} />
+              <p className="mt-2 text-xs text-ink-muted">Cobrados y proyectados por la fecha estimada del depósito de la Afore. Lo que no tiene fecha y lo por cobrar va en el mes actual.</p>
+            </div>
+          </Card>
+        </div>
+      )}
       {/* Comisiones proyectadas por asesor de pensiones y referidor (Director). */}
       {usuario.rol === "director" && comProy && (
         <Card className="mb-6">
@@ -140,6 +164,9 @@ export default async function Hoy() {
             <p className="px-5 pb-5 pt-2 text-sm text-ink-muted">Sin comisiones por pagar. Elige el asesor de pensiones o el referidor en el Canal de cada caso.</p>
           ) : (
             <div className="overflow-x-auto px-5 pb-5 pt-2">
+              {comProy.porBeneficiario.length > 1 && (
+                <div className="mb-3"><GraficaBarras horizontal formato="pesos" datos={comProy.porBeneficiario.map((b) => ({ etiqueta: b.nombre, valor: b.monto }))} alto={120} /></div>
+              )}
               <table className="w-full min-w-[560px] text-sm">
                 <thead><tr className="text-left text-xs text-ink-muted">{["Beneficiario", "Tipo", "Casos", "Ya devengado", "Proyectado y estimado", "Total"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
                 <tbody>
