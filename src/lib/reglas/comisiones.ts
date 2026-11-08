@@ -309,13 +309,19 @@ export function conciliar(deseadas: ComisionDeseada[], guardadas: ComisionGuarda
 
 // ───────────── 9.3 Margen por caso ─────────────
 
-/** Honorario − IVA − comisiones = margen (9.2). Solo cuenta cobros cobrados y comisiones no canceladas. */
-export function margenCaso(cobros: Pick<CobroFoto, "honorario" | "iva" | "estado">[], comisiones: { monto: number; estado: string }[]) {
+/**
+ * Margen (9.2) = honorario − IVA neto − comisiones. IVA neto = IVA del honorario − IVA acreditable de las facturas
+ * de los asesores (su comisión ya trae su IVA: «cada quien paga su IVA»). Solo cobros cobrados y comisiones vivas.
+ */
+export function margenCaso(cobros: Pick<CobroFoto, "honorario" | "iva" | "estado">[], comisiones: { monto: number; estado: string; ivaAcreditable?: number }[]) {
   const ok = cobros.filter((x) => x.estado === "cobrado");
+  const vivas = comisiones.filter((x) => x.estado !== "cancelada");
   const honorario = ok.reduce((a, x) => a + cent(x.honorario), 0);
   const iva = ok.reduce((a, x) => a + cent(x.iva), 0);
-  const com = comisiones.filter((x) => x.estado !== "cancelada").reduce((a, x) => a + cent(x.monto), 0);
-  return { honorario: pesos(honorario), iva: pesos(iva), comisiones: pesos(com), margen: pesos(honorario - iva - com) };
+  const com = vivas.reduce((a, x) => a + cent(x.monto), 0);
+  const acreditable = vivas.reduce((a, x) => a + cent(x.ivaAcreditable ?? 0), 0);
+  return { honorario: pesos(honorario), iva: pesos(iva), ivaAcreditable: pesos(acreditable), ivaNeto: pesos(iva - acreditable),
+    comisiones: pesos(com), margen: pesos(honorario - (iva - acreditable) - com) };
 }
 
 /** Suma al centavo (14.2: el estado de cuenta cuadra con la suma de sus casos). */
@@ -381,4 +387,34 @@ export function honorariosProyectados(casos: CasoProyectable[], p: Pick<Parametr
       return { id: c.id, montoEsperado: c.montoEsperado!, pct, honorario: h.honorario };
     });
   return { filas, total: sumar(filas.map((f) => f.honorario)) };
+}
+
+/**
+ * Factura del asesor de pensiones (8-nov-2026, «cada quien paga su IVA»): su comisión es el TOTAL de su factura,
+ * con IVA incluido. Se desglosa sobre la suma de lo que se le liquida, como en una sola factura.
+ */
+export function facturaAsesor(total: number, iva: number) {
+  const t = cent(total);
+  const subtotal = Math.round(t / (1 + iva));
+  return { subtotal: pesos(subtotal), iva: pesos(t - subtotal), total: pesos(t) };
+}
+
+/**
+ * Proyección de lo que cobrarían el asesor de pensiones y el referidor de un caso con el honorario esperado
+ * (para verlo al elegirlos en el canal). Asesor: (base − costo del alta) × su %, con el desglose de su factura.
+ * Referidor: el escalón con los referidos cobrados del mes (contando este caso).
+ */
+export function proyectarComisiones(e: {
+  honorario: number; subtotal: number; costoAlta: number; base: "subtotal" | "total"; iva: number;
+  asesorPct: number | null; escalones: Escalon[] | null; referidosMes: number;
+}) {
+  const b = e.base === "total" ? e.honorario : e.subtotal;
+  let asesor: { base: number; costo: number; monto: number; empresa: number; factura: ReturnType<typeof facturaAsesor> } | null = null;
+  if (e.asesorPct !== null) {
+    const s = repartoSocio(b, e.costoAlta, e.asesorPct);
+    asesor = { base: pesos(cent(b)), costo: pesos(cent(e.costoAlta)), monto: s.socio, empresa: s.rpd, factura: facturaAsesor(s.socio, e.iva) };
+  }
+  const n = Math.max(1, e.referidosMes);
+  const referidor = e.escalones ? { n, monto: montoPorReferido(e.escalones, n) } : null;
+  return { asesor, referidor };
 }

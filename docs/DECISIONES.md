@@ -310,3 +310,13 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   del asesor; el resto es de la empresa. La vigencia anterior (subtotal) cerró el 7-nov (migración 2900).
 - Ejemplo (35,190 netos, 30%): (10,557 − 500) × 40% = $4,022.80 asesor; $6,034.20 empresa. El IVA trasladado
   ($1,456.14) se sigue declarando y sale de la parte de la empresa.
+
+## 8-nov-2026 · Factura del asesor («cada quien paga su IVA») y proyección de comisiones
+
+- La comisión del asesor de pensiones es el **total de su factura, IVA incluido** (opción A). Se desglosa con
+  `facturaAsesor` (subtotal + IVA) en la pestaña Dinero, en Comisiones (factura por lo por pagar) y en su PDF.
+- El margen usa el **IVA neto**: IVA del honorario − IVA acreditable de las facturas de los asesores
+  (`margenCaso`, reporte «Margen por canal»). Ejemplo 35,190 al 30%: IVA neto $901.27.
+- Retenciones de ISR/IVA al asesor: pendientes de definir con el contador (no se calculan todavía).
+- Canal del caso (retiro): al elegir asesor o referidor se muestra la proyección (`proyectarComisiones`) con el
+  honorario más firme disponible: cobros > pagos de la Afore > pago esperado > cálculo. Otros servicios: sin comisión.

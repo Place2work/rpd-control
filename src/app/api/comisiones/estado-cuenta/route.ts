@@ -6,6 +6,8 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { estadoDeCuenta, leerBenef } from "@/lib/comisiones/consultas";
 import { formatoFechaLarga } from "@/lib/formato";
 import { generarEstadoCuenta, type RenglonEstado } from "@/lib/pdf/estado-cuenta";
+import { parametrosDinero } from "@/lib/parametros";
+import { facturaAsesor } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 
 const TIPO = { usuario: "Vendedor", referidor: "Referidor", socio: "Asesor de pensiones" } as const;
@@ -29,6 +31,10 @@ export async function GET(req: NextRequest) {
     estimadas: e.comisiones.filter((c) => c.estado === "estimada").map(renglon),
     pagos: e.liquidaciones.map((l) => ({ fecha: l.fecha_pago.toISOString().slice(0, 10), metodo: l.metodo, referencia: l.referencia, total: Number(l.total) })),
     totales: e.totales,
+    factura: benef.tipo === "socio" ? await (async () => {
+      const { IVA } = await parametrosDinero(hoy);
+      return { ...facturaAsesor(e.totales.porPagar, IVA), pctIva: Math.round(IVA * 100) };
+    })() : null,
   });
   const archivo = `Estado-de-cuenta-${e.nombre.replace(/[^\p{L}\p{N}]+/gu, "-")}-${mes}.pdf`;
   return new NextResponse(new Uint8Array(pdf), {

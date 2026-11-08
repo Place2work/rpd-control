@@ -1,6 +1,7 @@
 // Casos de la sección 9 y 14.1 (T11, T12, T13) con los parámetros de la sección 14.
 import { describe, expect, it } from "vitest";
 import {
+  facturaAsesor, proyectarComisiones,
   alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
   honorariosProyectados, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro, type CasoProyectable,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
@@ -84,7 +85,7 @@ describe("9.2 retiro de $10,000 con vendedor (T11)", () => {
     expect(r).toEqual([expect.objectContaining({ clave: "vendedor:pago:1", base: 10000, monto: 500, estado: "devengada", fechaDevengo: "2026-10-12" })]);
   });
   it("margen antes de gastos $2,086.21", () => {
-    expect(margenCaso(c.cobros, r)).toEqual({ honorario: 3000, iva: 413.79, comisiones: 500, margen: 2086.21 });
+    expect(margenCaso(c.cobros, r)).toMatchObject({ honorario: 3000, iva: 413.79, comisiones: 500, margen: 2086.21 });
   });
 });
 
@@ -218,5 +219,36 @@ describe("reparto del asesor sobre el honorario con IVA (desde 8-nov-2026)", () 
   it("35,190 netos al 30%: (10,557 − 500) × 40% = 4,022.80 para el asesor y 6,034.20 para la empresa", () => {
     expect(repartoSocio(10557, 500, 0.4)).toEqual({ base: 10057, socio: 4022.8, rpd: 6034.2 });
     expect(repartoSocio(10557, 0, 0.4)).toEqual({ base: 10557, socio: 4222.8, rpd: 6334.2 });
+  });
+});
+
+describe("factura del asesor: su comisión ya trae su IVA", () => {
+  it("4,022.80 = 3,467.93 + IVA 554.87; suma al centavo", () => {
+    expect(facturaAsesor(4022.8, 0.16)).toEqual({ subtotal: 3467.93, iva: 554.87, total: 4022.8 });
+    const f = facturaAsesor(0.01, 0.16);
+    expect(Math.round((f.subtotal + f.iva) * 100)).toBe(1);
+    expect(facturaAsesor(0, 0.16)).toEqual({ subtotal: 0, iva: 0, total: 0 });
+  });
+});
+
+describe("margen con el IVA acreditable del asesor", () => {
+  it("10,557 cobrados; asesor 4,022.80 (IVA 554.87): IVA neto 901.27 y margen 5,632.93", () => {
+    const m = margenCaso([{ honorario: 10557, iva: 1456.14, estado: "cobrado" }], [{ monto: 4022.8, estado: "devengada", ivaAcreditable: 554.87 }]);
+    expect(m).toMatchObject({ ivaNeto: 901.27, comisiones: 4022.8, margen: 5632.93 });
+  });
+});
+
+describe("proyección al elegir asesor o referidor", () => {
+  const ESC = [{ desde: 1, hasta: 2, monto: 1000 }, { desde: 3, hasta: 10, monto: 2000 }, { desde: 11, hasta: null, monto: 3000 }];
+  it("35,190 al 30%, asesor 40%, alta $500, base con IVA: 4,022.80 y factura 3,467.93 + 554.87", () => {
+    const p = proyectarComisiones({ honorario: 10557, subtotal: 9100.86, costoAlta: 500, base: "total", iva: 0.16, asesorPct: 0.4, escalones: null, referidosMes: 0 });
+    expect(p.asesor).toEqual({ base: 10557, costo: 500, monto: 4022.8, empresa: 6034.2, factura: { subtotal: 3467.93, iva: 554.87, total: 4022.8 } });
+    expect(p.referidor).toBeNull();
+  });
+  it("referidor: el escalón depende de cuántos lleva en el mes", () => {
+    const r = (n: number) => proyectarComisiones({ honorario: 0, subtotal: 0, costoAlta: 0, base: "total", iva: 0.16, asesorPct: null, escalones: ESC, referidosMes: n }).referidor;
+    expect(r(0)).toEqual({ n: 1, monto: 1000 });
+    expect(r(3)).toEqual({ n: 3, monto: 2000 });
+    expect(r(11)).toEqual({ n: 11, monto: 3000 });
   });
 });

@@ -9,7 +9,8 @@ import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
-import { honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { desglosarHonorario } from "@/lib/reglas/retiro";
+import { facturaAsesor, honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { costoVigente } from "@/lib/reglas/costo-alta";
 import { hoyCDMX } from "@/lib/tiempo";
 import { BotonAccion } from "../../../configuracion/boton-accion";
@@ -17,6 +18,8 @@ import { archivarPagoAfore, cambiarFechaPagoAfore, regresarAPagoEsperado, cancel
 import { Campo, CampoTexto, claseSelect, Seleccion } from "../campos";
 import { Comprobante } from "../comprobante";
 import { FormularioAccion } from "../formulario-accion";
+import { CanalConProyeccion, type DatosProyeccion } from "../canal-proyeccion";
+import type { Escalon } from "@/lib/reglas/comisiones";
 
 const corta = (d: Date | null) => (d ? formatoFecha(isoDe(d)!, { dateStyle: "medium" }) : "—");
 const METODOS = [["transferencia", "Transferencia"], ["efectivo", "Efectivo"], ["tarjeta", "Tarjeta"]] as const;
@@ -39,28 +42,50 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
   const puedeCanal = rol === "director" || rol === "asesor";
   const d = await conUsuario(sesion.claims, async (tx) => ({
     pagos: await tx.pagoAfore.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { numero: "asc" } }),
-    modalidad: (await tx.calculo.findFirst({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, select: { modalidad_elegida: true } }))?.modalidad_elegida ?? null,
+    calculo: await tx.calculo.findFirst({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, select: { modalidad_elegida: true, monto_estimado: true } }),
     cobros: await tx.cobro.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { created_at: "asc" }, include: { pago_afore: { select: { numero: true } } } }),
     comisiones: await tx.comision.findMany({ where: { caso_id: caso.id, archivado_at: null, estado: { not: "cancelada" } }, orderBy: { created_at: "asc" } }),
     referidores: puedeCanal ? await tx.referidor.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
+    // Referidos con su primer honorario cobrado este mes (para el escalón de la proyección), sin contar este caso.
+    referidosMes: puedeCanal ? await tx.$queryRaw<{ referidor_id: string; n: number }[]>`
+      SELECT referidor_id::text, count(*)::int AS n FROM (
+        SELECT c.referidor_id, min(k.fecha_cobro) AS primero FROM casos c
+        JOIN cobros k ON k.caso_id = c.id AND k.estado = 'cobrado' AND k.archivado_at IS NULL
+        WHERE c.referidor_id IS NOT NULL AND c.archivado_at IS NULL AND c.id <> ${caso.id}::uuid GROUP BY c.id, c.referidor_id
+      ) x WHERE to_char(primero, 'YYYY-MM') = ${hoyCDMX().slice(0, 7)} GROUP BY 1` : [],
+    esquemaReferidor: puedeCanal ? await tx.esquemaComision.findFirst({ where: { tipo: "referido", vigente_desde: { lte: new Date(`${hoyCDMX()}T00:00:00Z`) },
+      OR: [{ vigente_hasta: null }, { vigente_hasta: { gte: new Date(`${hoyCDMX()}T00:00:00Z`) } }] }, orderBy: { version: "desc" }, select: { reglas: true } }) : null,
     // Alta de la persona (su primer caso) y vigencias del costo general: solo para el Director.
-    alta: rol === "director" ? await tx.caso.findFirst({ where: { persona_id: caso.persona_id, archivado_at: null }, orderBy: { created_at: "asc" }, select: { id: true, folio: true, created_at: true, costo_admin_alta: true } }) : null,
-    vigCosto: rol === "director" ? await tx.parametro.findMany({ where: { clave: "COSTO_ADMIN_ALTA" }, select: { valor: true, vigente_desde: true, vigente_hasta: true } }) : [],
-    socios: puedeCanal ? await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
+    alta: puedeCanal ? await tx.caso.findFirst({ where: { persona_id: caso.persona_id, archivado_at: null }, orderBy: { created_at: "asc" }, select: { id: true, folio: true, created_at: true, costo_admin_alta: true } }) : null,
+    vigCosto: puedeCanal ? await tx.parametro.findMany({ where: { clave: "COSTO_ADMIN_ALTA" }, select: { valor: true, vigente_desde: true, vigente_hasta: true } }) : [],
+    socios: puedeCanal ? await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true, porcentaje_socio: true }, orderBy: { nombre: "asc" } }) : [],
   }), sesion.ip);
 
-  const permitidos = pagosAforePermitidos(d.modalidad, Number(MODALIDAD_B_MENSUALIDADES_MAX) || 1);
+  const permitidos = pagosAforePermitidos(d.calculo?.modalidad_elegida ?? null, Number(MODALIDAD_B_MENSUALIDADES_MAX) || 1);
   const conMensualidades = permitidos > 1;
   const esperado = caso.monto_afore_esperado === null ? null : Number(caso.monto_afore_esperado);
   const proyeccion = honorariosProyectados([{ id: caso.id, etapa: caso.etapa, montoEsperado: esperado, pctPactado: pactado, pagosAfore: d.pagos.length }], pDinero).filas[0];
   const proximo = d.pagos[0] ? fechaProximoRetiro(isoDe(d.pagos[0].fecha_deposito)!, pf) : null;
   const vivos = d.cobros.filter((c) => c.estado !== "cancelado");
   const porCobrar = vivos.filter((c) => c.estado === "por_cobrar");
-  const m = margenCaso(vivos.map((c) => ({ honorario: Number(c.honorario_total), iva: Number(c.iva), estado: c.estado })), d.comisiones.map((k) => ({ monto: Number(k.monto), estado: k.estado })));
+  const m = margenCaso(vivos.map((c) => ({ honorario: Number(c.honorario_total), iva: Number(c.iva), estado: c.estado })), d.comisiones.map((k) => ({ monto: Number(k.monto), estado: k.estado, ivaAcreditable: k.tipo === "socio" ? facturaAsesor(Number(k.monto), pDinero.IVA).iva : 0 })));
   const pendiente = porCobrar.reduce((a, c) => a + Number(c.honorario_total), 0);
   const fechaAlta = d.alta ? hoyCDMX(d.alta.created_at) : null;
   const costoGeneral = fechaAlta ? costoVigente(fechaAlta, d.vigCosto.map((v) => ({ desde: isoDe(v.vigente_desde)!, hasta: v.vigente_hasta ? isoDe(v.vigente_hasta) : null, monto: Number(v.valor) }))) : 0;
   const costoPropio = d.alta?.costo_admin_alta == null ? null : Number(d.alta.costo_admin_alta);
+  // Honorario para proyectar comisiones: cobros registrados > pagos de la Afore > pago esperado > cálculo.
+  const honorarioCaso = ((): { honorario: number | null; subtotal: number | null; fuente: string } => {
+    if (vivos.length) return { honorario: vivos.reduce((a, c) => a + Number(c.honorario_total), 0), subtotal: vivos.reduce((a, c) => a + Number(c.subtotal), 0), fuente: "cobros registrados" };
+    const monto = d.pagos.length ? d.pagos.reduce((a, x) => a + Number(x.monto_neto), 0) : esperado ?? (d.calculo?.monto_estimado ? Number(d.calculo.monto_estimado) : null);
+    if (monto === null) return { honorario: null, subtotal: null, fuente: "" };
+    const h = desglosarHonorario(monto, { HONORARIO_RETIRO_PCT: pct, IVA: pDinero.IVA });
+    const fuente = d.pagos.length ? "pago de la Afore registrado" : esperado !== null ? "pago esperado de la Afore" : "monto del cálculo";
+    return { honorario: h.honorario, subtotal: h.subtotal, fuente: `${pctTxt(pct)} del ${fuente} de ${mxn(monto)}` };
+  })();
+  const datosProyeccion: DatosProyeccion = {
+    ...honorarioCaso, costoAlta: costoPropio ?? costoGeneral, base: pDinero.BASE_REPARTO_SOCIO, iva: pDinero.IVA,
+    escalones: (d.esquemaReferidor?.reglas as { escalones?: Escalon[] } | null)?.escalones ?? null,
+  };
   const nombreDe = (tipo: string, id: string) =>
     (tipo === "referidor" ? d.referidores : tipo === "socio" ? d.socios : []).find((x) => x.id === id)?.nombre ?? (tipo === "socio" ? "Asesor de pensiones" : "—");
 
@@ -70,7 +95,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
         <Cifra titulo="Honorario cobrado" valor={mxn(m.honorario)} nota={`IVA trasladado ${mxn(m.iva)}`} />
         <Cifra titulo="Por cobrar" valor={mxn(pendiente)} nota={`${porCobrar.length} ${porCobrar.length === 1 ? "cobro" : "cobros"}`} alerta={porCobrar.length > 0} />
         <Cifra titulo="Comisiones" valor={mxn(m.comisiones)} nota="Estimadas, devengadas y pagadas" />
-        {rol === "director" && <Cifra titulo="Margen" valor={mxn(m.margen)} nota="Honorario − IVA − comisiones" />}
+        {rol === "director" && <Cifra titulo="Margen" valor={mxn(m.margen)} nota={m.ivaAcreditable ? `Honorario − IVA neto (${mxn(m.ivaNeto)}) − comisiones` : "Honorario − IVA − comisiones"} />}
       </div>
 
       {esRetiro && (
@@ -100,7 +125,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
         </Card>
       )}
 
-      {d.alta && fechaAlta && (
+      {rol === "director" && d.alta && fechaAlta && (
         <Card>
           <CardHeader>
             <CardTitle>Costo administrativo del alta</CardTitle>
@@ -296,7 +321,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                     <td className="py-2 pr-3">{TIPO_COMISION[k.tipo]}</td>
                     <td className="py-2 pr-3">{nombreDe(k.beneficiario_tipo, k.beneficiario_id)}</td>
                     <td className="py-2 pr-3 text-ink-muted">{k.regla_aplicada}</td>
-                    <td className="cifra py-2 pr-3 font-medium">{mxn(k.monto)}</td>
+                    <td className="cifra py-2 pr-3 font-medium">{mxn(k.monto)}
+                      {k.tipo === "socio" && <span className="block text-xs font-normal text-ink-muted">incluye IVA {mxn(facturaAsesor(Number(k.monto), pDinero.IVA).iva)}</span>}</td>
                     <td className="py-2"><Badge tono={tono}>{texto}</Badge>{k.fecha_devengo && <span className="ml-1 text-xs text-ink-muted">{corta(k.fecha_devengo)}</span>}</td>
                   </tr>
                 );
@@ -311,10 +337,17 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
           <CardHeader><CardTitle>Canal</CardTitle><Banknote className="size-5 text-ink-muted" aria-hidden /></CardHeader>
           <CardContent>
             <FormularioAccion accion={guardarCanal.bind(null, caso.id)} etiquetas={{ socio_id: "Asesor de pensiones" }}>
-              <div className="grid gap-3 sm:grid-cols-2">
-                <Lista id="referidor_id" etiqueta="Referidor" valor={caso.referidor_id} opciones={d.referidores} />
-                <Lista id="socio_id" etiqueta="Asesor de pensiones" valor={caso.socio_id} opciones={d.socios} />
-              </div>
+              {esRetiro ? (
+                <CanalConProyeccion datos={datosProyeccion} asesorId={caso.socio_id} referidorId={caso.referidor_id}
+                  asesores={d.socios.map((x) => ({ id: x.id, nombre: x.nombre, pct: Number(x.porcentaje_socio) }))}
+                  referidores={d.referidores.map((x) => ({ id: x.id, nombre: x.nombre, referidosMes: (d.referidosMes.find((r) => r.referidor_id === x.id)?.n ?? 0) + 1 }))} />
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Lista id="referidor_id" etiqueta="Referidor" valor={caso.referidor_id} opciones={d.referidores} />
+                  <Lista id="socio_id" etiqueta="Asesor de pensiones" valor={caso.socio_id} opciones={d.socios} />
+                  <p className="text-xs text-ink-muted sm:col-span-2">Este servicio todavía no genera comisiones; solo el retiro por desempleo.</p>
+                </div>
+              )}
             </FormularioAccion>
             {/* Las listas solo muestran a quien ya está dado de alta: si alguna está vacía, se dice dónde darlo de alta. */}
             {(d.referidores.length === 0 || d.socios.length === 0) && (

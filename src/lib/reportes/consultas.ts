@@ -6,6 +6,8 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario, type Tx } from "@/lib/db/prisma";
 import type { Columna } from "@/lib/exportar/excel";
 import { NOMBRE_ETAPA, type Etapa } from "@/lib/reglas/etapas";
+import { parametrosDinero } from "@/lib/parametros";
+import { facturaAsesor } from "@/lib/reglas/comisiones";
 
 export type Fila = Record<string, string | number | null>;
 export type Reporte = {
@@ -154,7 +156,7 @@ async function ingresos(tx: Tx, p: Periodo, por: "servicio" | "vendedor"): Promi
     titulo: por === "servicio" ? "Ingresos por servicio" : "Ingresos por vendedor",
     descripcion: "Honorarios cobrados en el periodo (por fecha de cobro), con subtotal e IVA.",
     columnas: [{ clave: "k", titulo: por === "servicio" ? "Servicio" : "Vendedor", ancho: 34 }, { clave: "casos", titulo: "Casos", tipo: "numero" }, { clave: "cobros", titulo: "Cobros", tipo: "numero" },
-      { clave: "total", titulo: "Honorario", tipo: "pesos", ancho: 16 }, { clave: "subtotal", titulo: "Subtotal", tipo: "pesos", ancho: 16 }, { clave: "iva", titulo: "IVA", tipo: "pesos", ancho: 14 }],
+      { clave: "total", titulo: "Honorario", tipo: "pesos", ancho: 16 }, { clave: "subtotal", titulo: "Subtotal", tipo: "pesos", ancho: 16 }, { clave: "iva", titulo: "IVA neto", tipo: "pesos", ancho: 14 }],
     filas: filas.map((f) => ({ k: f.k, casos: f.casos, cobros: f.cobros, total: num(f.total), subtotal: num(f.subtotal), iva: num(f.iva) })),
     totales: { casos: filas.reduce((a, f) => a + f.casos, 0), cobros: filas.reduce((a, f) => a + f.cobros, 0), total: centavos("total"), subtotal: centavos("subtotal"), iva: centavos("iva") },
     grafica: { etiqueta: "k", valor: "total", formato: "pesos" },
@@ -162,28 +164,32 @@ async function ingresos(tx: Tx, p: Periodo, por: "servicio" | "vendedor"): Promi
 }
 
 async function margenCanal(tx: Tx, p: Periodo): Promise<Reporte> {
-  // Canal del caso: socio > vendedor > referidor > directo. Margen = honorario − IVA − comisiones (9.3).
-  const filas = await tx.$queryRaw<{ canal: string; casos: number; honorario: number; iva: number; comisiones: number }[]>`
+  // Canal del caso: asesor de pensiones > vendedor > referidor > directo. Margen = honorario − IVA neto − comisiones (9.3);
+  // IVA neto = IVA del honorario − IVA acreditable de las facturas de los asesores (su comisión ya trae su IVA).
+  const { IVA } = await parametrosDinero(p.hasta);
+  const filas = await tx.$queryRaw<{ canal: string; casos: number; honorario: number; iva: number; comisiones: number; com_asesor: number }[]>`
     WITH cob AS (
       SELECT caso_id, sum(honorario_total) AS honorario, sum(iva) AS iva FROM cobros
       WHERE estado = 'cobrado' AND archivado_at IS NULL AND fecha_cobro BETWEEN ${p.desde}::date AND ${p.hasta}::date GROUP BY 1
     ), com AS (
-      SELECT k.caso_id, sum(k.monto) AS comisiones FROM comisiones k JOIN cob ON cob.caso_id = k.caso_id
+      SELECT k.caso_id, sum(k.monto) AS comisiones, sum(CASE WHEN k.tipo = 'socio' THEN k.monto ELSE 0 END) AS com_asesor FROM comisiones k JOIN cob ON cob.caso_id = k.caso_id
       WHERE k.estado IN ('devengada', 'pagada') AND k.archivado_at IS NULL GROUP BY 1
     )
     SELECT CASE WHEN c.socio_id IS NOT NULL THEN 'Asesor de pensiones' WHEN c.vendedor_id IS NOT NULL THEN 'Vendedor'
                 WHEN c.referidor_id IS NOT NULL THEN 'Referidor' ELSE 'Directo' END AS canal,
-      count(*)::int AS casos, sum(cob.honorario)::float AS honorario, sum(cob.iva)::float AS iva, coalesce(sum(com.comisiones), 0)::float AS comisiones
+      count(*)::int AS casos, sum(cob.honorario)::float AS honorario, sum(cob.iva)::float AS iva, coalesce(sum(com.comisiones), 0)::float AS comisiones,
+      coalesce(sum(com.com_asesor), 0)::float AS com_asesor
     FROM cob JOIN casos c ON c.id = cob.caso_id LEFT JOIN com ON com.caso_id = cob.caso_id
     GROUP BY 1 ORDER BY 3 DESC`;
   const r = filas.map((f) => {
-    const margen = (Math.round(num(f.honorario) * 100) - Math.round(num(f.iva) * 100) - Math.round(num(f.comisiones) * 100)) / 100;
+    const ivaNeto = (Math.round(num(f.iva) * 100) - Math.round(facturaAsesor(num(f.com_asesor), IVA).iva * 100)) / 100;
+    const margen = (Math.round(num(f.honorario) * 100) - Math.round(ivaNeto * 100) - Math.round(num(f.comisiones) * 100)) / 100;
     const neto = num(f.honorario) - num(f.iva);
-    return { canal: f.canal, casos: f.casos, honorario: num(f.honorario), iva: num(f.iva), comisiones: num(f.comisiones), margen, pct: neto ? Math.round((margen / neto) * 1000) / 1000 : 0 };
+    return { canal: f.canal, casos: f.casos, honorario: num(f.honorario), iva: ivaNeto, comisiones: num(f.comisiones), margen, pct: neto ? Math.round((margen / neto) * 1000) / 1000 : 0 };
   });
   const suma = (k: "honorario" | "iva" | "comisiones" | "margen") => Math.round(r.reduce((a, f) => a + Math.round(f[k] * 100), 0)) / 100;
   return {
-    clave: "margen_canal", titulo: "Margen por canal", descripcion: "Honorario cobrado en el periodo − IVA − comisiones devengadas o pagadas de esos casos. % sobre el subtotal.",
+    clave: "margen_canal", titulo: "Margen por canal", descripcion: "Honorario cobrado en el periodo − IVA neto (menos el IVA acreditable de las facturas de los asesores) − comisiones devengadas o pagadas de esos casos. % sobre el subtotal.",
     columnas: [{ clave: "canal", titulo: "Canal", ancho: 22 }, { clave: "casos", titulo: "Casos", tipo: "numero" }, { clave: "honorario", titulo: "Honorario", tipo: "pesos", ancho: 16 },
       { clave: "iva", titulo: "IVA", tipo: "pesos", ancho: 14 }, { clave: "comisiones", titulo: "Comisiones", tipo: "pesos", ancho: 16 }, { clave: "margen", titulo: "Margen", tipo: "pesos", ancho: 16 }, { clave: "pct", titulo: "% margen", tipo: "porcentaje" }],
     filas: r,

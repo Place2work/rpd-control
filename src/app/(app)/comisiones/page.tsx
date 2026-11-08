@@ -9,6 +9,8 @@ import { mesValido, nombreMes, SelectorMes } from "@/components/rpd/selector-mes
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { estadoDeCuenta, leerBenef, resumenComisiones } from "@/lib/comisiones/consultas";
 import { mxn } from "@/lib/formato";
+import { parametrosDinero } from "@/lib/parametros";
+import { facturaAsesor } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import { CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
@@ -33,6 +35,9 @@ export default async function Comisiones({ searchParams }: { searchParams: Promi
   const resumen = director ? await resumenComisiones(sesion, mes) : [];
   const e = benef ? await estadoDeCuenta(sesion, benef, mes) : null;
   const claveBenef = benef ? `${benef.tipo}:${benef.id}` : "";
+  // Asesor de pensiones: «cada quien paga su IVA». Su comisión es el total de su factura (IVA incluido).
+  const iva = benef?.tipo === "socio" ? (await parametrosDinero(hoy)).IVA : null;
+  const factura = e && iva !== null ? facturaAsesor(e.totales.porPagar, iva) : null;
 
   return (
     <>
@@ -116,6 +121,17 @@ export default async function Comisiones({ searchParams }: { searchParams: Promi
               <p className="text-sm text-ink-muted">
                 Pagos del mes: {e.liquidaciones.map((l) => `${mxn(l.total)} el ${l.fecha_pago.toISOString().slice(0, 10)} por ${l.metodo}${l.referencia ? ` (${l.referencia})` : ""}`).join(" · ")}
               </p>
+            )}
+            {factura && e.totales.porPagar > 0 && (
+              <div className="rounded-[var(--radius-boton)] bg-slate-50 p-4 text-sm">
+                <p className="font-medium text-ink">Factura que emite el asesor por lo por pagar</p>
+                <dl className="mt-2 grid max-w-sm grid-cols-2 gap-x-4 gap-y-1">
+                  <dt className="text-ink-muted">Subtotal</dt><dd className="cifra text-right">{mxn(factura.subtotal)}</dd>
+                  <dt className="text-ink-muted">IVA {Math.round((iva ?? 0) * 100)}%</dt><dd className="cifra text-right">{mxn(factura.iva)}</dd>
+                  <dt className="font-medium text-ink">Total</dt><dd className="cifra text-right font-medium">{mxn(factura.total)}</dd>
+                </dl>
+                <p className="mt-2 text-xs text-ink-muted">Cada quien paga su IVA: la comisión ya incluye el IVA del asesor; la empresa lo acredita contra el IVA del honorario.</p>
+              </div>
             )}
             {director && e.totales.porPagar > 0 && (
               <div className="rounded-[var(--radius-boton)] border border-borde p-4">

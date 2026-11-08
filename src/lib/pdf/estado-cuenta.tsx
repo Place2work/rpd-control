@@ -15,6 +15,8 @@ export type DatosEstadoCuenta = {
   estimadas: RenglonEstado[];
   pagos: { fecha: string; metodo: string; referencia: string | null; total: number }[];
   totales: { devengadoMes: number; pagado: number; porPagar: number; estimado: number };
+  /** Asesor de pensiones: desglose de la factura que emite por lo por pagar (su comisión ya incluye su IVA). */
+  factura?: { subtotal: number; iva: number; total: number; pctIva: number } | null;
 };
 
 const mxn = (n: number) => n.toLocaleString("es-MX", { style: "currency", currency: "MXN" });
@@ -79,6 +81,19 @@ function EstadoCuenta(d: DatosEstadoCuenta) {
                 <Text style={{ width: 70, textAlign: "right" }}>{mxn(p.total)}</Text>
               </View>
             ))}
+          </>
+        )}
+
+        {d.factura && d.factura.total > 0 && (
+          <>
+            <Text style={s.seccion}>Factura que emites por lo por pagar</Text>
+            {[["Subtotal", d.factura.subtotal], [`IVA ${d.factura.pctIva}%`, d.factura.iva], ["Total", d.factura.total]].map(([t, v]) => (
+              <View key={t as string} style={s.fila}>
+                <Text style={{ width: 422 }}>{t}</Text>
+                <Text style={{ width: 70, textAlign: "right" }}>{mxn(v as number)}</Text>
+              </View>
+            ))}
+            <Text style={s.nota}>Cada quien paga su IVA: tu comisión ya incluye tu IVA.</Text>
           </>
         )}
 
