@@ -1,7 +1,7 @@
 // Casos de la sección 9 y 14.1 (T11, T12, T13) con los parámetros de la sección 14.
 import { describe, expect, it } from "vitest";
 import {
-  facturaAsesor, proyectarComisiones,
+  facturaAsesor, proyectarComisiones, honorarioParaProyectar, comisionesProyectadasPorPagar,
   alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
   honorariosProyectados, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro, type CasoProyectable,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
@@ -250,5 +250,30 @@ describe("proyección al elegir asesor o referidor", () => {
     expect(r(0)).toEqual({ n: 1, monto: 1000 });
     expect(r(3)).toEqual({ n: 3, monto: 2000 });
     expect(r(11)).toEqual({ n: 11, monto: 3000 });
+  });
+});
+
+describe("comisiones proyectadas por pagar", () => {
+  const ESC = [{ desde: 1, hasta: 2, monto: 1000 }, { desde: 3, hasta: 10, monto: 2000 }, { desde: 11, hasta: null, monto: 3000 }];
+  const P2 = { base: "total" as const, iva: 0.16, escalones: ESC };
+  const h = honorarioParaProyectar({ cobros: [], pagosNeto: [], esperado: 35193, calculo: null, pct: 0.3, iva: 0.16 });
+  it("el honorario sale del dato más firme", () => {
+    expect(h).toEqual({ honorario: 10557.9, subtotal: 9101.64, fuente: "esperado", monto: 35193 });
+    expect(honorarioParaProyectar({ cobros: [{ honorario: 100, subtotal: 86.21 }], pagosNeto: [5], esperado: 9, calculo: 1, pct: 0.3, iva: 0.16 }).fuente).toBe("cobros");
+    expect(honorarioParaProyectar({ cobros: [], pagosNeto: [], esperado: null, calculo: null, pct: 0.3, iva: 0.16 }).honorario).toBeNull();
+  });
+  it("RP-0004: EMMANUEL 40% sin contrato todavía → proyectada (10,557.90 − 500) × 40% = 4,023.16", () => {
+    const r = comisionesProyectadasPorPagar([{ casoId: "c4", folio: "RP-0004", cliente: "X", honorario: h.honorario, subtotal: h.subtotal, costoAlta: 500,
+      asesor: { id: "e", nombre: "EMMANUEL", pct: 0.4 }, referidor: null, comisiones: [] }], P2);
+    expect(r).toMatchObject({ total: 4023.16, proyectado: 4023.16, devengado: 0, casos: 1, sinMonto: 0 });
+    expect(r.porBeneficiario).toEqual([{ clave: "socio:e", nombre: "EMMANUEL", tipo: "socio", monto: 4023.16, casos: 1 }]);
+  });
+  it("con comisiones ya generadas cuentan esas (sin pagar); lo pagado no vuelve; sin monto se cuenta aparte", () => {
+    const r = comisionesProyectadasPorPagar([
+      { casoId: "a", folio: "RP-1", cliente: "A", honorario: 10557, subtotal: 9100.86, costoAlta: 500, asesor: { id: "e", nombre: "E", pct: 0.4 }, referidor: { id: "r", nombre: "R", referidosMes: 1 },
+        comisiones: [{ tipo: "socio", estado: "devengada", monto: 4022.8 }, { tipo: "referido", estado: "pagada", monto: 1000 }] },
+      { casoId: "b", folio: "RP-2", cliente: "B", honorario: null, subtotal: null, costoAlta: 500, asesor: { id: "e", nombre: "E", pct: 0.4 }, referidor: null, comisiones: [] },
+    ], P2);
+    expect(r).toMatchObject({ total: 4022.8, devengado: 4022.8, proyectado: 0, sinMonto: 1 });
   });
 });

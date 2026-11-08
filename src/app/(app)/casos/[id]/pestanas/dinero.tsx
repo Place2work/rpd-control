@@ -9,8 +9,7 @@ import { mxn } from "@/lib/formato";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
-import { desglosarHonorario } from "@/lib/reglas/retiro";
-import { facturaAsesor, honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { facturaAsesor, honorarioParaProyectar, honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { costoVigente } from "@/lib/reglas/costo-alta";
 import { hoyCDMX } from "@/lib/tiempo";
 import { BotonAccion } from "../../../configuracion/boton-accion";
@@ -74,14 +73,12 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
   const costoGeneral = fechaAlta ? costoVigente(fechaAlta, d.vigCosto.map((v) => ({ desde: isoDe(v.vigente_desde)!, hasta: v.vigente_hasta ? isoDe(v.vigente_hasta) : null, monto: Number(v.valor) }))) : 0;
   const costoPropio = d.alta?.costo_admin_alta == null ? null : Number(d.alta.costo_admin_alta);
   // Honorario para proyectar comisiones: cobros registrados > pagos de la Afore > pago esperado > cálculo.
-  const honorarioCaso = ((): { honorario: number | null; subtotal: number | null; fuente: string } => {
-    if (vivos.length) return { honorario: vivos.reduce((a, c) => a + Number(c.honorario_total), 0), subtotal: vivos.reduce((a, c) => a + Number(c.subtotal), 0), fuente: "cobros registrados" };
-    const monto = d.pagos.length ? d.pagos.reduce((a, x) => a + Number(x.monto_neto), 0) : esperado ?? (d.calculo?.monto_estimado ? Number(d.calculo.monto_estimado) : null);
-    if (monto === null) return { honorario: null, subtotal: null, fuente: "" };
-    const h = desglosarHonorario(monto, { HONORARIO_RETIRO_PCT: pct, IVA: pDinero.IVA });
-    const fuente = d.pagos.length ? "pago de la Afore registrado" : esperado !== null ? "pago esperado de la Afore" : "monto del cálculo";
-    return { honorario: h.honorario, subtotal: h.subtotal, fuente: `${pctTxt(pct)} del ${fuente} de ${mxn(monto)}` };
-  })();
+  // Honorario para proyectar comisiones: cobros registrados > pagos de la Afore > pago esperado > cálculo.
+  const hp = honorarioParaProyectar({ cobros: vivos.map((c) => ({ honorario: Number(c.honorario_total), subtotal: Number(c.subtotal) })),
+    pagosNeto: d.pagos.map((x) => Number(x.monto_neto)), esperado, calculo: d.calculo?.monto_estimado ? Number(d.calculo.monto_estimado) : null, pct, iva: pDinero.IVA });
+  const FUENTE = { cobros: "cobros registrados", pago: "pago de la Afore registrado", esperado: "pago esperado de la Afore", calculo: "monto del cálculo" } as const;
+  const honorarioCaso = { honorario: hp.honorario, subtotal: hp.subtotal,
+    fuente: hp.fuente === null ? "" : hp.fuente === "cobros" ? FUENTE.cobros : `${pctTxt(pct)} del ${FUENTE[hp.fuente]} de ${mxn(hp.monto!)}` };
   const datosProyeccion: DatosProyeccion = {
     ...honorarioCaso, costoAlta: costoPropio ?? costoGeneral, base: pDinero.BASE_REPARTO_SOCIO, iva: pDinero.IVA,
     escalones: (d.esquemaReferidor?.reglas as { escalones?: Escalon[] } | null)?.escalones ?? null,

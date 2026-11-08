@@ -8,6 +8,7 @@ import { EstadoVacio } from "@/components/rpd/estado-vacio";
 import { mesValido, nombreMes, SelectorMes } from "@/components/rpd/selector-mes";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { estadoDeCuenta, leerBenef, resumenComisiones } from "@/lib/comisiones/consultas";
+import { comisionesProyectadas } from "@/lib/comisiones/proyectadas";
 import { mxn } from "@/lib/formato";
 import { parametrosDinero } from "@/lib/parametros";
 import { facturaAsesor } from "@/lib/reglas/comisiones";
@@ -33,6 +34,9 @@ export default async function Comisiones({ searchParams }: { searchParams: Promi
   const propio = sesion.usuario.rol === "socio" && sesion.usuario.socio_id ? `socio:${sesion.usuario.socio_id}` : `usuario:${sesion.usuario.id}`;
   const benef = leerBenef(director ? q.benef : propio);
   const resumen = director ? await resumenComisiones(sesion, mes) : [];
+  // Proyectadas por pagar: el Director todo; el asesor de pensiones lo suyo.
+  const proyectadas = director || sesion.usuario.rol === "socio" ? await comisionesProyectadas(sesion) : null;
+  const ORIGEN = { devengada: ["Devengada", "tramite"], estimada: ["Estimada", "prospecto"], proyectada: ["Proyectada", "espera"] } as const;
   const e = benef ? await estadoDeCuenta(sesion, benef, mes) : null;
   const claveBenef = benef ? `${benef.tipo}:${benef.id}` : "";
   // Asesor de pensiones: «cada quien paga su IVA». Su comisión es el total de su factura (IVA incluido).
@@ -72,6 +76,74 @@ export default async function Comisiones({ searchParams }: { searchParams: Promi
               </div>
             </CardContent>
           )}
+        </Card>
+      )}
+
+      {proyectadas && (
+        <Card id="proyectadas">
+          <CardHeader>
+            <CardTitle>Comisiones proyectadas por pagar</CardTitle>
+            <span className="cifra font-display text-xl font-semibold text-brand">{mxn(proyectadas.total)}</span>
+          </CardHeader>
+          <CardContent className="grid gap-4">
+            <p className="text-sm text-ink-muted">
+              Lo que falta pagar de los retiros vivos: comisiones ya devengadas, estimadas y la proyección de los casos que todavía no las generan
+              (con el pago esperado de la Afore o el cálculo). El asesor de pensiones factura con IVA incluido.
+            </p>
+            <div className="grid gap-3 sm:grid-cols-4">
+              {[["Total", proyectadas.total], ["Ya devengadas", proyectadas.devengado], ["Estimadas", proyectadas.estimado], ["Proyectadas", proyectadas.proyectado]].map(([t, v]) => (
+                <div key={t as string} className="rounded-[var(--radius-boton)] bg-brand-tint p-3">
+                  <p className="text-xs text-ink-muted">{t}</p>
+                  <p className="cifra font-display text-xl font-semibold text-ink">{mxn(v as number)}</p>
+                </div>
+              ))}
+            </div>
+            {proyectadas.filas.length === 0 ? (
+              <p className="text-sm text-ink-muted">Sin comisiones por pagar. Elige el asesor de pensiones o el referidor en el Canal de cada caso (pestaña Dinero).</p>
+            ) : (
+              <>
+                {director && (
+                  <div className="-mx-4 overflow-x-auto px-4">
+                    <table className="w-full min-w-[520px] text-sm">
+                      <thead><tr className="text-left text-xs text-ink-muted">{["Beneficiario", "Tipo", "Casos", "Por pagar"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
+                      <tbody>
+                        {proyectadas.porBeneficiario.map((b) => (
+                          <tr key={b.clave} className="border-t border-borde">
+                            <td className="py-2 pr-3"><Link href={`/comisiones?benef=${b.clave}&mes=${mes}`} className="text-brand hover:underline">{b.nombre}</Link></td>
+                            <td className="py-2 pr-3">{b.tipo === "socio" ? "Asesor de pensiones" : "Referidor"}</td>
+                            <td className="py-2 pr-3">{b.casos}</td>
+                            <td className="cifra py-2 pr-3 font-medium">{mxn(b.monto)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+                <div className="-mx-4 overflow-x-auto px-4">
+                  <table className="w-full min-w-[640px] text-sm">
+                    <thead><tr className="text-left text-xs text-ink-muted">{["Caso", "Beneficiario", "Origen", "Monto"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
+                    <tbody>
+                      {proyectadas.filas.map((f, i) => {
+                        const [texto, tono] = ORIGEN[f.origen];
+                        return (
+                          <tr key={`${f.casoId}-${f.clave}-${i}`} className="border-t border-borde align-top">
+                            <td className="py-2 pr-3"><Link href={`/casos/${f.casoId}?tab=dinero`} className="text-brand hover:underline">{f.folio}</Link>
+                              <span className="block text-xs text-ink-muted">{f.cliente}</span></td>
+                            <td className="py-2 pr-3">{f.beneficiario}<span className="block text-xs text-ink-muted">{f.tipo === "socio" ? "Asesor de pensiones" : "Referidor"}</span></td>
+                            <td className="py-2 pr-3"><Badge tono={tono}>{texto}</Badge></td>
+                            <td className="cifra py-2 pr-3 font-medium">{mxn(f.monto)}</td>
+                          </tr>
+                        );
+                      })}
+                    </tbody>
+                  </table>
+                </div>
+              </>
+            )}
+            {proyectadas.sinMonto > 0 && (
+              <p className="text-xs text-aviso">{proyectadas.sinMonto} {proyectadas.sinMonto === 1 ? "caso con asesor no tiene" : "casos con asesor no tienen"} monto todavía: captura el pago esperado de la Afore o el cálculo para proyectarlos.</p>
+            )}
+          </CardContent>
         </Card>
       )}
 

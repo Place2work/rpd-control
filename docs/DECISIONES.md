@@ -320,3 +320,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Retenciones de ISR/IVA al asesor: pendientes de definir con el contador (no se calculan todavía).
 - Canal del caso (retiro): al elegir asesor o referidor se muestra la proyección (`proyectarComisiones`) con el
   honorario más firme disponible: cobros > pagos de la Afore > pago esperado > cálculo. Otros servicios: sin comisión.
+
+## 8-nov-2026 · Comisiones proyectadas por pagar
+
+- Nuevo módulo: tarjeta en Hoy y sección «Comisiones proyectadas por pagar» en Comisiones (#proyectadas).
+- Cuenta todo lo que falta pagar a asesores de pensiones y referidores en retiros vivos (no perdidos): por caso y
+  tipo, las comisiones sin pagar si ya existen (devengadas o estimadas); si no hay ninguna, la proyección con el
+  honorario más firme (`honorarioParaProyectar`: cobros > pagos > pago esperado > cálculo). Lo pagado no se cuenta.
+- El Director ve todo con desglose por beneficiario; el asesor de pensiones ve solo lo suyo.

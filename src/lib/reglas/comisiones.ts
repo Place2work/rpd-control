@@ -418,3 +418,72 @@ export function proyectarComisiones(e: {
   const referidor = e.escalones ? { n, monto: montoPorReferido(e.escalones, n) } : null;
   return { asesor, referidor };
 }
+
+/**
+ * Honorario con el que se proyectan las comisiones de un caso: el dato más firme que tenga.
+ * Cobros registrados > pagos de la Afore > pago esperado > monto del cálculo (con el % pactado o el general).
+ */
+export function honorarioParaProyectar(e: {
+  cobros: { honorario: number; subtotal: number }[]; pagosNeto: number[]; esperado: number | null; calculo: number | null; pct: number; iva: number;
+}): { honorario: number | null; subtotal: number | null; fuente: "cobros" | "pago" | "esperado" | "calculo" | null; monto: number | null } {
+  if (e.cobros.length) return { honorario: sumar(e.cobros.map((c) => c.honorario)), subtotal: sumar(e.cobros.map((c) => c.subtotal)), fuente: "cobros", monto: null };
+  const fuente = e.pagosNeto.length ? "pago" : e.esperado !== null ? "esperado" : e.calculo !== null ? "calculo" : null;
+  const monto = fuente === "pago" ? sumar(e.pagosNeto) : fuente === "esperado" ? e.esperado : fuente === "calculo" ? e.calculo : null;
+  if (monto === null || fuente === null) return { honorario: null, subtotal: null, fuente: null, monto: null };
+  const h = desglosarHonorario(monto, { HONORARIO_RETIRO_PCT: e.pct, IVA: e.iva });
+  return { honorario: h.honorario, subtotal: h.subtotal, fuente, monto };
+}
+
+export type CasoComisionProyectable = {
+  casoId: string; folio: string; cliente: string;
+  honorario: number | null; subtotal: number | null; costoAlta: number;
+  asesor: { id: string; nombre: string; pct: number } | null;
+  referidor: { id: string; nombre: string; referidosMes: number } | null;
+  /** Comisiones vivas del caso (no canceladas). */
+  comisiones: { tipo: string; estado: string; monto: number }[];
+};
+export type FilaProyectada = { casoId: string; folio: string; cliente: string; clave: string; beneficiario: string; tipo: "socio" | "referido"; monto: number; origen: "devengada" | "estimada" | "proyectada" };
+
+/**
+ * Comisiones proyectadas por pagar: todo lo que falta pagarles a asesores de pensiones y referidores.
+ * Por caso y tipo: si ya hay comisiones sin pagar (devengadas o estimadas), cuentan esas; si no hay ninguna
+ * (ni pagada), cuenta la proyección con el honorario esperado. Lo ya pagado no se vuelve a contar.
+ */
+export function comisionesProyectadasPorPagar(casos: CasoComisionProyectable[], p: { base: "subtotal" | "total"; iva: number; escalones: Escalon[] | null }) {
+  const filas: FilaProyectada[] = [];
+  let sinMonto = 0;
+  for (const c of casos) {
+    const benefs = [
+      c.asesor ? { tipo: "socio" as const, clave: `socio:${c.asesor.id}`, nombre: c.asesor.nombre } : null,
+      c.referidor ? { tipo: "referido" as const, clave: `referidor:${c.referidor.id}`, nombre: c.referidor.nombre } : null,
+    ].filter((b) => b !== null);
+    for (const b of benefs) {
+      const delTipo = c.comisiones.filter((k) => k.tipo === b.tipo);
+      const base = { casoId: c.casoId, folio: c.folio, cliente: c.cliente, clave: b.clave, beneficiario: b.nombre, tipo: b.tipo };
+      if (delTipo.length) {
+        for (const estado of ["devengada", "estimada"] as const) {
+          const m = sumar(delTipo.filter((k) => k.estado === estado).map((k) => k.monto));
+          if (m > 0) filas.push({ ...base, monto: m, origen: estado });
+        }
+        continue;
+      }
+      const proy = proyectarComisiones({ honorario: c.honorario ?? 0, subtotal: c.subtotal ?? 0, costoAlta: c.costoAlta, base: p.base, iva: p.iva,
+        asesorPct: b.tipo === "socio" ? c.asesor!.pct : null, escalones: b.tipo === "referido" ? p.escalones : null, referidosMes: c.referidor?.referidosMes ?? 0 });
+      if (b.tipo === "socio") {
+        if (c.honorario === null) { sinMonto++; continue; }
+        if (proy.asesor && proy.asesor.monto > 0) filas.push({ ...base, monto: proy.asesor.monto, origen: "proyectada" });
+      } else if (proy.referidor && proy.referidor.monto > 0) filas.push({ ...base, monto: proy.referidor.monto, origen: "proyectada" });
+    }
+  }
+  const suma = (o?: FilaProyectada["origen"]) => sumar(filas.filter((f) => !o || f.origen === o).map((f) => f.monto));
+  const porBenef = new Map<string, { clave: string; nombre: string; tipo: "socio" | "referido"; monto: number; casos: Set<string> }>();
+  for (const f of filas) {
+    const g = porBenef.get(f.clave) ?? { clave: f.clave, nombre: f.beneficiario, tipo: f.tipo, monto: 0, casos: new Set<string>() };
+    g.monto = sumar([g.monto, f.monto]); g.casos.add(f.casoId); porBenef.set(f.clave, g);
+  }
+  return {
+    total: suma(), devengado: suma("devengada"), estimado: suma("estimada"), proyectado: suma("proyectada"), sinMonto,
+    casos: new Set(filas.map((f) => f.casoId)).size, filas,
+    porBeneficiario: [...porBenef.values()].map((g) => ({ ...g, casos: g.casos.size })).sort((a, b) => b.monto - a.monto),
+  };
+}

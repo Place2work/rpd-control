@@ -3,6 +3,7 @@ import { GraficaBarras } from "@/components/rpd/grafica-barras";
 import { movimientosDelMes } from "@/lib/cerrados/consultas";
 import { cifrasHoy, proyecciones } from "@/lib/dinero/consultas";
 import { altasYCostos } from "@/lib/dinero/costo-alta";
+import { comisionesProyectadas } from "@/lib/comisiones/proyectadas";
 import { costoAdministrativo } from "@/lib/reglas/costo-alta";
 import { embudoDelMes } from "@/lib/reglas/cerrados";
 import { mxn } from "@/lib/formato";
@@ -36,7 +37,7 @@ export default async function Hoy() {
     listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion), veDinero ? cifrasHoy(sesion, hoy.slice(0, 7)) : null,
     movimientosDelMes(sesion, hoy.slice(0, 7)),
   ]);
-  const [costos, proy] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion)]) : [null, null];
+  const [costos, proy, comProy] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion), comisionesProyectadas(sesion)]) : [null, null, null];
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
   // Total de todas las altas (cada una con el costo vigente el día de su alta); no baja aunque el cliente pague.
   const costoTotal = costos ? costoAdministrativo(costos.altas, costos.vigencias) : null;
@@ -74,6 +75,9 @@ export default async function Hoy() {
       { t: "Costo administrativo del mes", v: mxn(costoAlta?.total ?? 0), nota: `${costoAlta?.altas ?? 0} ${costoAlta?.altas === 1 ? "alta" : "altas"} de prospectos`, liga: "/prospectos" },
       { t: "Costo administrativo total", v: mxn(costoTotal?.total ?? 0), nota: `${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"} desde el inicio`, liga: "/prospectos" },
       { t: "Comisiones por pagar", v: mxn(dinero.comisionesPorPagar), nota: `${dinero.comisionesPendientes} devengadas`, liga: "/comisiones" },
+      // Todo lo que falta pagar a asesores de pensiones y referidores: devengadas + estimadas + proyección.
+      { t: "Comisiones proyectadas por pagar", v: mxn(comProy?.total ?? 0), liga: "/comisiones#proyectadas",
+        nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · ${mxn(comProy.devengado)} ya devengadas` : "Elige asesor o referidor en el Canal de cada caso" },
     ] : []),
   ];
 
