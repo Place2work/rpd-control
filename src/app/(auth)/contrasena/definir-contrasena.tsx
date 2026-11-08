@@ -7,12 +7,15 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { MINIMO_CLAVE as MINIMO } from "@/lib/auth/clave";
-import { cambiarClaveTemporal } from "./acciones";
+import { cambiarClavePropia, cambiarClaveTemporal } from "./acciones";
 import { InputClave } from "@/components/ui/input-clave";
 
 // Primera contraseña (invitación), cambio por recuperación o reemplazo de la temporal que dio el
 // Director (`temporal`: se guarda desde el servidor). Si la cuenta ya tiene 2FA, Supabase exige
 // verificarlo antes de cambiar la contraseña.
+/** Si Supabase no responde en unos segundos, se sigue sin esperar más (la contraseña ya quedó guardada en el servidor). */
+const conLimite = <T,>(p: Promise<T>, ms = 5000) => Promise.race([p, new Promise<never>((_, no) => setTimeout(() => no(new Error("tiempo")), ms))]);
+
 export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) {
   const router = useRouter();
   const [listo, setListo] = useState(false);
@@ -37,23 +40,19 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
     setEnviando(true);
     setError(null);
     const supabase = crearClienteNavegador();
-    if (temporal) {
-      const r = await cambiarClaveTemporal(nueva, String(form.get("confirmacion")));
-      if (r.error) { setEnviando(false); return setError(r.error); }
-      // Al cambiar la contraseña, Supabase cierra las sesiones de la cuenta por seguridad: si la sesión ya no
-      // se puede renovar, se entra de nuevo con la contraseña nueva (nunca se queda en «Guardando…»).
-      try {
-        const { error: e } = await supabase.auth.refreshSession();
-        if (!e) return router.replace("/hoy");
-      } catch { /* sesión revocada */ }
-      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
-      return router.replace("/login?motivo=clave-lista");
-    }
-    const { error } = await supabase.auth.updateUser({ password: nueva });
-    setEnviando(false);
-    if (error) return setError("No pudimos guardar la contraseña. Intenta con otra o pide una liga nueva.");
-    const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
-    router.replace(data?.currentLevel === "aal2" ? "/hoy" : "/mfa");
+    // Siempre desde el servidor. Supabase cierra las sesiones de la cuenta al cambiar la contraseña: si la sesión
+    // ya no se renueva, se cierra la local y se entra de nuevo con la contraseña nueva (nunca se queda en «Guardando…»).
+    const r = temporal ? await cambiarClaveTemporal(nueva, String(form.get("confirmacion"))) : await cambiarClavePropia(nueva, String(form.get("confirmacion")));
+    if (r.error) { setEnviando(false); return setError(r.error); }
+    try {
+      const { error: e } = await conLimite(supabase.auth.refreshSession());
+      if (!e) {
+        const { data } = await conLimite(supabase.auth.mfa.getAuthenticatorAssuranceLevel());
+        return router.replace(data?.currentLevel === "aal2" ? "/hoy" : "/mfa");
+      }
+    } catch { /* sesión revocada */ }
+    await conLimite(supabase.auth.signOut({ scope: "local" })).catch(() => {});
+    return router.replace("/login?motivo=clave-lista");
   }
 
   return (
@@ -76,6 +75,7 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
             </div>
             {error && <p role="alert" className="text-sm text-critico">{error}</p>}
             <Button type="submit" disabled={enviando}>{enviando ? "Guardando…" : "Guardar y continuar"}</Button>
+            {!temporal && <a href="/hoy" className="text-center text-sm text-brand underline">¿Ya tienes contraseña? Ir al inicio</a>}
           </form>
         )}
       </CardContent>

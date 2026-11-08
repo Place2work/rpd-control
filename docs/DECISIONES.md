@@ -382,3 +382,6 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - (8-nov) Cambio de contraseña temporal: Supabase revoca las sesiones al cambiarla desde el servidor, así que la
   pantalla se quedaba en «Guardando…». Ahora, si la sesión no se renueva, cierra la local y manda a /login con el
   aviso «tu contraseña quedó guardada».
+- (8-nov) Toda contraseña (temporal, invitación o recuperación) se guarda desde el servidor (`cambiarClavePropia`,
+  `cambiarClaveTemporal`); el cliente espera a Supabase con límite de tiempo y, si la sesión fue revocada, manda a
+  /login con «tu contraseña quedó guardada». Enlace «¿Ya tienes contraseña? Ir al inicio» en la pantalla normal.

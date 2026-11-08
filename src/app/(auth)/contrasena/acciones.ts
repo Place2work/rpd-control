@@ -20,3 +20,20 @@ export async function cambiarClaveTemporal(nueva: string, confirmacion: string):
   const r = await fijarClavePropia(claims.sub, nueva);
   return r.error ? { error: r.error } : { ok: true };
 }
+
+/**
+ * Invitación o recuperación: también se guarda desde el servidor (el cambio desde el navegador se quedaba
+ * esperando cuando Supabase cierra las sesiones de la cuenta). Si la cuenta tiene 2FA, exige haberlo verificado.
+ */
+export async function cambiarClavePropia(nueva: string, confirmacion: string): Promise<{ ok?: boolean; error?: string }> {
+  const supabase = await crearClienteServidor();
+  const { data } = await supabase.auth.getClaims();
+  const claims = data?.claims as ClaimsUsuario | undefined;
+  if (!claims?.sub) return { error: "Tu sesión terminó. Vuelve a entrar o pide una liga nueva." };
+  const { data: nivel } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  if (nivel?.nextLevel === "aal2" && nivel.currentLevel !== "aal2") return { error: "Primero verifica el código de tu app." };
+  if (nueva.length < MINIMO_CLAVE) return { error: `Usa al menos ${MINIMO_CLAVE} caracteres.` };
+  if (nueva !== confirmacion) return { error: "Las contraseñas no coinciden." };
+  const r = await fijarClavePropia(claims.sub, nueva);
+  return r.error ? { error: r.error } : { ok: true };
+}
