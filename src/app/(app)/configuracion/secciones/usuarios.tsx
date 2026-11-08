@@ -7,7 +7,6 @@ import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
-import { mxn } from "@/lib/formato";
 
 // Llevan cuenta: Analista de expedientes, Asesor de pensiones y Director. El referidor no entra al sistema.
 const ROLES = [["asesor", "Analista de expedientes"], ["socio", "Asesor de pensiones"], ["director", "Director"]] as const;
@@ -21,7 +20,7 @@ const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", telefono: "Te
 export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
   const { usuarios, fichas } = await conUsuario(sesion.claims, async (tx) => ({
     usuarios: await tx.usuario.findMany({ orderBy: [{ activo: "desc" }, { nombre: "asc" }],
-      include: { socio: { select: { nombre: true, porcentaje_socio: true, costo_administrativo: true } } } }),
+      include: { socio: { select: { nombre: true, porcentaje_socio: true } } } }),
     // Fichas de asesores de pensiones (su reparto): se liga una a la cuenta.
     fichas: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
   }), sesion.ip);
@@ -40,7 +39,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div className="min-w-0">
                     <p className="font-medium text-ink">{u.nombre} {u.id === sesion.usuario.id && <span className="text-xs font-normal text-ink-muted">(tú)</span>}</p>
-                    <p className="text-xs text-ink-muted">{u.email}{u.telefono ? ` · ${u.telefono}` : ""}{u.rol === "socio" && u.socio ? ` · ficha ${u.socio.nombre}: ${pctTxt(Number(u.socio.porcentaje_socio))} después de ${mxn(Number(u.socio.costo_administrativo))}` : ""}</p>
+                    <p className="text-xs text-ink-muted">{u.email}{u.telefono ? ` · ${u.telefono}` : ""}{u.rol === "socio" && u.socio ? ` · ficha ${u.socio.nombre}: ${pctTxt(Number(u.socio.porcentaje_socio))} después del costo administrativo del alta` : ""}</p>
                   </div>
                   <div className="flex items-center gap-2">
                     <Badge tono={u.rol === "director" ? "tramite" : "prospecto"}>{ETIQUETA_ROL[u.rol]}</Badge>
@@ -112,7 +111,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
             <dl className="grid gap-2 text-sm">
               {ROLES.map(([k, t]) => <div key={k}><dt className="font-medium text-ink">{t}</dt><dd className="text-ink-muted">{QUE_VE[k]}</dd></div>)}
               <div><dt className="font-medium text-ink">Referidores</dt><dd className="text-ink-muted">No llevan cuenta: se dan de alta en Comisiones → Referidores y asesores y se eligen en cada caso para su comisión.</dd></div>
-              <p className="text-xs text-ink-muted">El reparto de cada asesor de pensiones (% y costo administrativo) se ajusta en Comisiones → Referidores y asesores.</p>
+              <p className="text-xs text-ink-muted">El % de cada asesor de pensiones se ajusta en Comisiones → Referidores y asesores.</p>
             </dl>
           </CardContent>
         </Card>

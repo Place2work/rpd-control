@@ -37,3 +37,11 @@ export function leerCostoAlta(texto: string): { costo: number | null } | { error
   if (n > 1_000_000) return { error: "El monto es demasiado alto" };
   return { costo: Math.round(n * 100) / 100 };
 }
+
+/**
+ * Costo administrativo del alta de una persona: el propio de su alta o, si no tiene, el general vigente el día
+ * del alta. Es el mismo que se descuenta del reparto del asesor de pensiones (un solo costo administrativo).
+ */
+export function costoDeAlta(propio: number | null | undefined, fechaAlta: FechaISO, vigencias: VigenciaCosto[]): number {
+  return propio ?? costoVigente(fechaAlta, vigencias);
+}

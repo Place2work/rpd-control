@@ -4,7 +4,6 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { exigirRol } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
-import { mxn } from "@/lib/formato";
 import { CampoTexto } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { actualizarReparto, crearReferidor, crearSocio } from "../acciones";
@@ -65,19 +64,18 @@ export default async function Beneficiarios() {
               {socios.map((s) => (
                 <li key={s.id} className="flex flex-wrap justify-between gap-2 py-2">
                   <span><span className="font-medium text-ink">{s.nombre}</span>
-                    <span className="block text-xs text-ink-muted">{Number(s.porcentaje_socio) * 100}% después de {mxn(s.costo_administrativo)} administrativos{s.rfc ? ` · ${s.rfc}` : ""}{s.clabe_ultimos4 ? ` · CLABE ···${s.clabe_ultimos4}` : ""}</span></span>
+                    <span className="block text-xs text-ink-muted">{+(Number(s.porcentaje_socio) * 100).toFixed(2)}% después del costo administrativo del alta{s.rfc ? ` · ${s.rfc}` : ""}{s.clabe_ultimos4 ? ` · CLABE ···${s.clabe_ultimos4}` : ""}</span></span>
                   <span className="text-xs text-ink-muted">{s._count.casos} {s._count.casos === 1 ? "caso" : "casos"}</span>
                   <span className="basis-full text-xs text-ink-muted">{s.usuarios[0] ? `Con cuenta: ${s.usuarios[0].email}` : "Sin cuenta · créasela en Configuración → Usuarios con rol «Asesor de pensiones»"}</span>
                   {director && (
                     <details className="basis-full">
-                      <summary className="cursor-pointer text-xs font-medium text-brand">Ajustar reparto</summary>
+                      <summary className="cursor-pointer text-xs font-medium text-brand">Ajustar %</summary>
                       <div className="mt-2">
-                        <FormularioAccion accion={actualizarReparto.bind(null, s.id)} boton="Guardar reparto" etiquetas={ETIQUETAS}>
+                        <FormularioAccion accion={actualizarReparto.bind(null, s.id)} boton="Guardar %" etiquetas={ETIQUETAS}>
                           <div className="grid gap-3 sm:grid-cols-2">
                             <CampoTexto id="porcentaje_socio" etiqueta="% del asesor" valor={+(Number(s.porcentaje_socio) * 100).toFixed(2)} inputMode="decimal" />
-                            <CampoTexto id="costo_administrativo" etiqueta="Costo administrativo que se descuenta" valor={Number(s.costo_administrativo)} inputMode="decimal" />
                           </div>
-                          <p className="text-xs text-ink-muted">Fórmula: (honorario sin IVA − costo) × %. Sus comisiones sin pagar se recalculan; las pagadas no cambian.</p>
+                          <p className="text-xs text-ink-muted">Fórmula: (honorario sin IVA − costo administrativo del alta del cliente) × %. El costo es el general (Configuración → Parámetros) o el propio de cada alta (pestaña Dinero del caso). Sus comisiones sin pagar se recalculan; las pagadas no cambian.</p>
                         </FormularioAccion>
                       </div>
                     </details>
@@ -99,7 +97,6 @@ export default async function Beneficiarios() {
                       <CampoTexto id="banco" etiqueta="Banco" />
                       <CampoTexto id="clabe" etiqueta="CLABE" ayuda="18 dígitos" inputMode="numeric" />
                       <CampoTexto id="porcentaje_socio" etiqueta="% del asesor" valor="40" inputMode="decimal" />
-                      <CampoTexto id="costo_administrativo" etiqueta="Costo administrativo" valor="500" inputMode="decimal" />
                     </div>
                   </FormularioAccion>
                 </div>

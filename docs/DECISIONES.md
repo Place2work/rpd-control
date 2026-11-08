@@ -294,3 +294,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Vendedor: ya no se crean cuentas, no aparece en el canal ni en filtros, y sus esquemas se cerraron el 7-nov-2026
   (migración 2800; no se borran). Los filtros y columnas de Prospectos, Casos y Clientes cerrados muestran al asesor de pensiones.
 - Al ajustar el reparto de un asesor se recalculan sus comisiones no pagadas; las pagadas no cambian.
+
+## 8-nov-2026 · Un solo costo administrativo
+
+- El costo que se descuenta del reparto del asesor de pensiones es el **costo administrativo del alta** del cliente:
+  el propio de su alta (pestaña Dinero del caso) o el general COSTO_ADMIN_ALTA vigente el día de su primer caso
+  (`costoDeAlta`, src/lib/reglas/costo-alta.ts). Fórmula: (honorario sin IVA − costo del alta) × % del asesor.
+- La ficha del asesor solo guarda su %; la columna `socios.costo_administrativo` deja de usarse (no se borra).
+- Cambiar el costo de un alta recalcula las comisiones sin pagar del asesor de esos casos; las pagadas no cambian.
+- Ejemplo (35,190 netos, honorario 30%): subtotal $9,100.86 − $500 = $8,600.86 × 40% = $3,440.34 para el asesor.

@@ -87,13 +87,12 @@ export async function crearReferidor(_p: Resultado, form: FormData): Promise<Res
 
 const pct = z.string().trim().min(1, "Escribe el %").transform((v) => Math.round(Number(v.replace("%", "").replace(",", ".")) * 100) / 10000)
   .pipe(z.number({ message: "Escribe el %" }).min(0, "Entre 0 y 100").max(1, "Entre 0 y 100"));
-const pesos = z.string().trim().min(1, "Escribe el monto").transform((v) => Number(v.replace(/[,$\s]/g, ""))).pipe(z.number({ message: "Escribe el monto" }).min(0, "No puede ser negativo"));
 
-/** Reparto propio de un asesor de pensiones. Sus comisiones no pagadas se recalculan; las pagadas no cambian. */
+/** % propio de un asesor de pensiones (el costo administrativo es el del alta de cada cliente). Sus comisiones no pagadas se recalculan; las pagadas no cambian. */
 export async function actualizarReparto(socioId: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const { claims, ip, usuario } = await obtenerSesion();
   if (usuario.rol !== "director") return { error: "Solo el Director ajusta el reparto." };
-  const r = z.object({ porcentaje_socio: pct, costo_administrativo: pesos }).safeParse(datosDe(form));
+  const r = z.object({ porcentaje_socio: pct }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const casos = await conUsuario(claims, async (tx) => {
     const n = await tx.socio.updateMany({ where: { id: socioId, archivado_at: null }, data: r.data });
@@ -112,7 +111,7 @@ export async function actualizarReparto(socioId: string, _p: Resultado, form: Fo
 export async function crearSocio(_p: Resultado, form: FormData): Promise<Resultado> {
   const { claims, ip, usuario } = await obtenerSesion();
   if (usuario.rol !== "director") return { error: "Solo el Director da de alta asesores de pensiones." };
-  const r = z.object({ ...contacto, razon_social: opcional, rfc: opcional, porcentaje_socio: pct, costo_administrativo: pesos }).safeParse(datosDe(form));
+  const r = z.object({ ...contacto, razon_social: opcional, rfc: opcional, porcentaje_socio: pct }).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const { clabe: c, ...d } = r.data;
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {

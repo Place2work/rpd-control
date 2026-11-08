@@ -34,7 +34,7 @@ export async function SeccionComisiones({ sesion }: { sesion: Sesion }) {
               {r.tipo === "escalonado_mensual" && (
                 <ul>{r.escalones.map((x: Escalon) => <li key={x.desde}>{x.desde}{x.hasta ? `–${x.hasta}` : " o más"} referidos cobrados en el mes: {mxn(x.monto)} c/u</li>)}</ul>
               )}
-              {r.tipo === "reparto" && <p>El % y el costo administrativo se toman de cada asesor de pensiones (Comisiones → Referidores y asesores). La base (subtotal o total) está en Parámetros.</p>}
+              {r.tipo === "reparto" && <p>El % se toma de cada asesor de pensiones (Comisiones → Referidores y asesores) y el costo administrativo es el del alta de cada cliente (general en Parámetros). La base (subtotal o total) está en Parámetros.</p>}
               {r.tipo === "compuesto" && <p>Los montos fijos y el % de lo recuperado están en Parámetros (FALLEC_COMISION_…).</p>}
               {prog && <p className="text-xs text-aviso">Hay una versión programada desde el {iso(prog.vigente_desde)}.</p>}
               {(r.tipo === "porcentaje" || r.tipo === "escalonado_mensual") && (

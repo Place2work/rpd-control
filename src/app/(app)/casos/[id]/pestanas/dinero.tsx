@@ -109,7 +109,7 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
           <CardContent className="grid gap-3">
             <p className="text-sm text-ink-muted">
               {costoPropio === null ? `Se usa el general de ${mxn(costoGeneral)} vigente el día del alta.` : `Ajustado para esta persona; el general era ${mxn(costoGeneral)}.`}
-              {" "}Se cuenta una vez por persona{d.alta.id !== caso.id ? ` (su alta es ${d.alta.folio}, del ${corta(d.alta.created_at)})` : ""}. Informativo: no se le cobra al cliente.
+              {" "}Se cuenta una vez por persona{d.alta.id !== caso.id ? ` (su alta es ${d.alta.folio}, del ${corta(d.alta.created_at)})` : ""}. No se le cobra al cliente: se descuenta del reparto del asesor de pensiones antes de su %.
             </p>
             <FormularioAccion accion={guardarCostoAlta.bind(null, caso.id)} boton="Guardar costo" etiquetas={{ costo_admin_alta: "Costo" }}>
               <div className="grid gap-3 sm:grid-cols-3">

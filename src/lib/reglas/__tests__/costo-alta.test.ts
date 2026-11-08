@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { altasPorPersona, costoAdministrativo, costoVigente, leerCostoAlta, type Alta } from "../costo-alta";
+import { altasPorPersona, costoAdministrativo, costoDeAlta, costoVigente, leerCostoAlta, type Alta } from "../costo-alta";
 
 const V = [
   { desde: "2026-01-01", hasta: "2026-11-30", monto: 500 },
@@ -55,5 +55,14 @@ describe("costo propio de un alta", () => {
     expect(leerCostoAlta("-5")).toHaveProperty("error");
     expect(leerCostoAlta("abc")).toHaveProperty("error");
     expect(leerCostoAlta("2000000")).toHaveProperty("error");
+  });
+});
+
+describe("un solo costo administrativo (alta y reparto del asesor)", () => {
+  it("el del alta manda; sin costo propio, el general vigente el día del alta", () => {
+    expect(costoDeAlta(null, "2026-11-08", V)).toBe(500);
+    expect(costoDeAlta(undefined, "2026-12-05", V)).toBe(650.5);
+    expect(costoDeAlta(0, "2026-11-08", V)).toBe(0);
+    expect(costoDeAlta(800, "2026-11-08", V)).toBe(800);
   });
 });

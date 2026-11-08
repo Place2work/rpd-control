@@ -7,6 +7,7 @@ import type { Prisma } from "@/generated/prisma/client";
 import { prismaSistema } from "@/lib/db/prisma";
 import { parametrosDinero } from "@/lib/parametros";
 import { comisionesDelCaso, conciliar, type ComisionDeseada, type Esquema, type EsquemasCaso, type ReglaEsquema } from "@/lib/reglas/comisiones";
+import { costoDeAlta, type VigenciaCosto } from "@/lib/reglas/costo-alta";
 import { hoyCDMX } from "@/lib/tiempo";
 
 const iso = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
@@ -40,6 +41,25 @@ async function referidosPorMes(referidores: string[]): Promise<Map<string, Recor
   return r;
 }
 
+/**
+ * Costo administrativo del alta de cada persona (el que se descuenta al asesor de pensiones): el propio de su
+ * alta o el general vigente el día de su primer caso. Un solo costo administrativo para tarjetas y reparto.
+ */
+async function costosDeAlta(personas: string[]): Promise<Map<string, number>> {
+  const r = new Map<string, number>();
+  if (!personas.length) return r;
+  const [primeros, params] = await Promise.all([
+    prismaSistema.caso.findMany({ where: { persona_id: { in: personas }, archivado_at: null }, orderBy: { created_at: "asc" },
+      select: { persona_id: true, created_at: true, costo_admin_alta: true } }),
+    prismaSistema.parametro.findMany({ where: { clave: "COSTO_ADMIN_ALTA" }, select: { valor: true, vigente_desde: true, vigente_hasta: true } }),
+  ]);
+  const vigencias: VigenciaCosto[] = params.map((p) => ({ desde: iso(p.vigente_desde)!, hasta: iso(p.vigente_hasta), monto: Number(p.valor) }));
+  for (const c of primeros) {
+    if (!r.has(c.persona_id)) r.set(c.persona_id, costoDeAlta(n(c.costo_admin_alta), hoyCDMX(c.created_at), vigencias));
+  }
+  return r;
+}
+
 const datos = (d: ComisionDeseada) => ({
   tipo: d.tipo, esquema_id: d.esquemaId, beneficiario_tipo: d.beneficiarioTipo, beneficiario_id: d.beneficiarioId,
   pago_afore_id: d.pagoAforeId, cobro_id: d.cobroId, componente: d.componente, base: d.base, regla_aplicada: d.regla,
@@ -62,7 +82,7 @@ export async function recalcularComisiones(casoIds: string[], hoy = hoyCDMX()) {
   const casos = await db.caso.findMany({
     where: { id: { in: ids } },
     include: {
-      socio: { select: { id: true, porcentaje_socio: true, costo_administrativo: true } },
+      socio: { select: { id: true, porcentaje_socio: true } },
       vendedor: { select: { comision_pct: true } },
       calculos: { orderBy: { created_at: "desc" }, take: 1, select: { monto_estimado: true } },
       pagos_afore: { where: { archivado_at: null }, orderBy: { numero: "asc" } },
@@ -71,6 +91,7 @@ export async function recalcularComisiones(casoIds: string[], hoy = hoyCDMX()) {
     },
   });
 
+  const costos = await costosDeAlta([...new Set(casos.filter((c) => c.socio_id).map((c) => c.persona_id))]);
   const total = { creadas: 0, actualizadas: 0, canceladas: 0 };
   for (const c of casos) {
     const esquemas: EsquemasCaso = {
@@ -82,7 +103,7 @@ export async function recalcularComisiones(casoIds: string[], hoy = hoyCDMX()) {
       perdido: c.etapa === "PERDIDO" || c.archivado_at !== null,
       montoEstimado: n(c.calculos[0]?.monto_estimado),
       vendedorId: c.vendedor_id, vendedorPct: c.vendedor?.comision_pct == null ? null : Number(c.vendedor.comision_pct), referidorId: c.referidor_id,
-      socio: c.socio ? { id: c.socio.id, pct: Number(c.socio.porcentaje_socio), costoAdmin: Number(c.socio.costo_administrativo) } : null,
+      socio: c.socio ? { id: c.socio.id, pct: Number(c.socio.porcentaje_socio), costoAdmin: costos.get(c.persona_id) ?? 0 } : null,
       pagos: c.pagos_afore.map((x) => ({ id: x.id, numero: x.numero, fecha: iso(x.fecha_deposito)!, bruto: Number(x.monto_bruto), isr: Number(x.isr_retenido), neto: Number(x.monto_neto) })),
       cobros: c.cobros.map((x) => ({ id: x.id, pagoAforeId: x.pago_afore_id, concepto: x.concepto, base: n(x.base_calculo), honorario: Number(x.honorario_total),
         subtotal: Number(x.subtotal), iva: Number(x.iva), estado: x.estado, fecha: iso(x.fecha_cobro) })),
