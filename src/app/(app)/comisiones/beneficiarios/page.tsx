@@ -75,7 +75,7 @@ export default async function Beneficiarios() {
                           <div className="grid gap-3 sm:grid-cols-2">
                             <CampoTexto id="porcentaje_socio" etiqueta="% del asesor" valor={+(Number(s.porcentaje_socio) * 100).toFixed(2)} inputMode="decimal" />
                           </div>
-                          <p className="text-xs text-ink-muted">Fórmula: (honorario sin IVA − costo administrativo del alta del cliente) × %. El costo es el general (Configuración → Parámetros) o el propio de cada alta (pestaña Dinero del caso). Sus comisiones sin pagar se recalculan; las pagadas no cambian.</p>
+                          <p className="text-xs text-ink-muted">Fórmula: (honorario cobrado − costo administrativo del alta del cliente) × %. El honorario se toma con IVA o sin IVA según Configuración → Parámetros (BASE_REPARTO_SOCIO). El costo es el general (Configuración → Parámetros) o el propio de cada alta (pestaña Dinero del caso). Sus comisiones sin pagar se recalculan; las pagadas no cambian.</p>
                         </FormularioAccion>
                       </div>
                     </details>

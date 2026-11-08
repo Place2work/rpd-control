@@ -213,3 +213,10 @@ describe("porcentaje propio de cada vendedor", () => {
     expect(sinPct.find((x) => x.tipo === "vendedor")!.monto).toBe(1759.65);
   });
 });
+
+describe("reparto del asesor sobre el honorario con IVA (desde 8-nov-2026)", () => {
+  it("35,190 netos al 30%: (10,557 − 500) × 40% = 4,022.80 para el asesor y 6,034.20 para la empresa", () => {
+    expect(repartoSocio(10557, 500, 0.4)).toEqual({ base: 10057, socio: 4022.8, rpd: 6034.2 });
+    expect(repartoSocio(10557, 0, 0.4)).toEqual({ base: 10557, socio: 4222.8, rpd: 6334.2 });
+  });
+});

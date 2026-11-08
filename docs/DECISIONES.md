@@ -303,3 +303,10 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - La ficha del asesor solo guarda su %; la columna `socios.costo_administrativo` deja de usarse (no se borra).
 - Cambiar el costo de un alta recalcula las comisiones sin pagar del asesor de esos casos; las pagadas no cambian.
 - Ejemplo (35,190 netos, honorario 30%): subtotal $9,100.86 − $500 = $8,600.86 × 40% = $3,440.34 para el asesor.
+
+## 8-nov-2026 · Reparto del asesor sobre el honorario con IVA
+
+- Desde el 8-nov-2026 `BASE_REPARTO_SOCIO = total`: (honorario cobrado con IVA − costo administrativo del alta) × %
+  del asesor; el resto es de la empresa. La vigencia anterior (subtotal) cerró el 7-nov (migración 2900).
+- Ejemplo (35,190 netos, 30%): (10,557 − 500) × 40% = $4,022.80 asesor; $6,034.20 empresa. El IVA trasladado
+  ($1,456.14) se sigue declarando y sale de la parte de la empresa.
