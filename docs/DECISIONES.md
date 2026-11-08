@@ -328,3 +328,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   tipo, las comisiones sin pagar si ya existen (devengadas o estimadas); si no hay ninguna, la proyección con el
   honorario más firme (`honorarioParaProyectar`: cobros > pagos > pago esperado > cálculo). Lo pagado no se cuenta.
 - El Director ve todo con desglose por beneficiario; el asesor de pensiones ve solo lo suyo.
+
+## 8-nov-2026 · Asesor sin correo, comisiones por asesor en Hoy y logotipos de las Afores
+
+- Configuración → Usuarios: un asesor de pensiones puede darse de alta sin correo (se crea solo su ficha y ya cobra
+  comisiones). Aparece en «Asesores de pensiones sin cuenta»; al escribir su correo se crea su cuenta con
+  contraseña temporal (`crearCuentaAsesor`), ligada a su ficha. Una ficha no puede tener dos cuentas activas.
+- Hoy (Director): tabla «Comisiones proyectadas por pagar» por beneficiario (devengado, proyectado y total).
+- Logotipos de las 10 Afores en public/afores/<CLAVE>.png (proporcionados por la empresa) en la insignia de la
+  Afore: expediente, lista de Prospectos, tabla de Casos y Clientes cerrados. Sin logotipo: iniciales con su color.

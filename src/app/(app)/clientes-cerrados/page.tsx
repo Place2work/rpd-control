@@ -1,4 +1,5 @@
 import { CalendarClock, CheckCircle2, FileSpreadsheet, Paperclip } from "lucide-react";
+import { InsigniaAfore } from "@/components/rpd/insignia-afore";
 import type { Metadata } from "next";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
@@ -116,7 +117,7 @@ export default async function ClientesCerrados({ searchParams }: { searchParams:
                 return (
                   <tr key={c.id} className="border-b border-borde last:border-0 hover:bg-slate-50">
                     <td className="px-3 py-2">
-                      <Link href={`/casos/${c.id}?tab=dinero`} className="font-medium text-ink hover:text-brand">{c.nombre}</Link>
+                      <span className="flex items-center gap-2">{c.afore && <InsigniaAfore clave={c.afore} tamano="sm" sinNombre />}<Link href={`/casos/${c.id}?tab=dinero`} className="font-medium text-ink hover:text-brand">{c.nombre}</Link></span>
                       <span className="block text-xs text-ink-muted"><span className="cifra">{c.folio}</span>{c.vendedor ? ` · ${c.vendedor}` : ""}</span>
                     </td>
                     <td className="px-3 py-2 text-ink-muted">{c.servicio}</td>

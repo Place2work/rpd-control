@@ -1,13 +1,14 @@
 "use client";
 
 // Vista de tabla (10.3): búsqueda, filtros y orden en el navegador sobre los casos que RLS ya dejó ver.
+import { InsigniaAfore } from "@/components/rpd/insignia-afore";
 import Link from "next/link";
 import { useMemo, useState } from "react";
 import { Badge } from "@/components/ui/badge";
 import { Input, Label } from "@/components/ui/input";
 import type { Columna } from "./tablero";
 
-export type FilaCaso = { id: string; folio: string; nombre: string; servicio: string; etapa: string; diasEtapa: number; asignado: string; asesor: string; alta: string };
+export type FilaCaso = { id: string; folio: string; nombre: string; servicio: string; etapa: string; diasEtapa: number; asignado: string; asesor: string; afore: string | null; alta: string };
 type Orden = "diasEtapa" | "folio" | "nombre" | "alta";
 type Grupo = "activos" | "cerrados" | "todos";
 const enGrupo = (f: FilaCaso, g: Grupo) => g === "todos" || (g === "cerrados" ? f.etapa === "CERRADO" : f.etapa !== "CERRADO" && f.etapa !== "PERDIDO");
@@ -84,7 +85,7 @@ export function TablaCasos({ filas, columnas }: { filas: FilaCaso[]; columnas: C
               return (
                 <tr key={f.id} className="border-b border-borde last:border-0 hover:bg-slate-50">
                   <td className="cifra px-3 py-2"><Link href={`/casos/${f.id}`} className="text-brand hover:underline">{f.folio}</Link></td>
-                  <td className="px-3 py-2 text-ink">{f.nombre}</td>
+                  <td className="px-3 py-2 text-ink"><span className="flex items-center gap-2">{f.afore && <InsigniaAfore clave={f.afore} tamano="sm" sinNombre />}{f.nombre}</span></td>
                   <td className="px-3 py-2 text-ink-muted">{f.servicio}</td>
                   <td className="px-3 py-2"><Badge tono={c?.tono ?? "prospecto"}>{c?.titulo ?? f.etapa}</Badge></td>
                   <td className="cifra px-3 py-2">{f.diasEtapa}</td>

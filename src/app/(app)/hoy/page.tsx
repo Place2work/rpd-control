@@ -115,6 +115,40 @@ export default async function Hoy() {
           );
         })}
       </section>
+      {/* Comisiones proyectadas por asesor de pensiones y referidor (Director). */}
+      {usuario.rol === "director" && comProy && (
+        <Card className="mb-6">
+          <CardHeader>
+            <CardTitle>Comisiones proyectadas por pagar</CardTitle>
+            <Link href="/comisiones#proyectadas" className="text-sm font-medium text-brand hover:underline">Ver detalle</Link>
+          </CardHeader>
+          {comProy.porBeneficiario.length === 0 ? (
+            <p className="px-5 pb-5 pt-2 text-sm text-ink-muted">Sin comisiones por pagar. Elige el asesor de pensiones o el referidor en el Canal de cada caso.</p>
+          ) : (
+            <div className="overflow-x-auto px-5 pb-5 pt-2">
+              <table className="w-full min-w-[560px] text-sm">
+                <thead><tr className="text-left text-xs text-ink-muted">{["Beneficiario", "Tipo", "Casos", "Ya devengado", "Proyectado y estimado", "Total"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
+                <tbody>
+                  {comProy.porBeneficiario.map((b) => {
+                    const dev = comProy.filas.filter((f) => f.clave === b.clave && f.origen === "devengada").reduce((a, f) => a + Math.round(f.monto * 100), 0) / 100;
+                    return (
+                      <tr key={b.clave} className="border-t border-borde">
+                        <td className="py-2 pr-3 font-medium text-ink">{b.nombre}</td>
+                        <td className="py-2 pr-3 text-ink-muted">{b.tipo === "socio" ? "Asesor de pensiones" : "Referidor"}</td>
+                        <td className="py-2 pr-3">{b.casos}</td>
+                        <td className="cifra py-2 pr-3">{mxn(dev)}</td>
+                        <td className="cifra py-2 pr-3">{mxn((Math.round(b.monto * 100) - Math.round(dev * 100)) / 100)}</td>
+                        <td className="cifra py-2 pr-3 font-semibold text-brand">{mxn(b.monto)}</td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+              {comProy.sinMonto > 0 && <p className="mt-2 text-xs text-aviso">{comProy.sinMonto} {comProy.sinMonto === 1 ? "caso con asesor no tiene" : "casos con asesor no tienen"} monto: captura el pago esperado de la Afore.</p>}
+            </div>
+          )}
+        </Card>
+      )}
       <div className="grid gap-4 lg:grid-cols-3">
         <Card className="lg:col-span-2">
           <CardHeader id="alertas">

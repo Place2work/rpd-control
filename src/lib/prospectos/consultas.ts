@@ -52,6 +52,7 @@ const seleccionLista = {
   socio: { select: { id: true, nombre: true } },
   asignado: { select: { id: true, nombre: true } },
   datos_imss: { select: { fecha_baja: true, regimen: true } },
+  datos_afore: { select: { afore: true } },
   eventos: { where: { archivado_at: null }, select: { fecha: true }, orderBy: { fecha: "desc" as const }, take: 1 },
 } satisfies Prisma.CasoSelect;
 

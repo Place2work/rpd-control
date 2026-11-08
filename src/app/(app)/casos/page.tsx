@@ -51,7 +51,7 @@ export default async function Casos({ searchParams }: { searchParams: Promise<Q>
   }));
   const filas: FilaCaso[] = delEmbudo.map((c) => ({
     id: c.id, folio: c.folio, nombre: nombreCompleto(c.persona), servicio: c.servicio.nombre, etapa: c.etapa,
-    diasEtapa: diasEntre(hoyCDMX(c.etapa_desde), hoy), asignado: c.asignado?.nombre ?? "Sin asignar", asesor: c.socio?.nombre ?? "—",
+    diasEtapa: diasEntre(hoyCDMX(c.etapa_desde), hoy), asignado: c.asignado?.nombre ?? "Sin asignar", asesor: c.socio?.nombre ?? "—", afore: c.datos_afore?.afore ?? null,
     alta: hoyCDMX(c.created_at),
   }));
 

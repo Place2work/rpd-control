@@ -2,6 +2,7 @@
 import { diasEntre, type FechaISO } from "./fechas";
 
 export type ClienteCerrado = {
+  afore?: string | null; // clave de la Afore (para su logotipo)
   id: string;
   folio: string;
   nombre: string;

@@ -7,6 +7,7 @@ import { Input, Label } from "@/components/ui/input";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { EstadoVacio } from "@/components/rpd/estado-vacio";
 import { InsigniaDia46 } from "@/components/rpd/insignia-dia46";
+import { InsigniaAfore } from "@/components/rpd/insignia-afore";
 import { LigasConsulta } from "@/components/rpd/ligas-consulta";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { ligasConsulta, parametrosFechas } from "@/lib/parametros";
@@ -135,6 +136,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                         {sinContacto > 0 && ` · ${sinContacto} ${sinContacto === 1 ? "día" : "días"} sin contacto`}
                       </p>
                     </Link>
+                    {f.datos_afore?.afore && <InsigniaAfore clave={f.datos_afore.afore} tamano="sm" sinNombre />}
                     {f.servicio.clave === "RETIRO_DESEMPLEO" && (
                       <InsigniaDia46 fechaBaja={f.datos_imss?.fecha_baja} hoy={hoy} diasEspera={p.DIAS_ESPERA_DESEMPLEO} diasAdmin={p.DIAS_ADMINISTRATIVOS} />
                     )}

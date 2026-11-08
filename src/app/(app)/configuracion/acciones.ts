@@ -147,6 +147,22 @@ async function registrarCuenta(s: NonNullable<Awaited<ReturnType<typeof director
 export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promise<Resultado> {
   const s = await director();
   if (!s) return { error: "Solo el Director da de alta usuarios." };
+  // Asesor de pensiones sin correo todavía: solo su ficha (cobra comisiones); la cuenta se crea cuando haya correo.
+  const datos = datosDe(form);
+  if (datos.rol === "socio" && !String(datos.email ?? "").trim()) {
+    const f = esquemaUsuario.safeParse(datos);
+    if (!f.success) return { errores: errores(f.error) };
+    if (f.data.socio_id) return { errores: { email: "Esa ficha ya existe: escribe su correo para crearle la cuenta" } };
+    const res = await conUsuario(s.claims, async (tx): Promise<Resultado> => {
+      if (await tx.socio.findFirst({ where: { archivado_at: null, nombre: { equals: f.data.nombre.trim(), mode: "insensitive" } }, select: { id: true } })) {
+        return { errores: { nombre: "Ya hay un asesor de pensiones con ese nombre" } };
+      }
+      await ligarFicha(tx, { ...f.data, socio_id: null }, null, s.usuario.id);
+      return { ok: true };
+    }, s.ip);
+    if (res.ok) { revalidatePath("/configuracion"); revalidatePath("/comisiones/beneficiarios"); }
+    return res;
+  }
   const r = esquemaUsuario.and(z.object({ email: z.email("Correo no válido").transform((v) => v.toLowerCase()) })).safeParse(datosDe(form));
   if (!r.success) return { errores: errores(r.error) };
   const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
@@ -326,4 +342,32 @@ export async function nuevaVersionEsquema(id: string, _p: Resultado, form: FormD
   }, s.ip);
   if (res.ok) revalidatePath("/configuracion");
   return res;
+}
+
+/** Cuenta para un asesor de pensiones que ya tenía ficha (dado de alta sin correo): contraseña temporal. */
+export async function crearCuentaAsesor(socioId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await director();
+  if (!s) return { error: "Solo el Director da de alta usuarios." };
+  const r = z.object({ email: z.email("Correo no válido").transform((v) => v.toLowerCase()) }).safeParse(datosDe(form));
+  if (!r.success) return { errores: errores(r.error) };
+  const pre = await conUsuario(s.claims, async (tx) => {
+    const ficha = await tx.socio.findFirst({ where: { id: socioId, archivado_at: null }, select: { nombre: true, telefono: true } });
+    if (!ficha) return { error: "No encontramos al asesor." } as const;
+    const ocupada = await fichaLibre(tx, socioId);
+    if (ocupada) return { error: ocupada } as const;
+    if (await tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } })) return { errores: { email: "Ese correo ya es usuario del sistema" } } as const;
+    return { ficha } as const;
+  }, s.ip);
+  const ficha = "ficha" in pre ? pre.ficha : null;
+  if (!ficha) return pre as Resultado;
+  const cuenta = await crearCuentaConClave(r.data.email);
+  if (!cuenta.id || !cuenta.clave) return { error: cuenta.error };
+  await conUsuario(s.claims, async (tx) => {
+    await tx.usuario.create({ data: { id: cuenta.id!, email: r.data.email, nombre: ficha.nombre, rol: "socio", socio_id: socioId, telefono: ficha.telefono, created_by: s.usuario.id }, select: { id: true } });
+    await tx.socio.update({ where: { id: socioId }, data: { email: r.data.email }, select: { id: true } });
+  }, s.ip);
+  await registrarCuenta(s, cuenta.id, "CLAVE_TEMPORAL");
+  revalidatePath("/configuracion");
+  return { ok: true, unaVez: { titulo: `Contraseña temporal de ${ficha.nombre}`, valor: cuenta.clave,
+    nota: `Entra en ${dominioApp()} con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
 }

@@ -4,7 +4,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
+import { actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearCuentaAsesor, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 
@@ -22,10 +22,11 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
     usuarios: await tx.usuario.findMany({ orderBy: [{ activo: "desc" }, { nombre: "asc" }],
       include: { socio: { select: { nombre: true, porcentaje_socio: true } } } }),
     // Fichas de asesores de pensiones (su reparto): se liga una a la cuenta.
-    fichas: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }),
+    fichas: await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true, telefono: true, porcentaje_socio: true, usuarios: { where: { activo: true }, select: { id: true } } }, orderBy: { nombre: "asc" } }),
   }), sesion.ip);
   const pctTxt = (x: number) => `${+(x * 100).toFixed(2)}%`;
-  const opcionesFicha = fichas.map((f) => [f.id, f.nombre] as const);
+  const opcionesFicha = fichas.filter((f) => f.usuarios.length === 0).map((f) => [f.id, f.nombre] as const);
+  const sinCuenta = fichas.filter((f) => f.usuarios.length === 0);
   const ayudaFicha = "solo Asesor de pensiones · vacío = se crea una ficha nueva con su nombre";
 
   return (
@@ -78,18 +79,42 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
         </CardContent>
       </Card>
 
-      <div className="grid content-start gap-4">
+      {sinCuenta.length > 0 && (
+        <Card className="lg:col-span-2 lg:row-start-2">
+          <CardHeader><CardTitle>Asesores de pensiones sin cuenta</CardTitle><span className="text-sm text-ink-muted">{sinCuenta.length}</span></CardHeader>
+          <CardContent>
+            <ul className="divide-y divide-borde">
+              {sinCuenta.map((f) => (
+                <li key={f.id} className="grid gap-2 py-3">
+                  <p className="font-medium text-ink">{f.nombre} <span className="text-xs font-normal text-ink-muted">· {pctTxt(Number(f.porcentaje_socio))}{f.telefono ? ` · ${f.telefono}` : ""}</span></p>
+                  <details>
+                    <summary className="cursor-pointer text-xs font-medium text-brand">Crear su cuenta</summary>
+                    <div className="mt-2 rounded-[var(--radius-boton)] bg-slate-50 p-3">
+                      <FormularioAccion accion={crearCuentaAsesor.bind(null, f.id)} boton="Crear cuenta y contraseña" etiquetas={{ email: "Correo" }}>
+                        <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
+                      </FormularioAccion>
+                    </div>
+                  </details>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
+
+      <div className="grid content-start gap-4 lg:row-span-2 lg:col-start-3 lg:row-start-1">
         <Card>
           <CardHeader><CardTitle>Dar de alta a alguien</CardTitle></CardHeader>
           <CardContent>
             <FormularioAccion accion={crearUsuarioConClave} boton="Crear cuenta" etiquetas={ETIQUETAS} limpiar>
               <CampoTexto id="nombre" etiqueta="Nombre completo" />
-              <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
+              <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra · asesor de pensiones: puede ir vacío" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
               <Seleccion id="rol" etiqueta="Rol" valor="socio" opciones={ROLES} />
               <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} vacia="Nueva con su nombre" opciones={opcionesFicha} />
             </FormularioAccion>
-            <p className="mt-3 text-xs text-ink-muted">El sistema genera una contraseña temporal y te la muestra una sola vez para que se la entregues. Al entrar, activa la verificación en dos pasos (app autenticadora) y pone su propia contraseña.</p>
+            <p className="mt-3 text-xs text-ink-muted">Asesor de pensiones sin correo: se guarda su ficha (ya cobra comisiones) y aparece en «Asesores sin cuenta» para crearle el acceso cuando tengas su correo.</p>
+            <p className="mt-2 text-xs text-ink-muted">El sistema genera una contraseña temporal y te la muestra una sola vez para que se la entregues. Al entrar, activa la verificación en dos pasos (app autenticadora) y pone su propia contraseña.</p>
             <details className="mt-4 border-t border-borde pt-3">
               <summary className="cursor-pointer text-sm font-medium text-brand">Invitar por correo</summary>
               <p className="mt-2 text-xs text-ink-muted">Requiere configurar el envío de correos (Resend) en Supabase; sin eso la invitación no llega.</p>

@@ -21,6 +21,7 @@ export async function listarCerrados(s: Sesion): Promise<ClienteCerrado[]> {
         persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true } },
         servicio: { select: { nombre: true } },
         socio: { select: { nombre: true } },
+        datos_afore: { select: { afore: true } },
         pagos_afore: { where: { archivado_at: null }, orderBy: { numero: "asc" }, take: 1, select: { fecha_deposito: true, monto_neto: true } },
         cobros: { where: { archivado_at: null, estado: "cobrado" }, select: { honorario_total: true, comprobante_path: true } },
       },
@@ -34,7 +35,7 @@ export async function listarCerrados(s: Sesion): Promise<ClienteCerrado[]> {
       nombre: [c.persona.nombre, c.persona.apellido_paterno, c.persona.apellido_materno].filter(Boolean).join(" "),
       servicio: c.servicio.nombre.split(" (")[0],
       // «vendedor» de esta vista = el asesor de pensiones del caso (canal).
-      vendedorId: c.socio_id, vendedor: c.socio?.nombre ?? null,
+      vendedorId: c.socio_id, vendedor: c.socio?.nombre ?? null, afore: c.datos_afore?.afore ?? null,
       cerradoEl: hoyCDMX(c.etapa_desde),
       deposito: pago ? { fecha: iso(pago.fecha_deposito), neto: Number(pago.monto_neto) } : null,
       honorario: veDinero ? Math.round(c.cobros.reduce((a, k) => a + Math.round(Number(k.honorario_total) * 100), 0)) / 100 : null,
