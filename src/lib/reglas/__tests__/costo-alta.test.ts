@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { altasPorPersona, costoAdministrativo, costoVigente, type Alta } from "../costo-alta";
+import { altasPorPersona, costoAdministrativo, costoVigente, leerCostoAlta, type Alta } from "../costo-alta";
 
 const V = [
   { desde: "2026-01-01", hasta: "2026-11-30", monto: 500 },
@@ -32,5 +32,28 @@ describe("una alta por persona", () => {
     ];
     expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-10-27", vendedorId: null }, { fecha: "2026-11-06", vendedorId: "v1" }]);
     expect(costoAdministrativo(altasPorPersona(casos), V).total).toBe(1000);
+  });
+});
+
+describe("costo propio de un alta", () => {
+  it("una pensión en $0 no suma y otra en $800 suma 800; las demás usan el general", () => {
+    const altas: Alta[] = [alta("2026-11-02"), { ...alta("2026-11-03"), costo: 0 }, { ...alta("2026-11-04"), costo: 800 }];
+    expect(costoAdministrativo(altas, V)).toEqual({ altas: 3, total: 1300 });
+  });
+  it("el costo propio viaja con el alta de la persona (su primer caso)", () => {
+    const casos = [
+      { personaId: "eva", fecha: "2026-11-05", vendedorId: null, costo: 0 }, { personaId: "eva", fecha: "2026-11-05", vendedorId: null, costo: 0 },
+      { personaId: "rosa", fecha: "2026-11-06", vendedorId: null, costo: null },
+    ];
+    expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-11-05", vendedorId: null, costo: 0 }, { fecha: "2026-11-06", vendedorId: null }]);
+    expect(costoAdministrativo(altasPorPersona(casos), V).total).toBe(500);
+  });
+  it("lee lo que escribe el Director", () => {
+    expect(leerCostoAlta("")).toEqual({ costo: null });
+    expect(leerCostoAlta("0")).toEqual({ costo: 0 });
+    expect(leerCostoAlta("$1,250.5")).toEqual({ costo: 1250.5 });
+    expect(leerCostoAlta("-5")).toHaveProperty("error");
+    expect(leerCostoAlta("abc")).toHaveProperty("error");
+    expect(leerCostoAlta("2000000")).toHaveProperty("error");
   });
 });

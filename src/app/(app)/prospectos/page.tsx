@@ -170,7 +170,7 @@ export default async function Prospectos({ searchParams }: { searchParams: Promi
                 </div>
               </dl>
               <p className="text-xs text-ink-muted">
-                {mxn(costoHoy)} por cada prospecto dado de alta{filtro.vendedor ? " · solo del vendedor filtrado" : ""}.
+                {mxn(costoHoy)} por cada prospecto dado de alta, salvo las altas con costo propio (pestaña Dinero del caso){filtro.vendedor ? " · solo del vendedor filtrado" : ""}.
                 {sesion.usuario.rol === "director" && <> Cámbialo en <Link href="/configuracion?seccion=parametros" className="text-brand underline">Configuración → Parámetros</Link>.</>}
               </p>
             </CardContent>

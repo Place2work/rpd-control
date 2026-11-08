@@ -15,6 +15,8 @@ import { recalcularComisiones } from "@/lib/dinero/motor";
 import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { desglosarTotal, honorarioDePago, leerPctPactado, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { leerCostoAlta } from "@/lib/reglas/costo-alta";
+import { mxn } from "@/lib/formato";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "./acciones";
 
@@ -76,6 +78,28 @@ export async function guardarHonorarioPactado(casoId: string, _p: Resultado, for
     return { ok: true };
   }, ip);
   if (res.ok) revalidatePath(`/casos/${casoId}`);
+  return res;
+}
+
+// ───────────── Costo administrativo propio del alta ─────────────
+
+/** Costo administrativo del alta de esta persona: 0 o más; vacío = el general. Se guarda en todos sus casos vivos. */
+export async function guardarCostoAlta(casoId: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  if (usuario.rol !== "director") return { error: "Solo el Director cambia el costo administrativo." };
+  const leido = leerCostoAlta(String(form.get("costo_admin_alta") ?? ""));
+  if ("error" in leido) return { errores: { costo_admin_alta: leido.error } };
+  const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { persona_id: true, costo_admin_alta: true } });
+    if (!caso) return { error: "No encontramos el caso." };
+    const antes = caso.costo_admin_alta === null ? "el general" : mxn(Number(caso.costo_admin_alta));
+    await tx.caso.updateMany({ where: { persona_id: caso.persona_id, archivado_at: null }, data: { costo_admin_alta: leido.costo } });
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id,
+      texto: `Costo administrativo del alta: ${leido.costo === null ? "vuelve al general" : mxn(leido.costo)} (antes ${antes}).`,
+      datos: { costo_admin_alta: leido.costo } } });
+    return { ok: true };
+  }, ip);
+  if (res.ok) { revalidatePath(`/casos/${casoId}`); revalidatePath("/hoy"); revalidatePath("/prospectos"); }
   return res;
 }
 

@@ -267,3 +267,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - El costo administrativo cuenta una alta por persona (su primer caso), no por servicio.
 - Nombres del catálogo: «Pensión Ley 73 (cesantía, vejez, invalidez)» y «Devolución Infonavit (subcuenta de vivienda)»
   (la clave no cambia). Migración 2500.
+
+## 8-nov-2026 · Costo administrativo propio de un alta
+
+- Cada alta puede llevar su propio costo administrativo (`casos.costo_admin_alta`, pesos, 0 o más): p. ej. $0 en una
+  pensión o más en otro servicio. Vacío = el general (COSTO_ADMIN_ALTA vigente el día del alta).
+- Lo fija solo el Director: en el alta rápida o en la pestaña Dinero del caso. Se guarda en todos los casos vivos de la
+  persona (el costo se cuenta una vez por persona, en su primer caso). Un trigger impide que otro rol lo cambie.
+- El alta sigue contando en «altas» aunque su costo sea $0. Migración 2600.

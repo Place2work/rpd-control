@@ -10,6 +10,8 @@ import { esquemaAlta } from "@/lib/prospectos/validacion";
 import { curpParcial, datosDeCurp } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
 import { limpiarNombre } from "@/lib/reglas/nombres";
+import { leerCostoAlta } from "@/lib/reglas/costo-alta";
+import { mxn } from "@/lib/formato";
 
 export type Duplicado = { campo: "telefono" | "curp" | "nss"; persona_id: string | null; visible: boolean };
 
@@ -37,6 +39,13 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
     const errores: Record<string, string> = {};
     for (const i of r.error.issues) errores[String(i.path[0])] ??= i.message;
     return { errores, valores };
+  }
+  // Costo administrativo propio de esta alta (solo el Director; vacío = el general).
+  let costoAlta: number | null = null;
+  if (usuario.rol === "director") {
+    const leido = leerCostoAlta(String(form.get("costo_admin_alta") ?? ""));
+    if ("error" in leido) return { errores: { costo_admin_alta: leido.error }, valores };
+    costoAlta = leido.costo;
   }
   const d = { ...r.data, ...limpiarNombre({ nombre: r.data.nombre, apellido_paterno: r.data.apellido_paterno ?? null, apellido_materno: r.data.apellido_materno ?? null }) };
   const curpHash = d.curp ? hashIdentificador("curp", d.curp) : null;
@@ -103,6 +112,7 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
               asignado_a: usuario.rol === "asesor" ? usuario.id : undefined,
               referidor_id: d.referidor_id,
               fecha_primer_contacto: fecha(hoyCDMX()),
+              costo_admin_alta: costoAlta ?? undefined,
             },
           });
           if (d.fecha_baja) {
@@ -112,7 +122,8 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
           const otros = validos.filter((v) => v.clave !== servicio).map((v) => v.nombre.split(" (")[0]);
           await tx.evento.create({
             data: { caso_id: caso.id, tipo: "sistema", usuario_id: usuario.id, datos: { origen: d.origen },
-              texto: otros.length ? `Alta de prospecto · también pidió: ${otros.join(", ")}` : "Alta de prospecto" },
+              texto: [otros.length ? `Alta de prospecto · también pidió: ${otros.join(", ")}` : "Alta de prospecto",
+                costoAlta !== null ? `costo administrativo ${mxn(costoAlta)}` : null].filter(Boolean).join(" · ") },
           });
           primero ??= caso.id;
         }

@@ -10,9 +10,10 @@ import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { parametrosDinero, parametrosFechas, parametrosVigentes } from "@/lib/parametros";
 import { fechaProximoRetiro } from "@/lib/reglas/alertas";
 import { honorariosProyectados, margenCaso, pagosAforePermitidos, pctHonorarioRetiro } from "@/lib/reglas/comisiones";
+import { costoVigente } from "@/lib/reglas/costo-alta";
 import { hoyCDMX } from "@/lib/tiempo";
 import { BotonAccion } from "../../../configuracion/boton-accion";
-import { archivarPagoAfore, cambiarFechaPagoAfore, regresarAPagoEsperado, cancelarCobro, guardarCanal, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
+import { archivarPagoAfore, cambiarFechaPagoAfore, regresarAPagoEsperado, cancelarCobro, guardarCanal, guardarCostoAlta, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, Casilla, claseSelect, Seleccion } from "../campos";
 import { Comprobante } from "../comprobante";
 import { FormularioAccion } from "../formulario-accion";
@@ -43,6 +44,9 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     comisiones: await tx.comision.findMany({ where: { caso_id: caso.id, archivado_at: null, estado: { not: "cancelada" } }, orderBy: { created_at: "asc" } }),
     vendedores: puedeCanal ? await tx.usuario.findMany({ where: { rol: "vendedor", activo: true, archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
     referidores: puedeCanal ? await tx.referidor.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
+    // Alta de la persona (su primer caso) y vigencias del costo general: solo para el Director.
+    alta: rol === "director" ? await tx.caso.findFirst({ where: { persona_id: caso.persona_id, archivado_at: null }, orderBy: { created_at: "asc" }, select: { id: true, folio: true, created_at: true, costo_admin_alta: true } }) : null,
+    vigCosto: rol === "director" ? await tx.parametro.findMany({ where: { clave: "COSTO_ADMIN_ALTA" }, select: { valor: true, vigente_desde: true, vigente_hasta: true } }) : [],
     socios: puedeCanal ? await tx.socio.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
   }), sesion.ip);
 
@@ -55,6 +59,9 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
   const porCobrar = vivos.filter((c) => c.estado === "por_cobrar");
   const m = margenCaso(vivos.map((c) => ({ honorario: Number(c.honorario_total), iva: Number(c.iva), estado: c.estado })), d.comisiones.map((k) => ({ monto: Number(k.monto), estado: k.estado })));
   const pendiente = porCobrar.reduce((a, c) => a + Number(c.honorario_total), 0);
+  const fechaAlta = d.alta ? hoyCDMX(d.alta.created_at) : null;
+  const costoGeneral = fechaAlta ? costoVigente(fechaAlta, d.vigCosto.map((v) => ({ desde: isoDe(v.vigente_desde)!, hasta: v.vigente_hasta ? isoDe(v.vigente_hasta) : null, monto: Number(v.valor) }))) : 0;
+  const costoPropio = d.alta?.costo_admin_alta == null ? null : Number(d.alta.costo_admin_alta);
   const nombreDe = (tipo: string, id: string) =>
     (tipo === "usuario" ? d.vendedores : tipo === "referidor" ? d.referidores : d.socios).find((x) => x.id === id)?.nombre ?? (tipo === "socio" ? "Socio" : "—");
 
@@ -90,6 +97,27 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
             ) : (
               <p className="text-xs text-ink-muted">Solo el Director cambia el porcentaje.</p>
             )}
+          </CardContent>
+        </Card>
+      )}
+
+      {d.alta && fechaAlta && (
+        <Card>
+          <CardHeader>
+            <CardTitle>Costo administrativo del alta</CardTitle>
+            <span className="cifra font-display text-xl font-semibold text-ink">{mxn(costoPropio ?? costoGeneral)}</span>
+          </CardHeader>
+          <CardContent className="grid gap-3">
+            <p className="text-sm text-ink-muted">
+              {costoPropio === null ? `Se usa el general de ${mxn(costoGeneral)} vigente el día del alta.` : `Ajustado para esta persona; el general era ${mxn(costoGeneral)}.`}
+              {" "}Se cuenta una vez por persona{d.alta.id !== caso.id ? ` (su alta es ${d.alta.folio}, del ${corta(d.alta.created_at)})` : ""}. Informativo: no se le cobra al cliente.
+            </p>
+            <FormularioAccion accion={guardarCostoAlta.bind(null, caso.id)} boton="Guardar costo" etiquetas={{ costo_admin_alta: "Costo" }}>
+              <div className="grid gap-3 sm:grid-cols-3">
+                <CampoTexto id="costo_admin_alta" etiqueta="Costo de esta alta ($)" ayuda="0 para no contarlo · vacío = el general" inputMode="decimal"
+                  placeholder={String(costoGeneral)} valor={costoPropio} />
+              </div>
+            </FormularioAccion>
           </CardContent>
         </Card>
       )}

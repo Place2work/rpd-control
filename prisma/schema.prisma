@@ -512,6 +512,7 @@ model Caso {
   m40_hasta                  DateTime?                 @db.Date
   m40_salario                Decimal?                  @db.Decimal(12, 2)
   m40_monto                  Decimal?                  @db.Decimal(14, 2)
+  costo_admin_alta           Decimal?                  @db.Decimal(12, 2) // NULL = COSTO_ADMIN_ALTA general; solo Director
 
   persona     Persona      @relation(fields: [persona_id], references: [id])
   servicio    TipoServicio @relation(fields: [tipo_servicio], references: [clave])

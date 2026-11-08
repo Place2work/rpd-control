@@ -150,3 +150,16 @@ describe("eliminar notas del seguimiento (se archivan)", () => {
     await expect(como(U.director, "DELETE FROM eventos WHERE id = $1", [n.id])).rejects.toThrow(/permission denied/);
   });
 });
+
+describe("costo administrativo propio de un alta (solo el Director)", () => {
+  it("el asesor y el vendedor no lo cambian; el Director sí, y nunca negativo", async () => {
+    await expect(como(U.asesor, "UPDATE casos SET costo_admin_alta = 0 WHERE id = $1", [C1])).rejects.toThrow(/Solo el Director/);
+    await expect(como(U.vendedor, "UPDATE casos SET costo_admin_alta = 0 WHERE id = $1", [C1])).rejects.toThrow(/Solo el Director/);
+    await expect(como(U.vendedor, "INSERT INTO casos (persona_id, tipo_servicio, owner_id, vendedor_id, costo_admin_alta, updated_at) VALUES ($1, 'PENSION_L73', $2, $2, 0, now())", [P, U.vendedor])).rejects.toThrow(/Solo el Director/);
+    await como(U.director, "UPDATE casos SET costo_admin_alta = 0 WHERE id = $1", [C1]);
+    expect((await db.query("SELECT costo_admin_alta FROM casos WHERE id = $1", [C1])).rows[0].costo_admin_alta).toBe("0.00");
+    await expect(como(U.director, "UPDATE casos SET costo_admin_alta = -1 WHERE id = $1", [C1])).rejects.toThrow(/costo_admin_alta/);
+    // El asesor sigue editando otras columnas del caso sin tocar el costo.
+    await como(U.asesor, "UPDATE casos SET prioridad = 'alta' WHERE id = $1", [C1]);
+  });
+});

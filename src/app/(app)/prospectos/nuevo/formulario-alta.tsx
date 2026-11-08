@@ -17,13 +17,15 @@ type Props = {
   referidores: { id: string; nombre: string }[];
   ligas: Ligas;
   hoy: string;
+  /** Costo administrativo general; solo llega para el Director (los demás no ven el campo). */
+  costoGeneral: number | null;
 };
 
 const CAMPO_DUPLICADO = { telefono: "WhatsApp", curp: "CURP", nss: "NSS" } as const;
 const claseSelect =
   "h-11 w-full rounded-[var(--radius-boton)] border border-borde bg-surface px-3 text-sm text-ink md:h-10";
 
-export function FormularioAlta({ servicios, referidores, ligas, hoy }: Props) {
+export function FormularioAlta({ servicios, referidores, ligas, hoy, costoGeneral }: Props) {
   const [estado, accion, enviando] = useActionState<EstadoAlta, FormData>(crearProspecto, {});
   const v = estado.valores ?? {};
   const e = estado.errores ?? {};
@@ -132,6 +134,19 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy }: Props) {
           </div>
         </CardContent>
       </Card>
+
+      {costoGeneral !== null && (
+        <Card>
+          <CardContent className="grid gap-2">
+            <Campo id="costo_admin_alta" etiqueta="Costo administrativo de esta alta" error={e.costo_admin_alta}
+              ayuda={`vacío = $${costoGeneral.toLocaleString("es-MX")} general · en una pensión puedes poner 0 o más`}>
+              <Input id="costo_admin_alta" name="costo_admin_alta" inputMode="decimal" defaultValue={v.costo_admin_alta}
+                placeholder={String(costoGeneral)} autoComplete="off" className="max-w-48" aria-invalid={!!e.costo_admin_alta} />
+            </Campo>
+            <p className="text-xs text-ink-muted">Se cuenta una vez por persona aunque marques varios servicios. Puedes cambiarlo después en el caso, pestaña Dinero.</p>
+          </CardContent>
+        </Card>
+      )}
 
       <label className="flex items-start gap-3 text-sm text-ink">
         <input type="checkbox" name="privacidad" value="si" defaultChecked={v.privacidad === "si"} className="mt-0.5 size-5" />
