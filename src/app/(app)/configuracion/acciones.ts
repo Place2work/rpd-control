@@ -109,6 +109,18 @@ async function fichaLibre(tx: Tx, socioId: string | null, usuarioId?: string): P
   return otro ? `Esa ficha ya es la cuenta de ${otro.nombre}` : null;
 }
 
+/**
+ * Antes de crear una ficha nueva: si ya hay una ficha viva sin cuenta con el mismo teléfono (o el mismo nombre),
+ * se pide elegirla para no partir sus casos y comisiones en dos fichas.
+ */
+async function fichaParecida(tx: Tx, nombre: string, telefono: string | null): Promise<string | null> {
+  const digitos = (v: string | null) => (v ?? "").replace(/\D/g, "").slice(-10);
+  const tel = digitos(telefono);
+  const libres = await tx.socio.findMany({ where: { archivado_at: null, usuarios: { none: { activo: true } } }, select: { nombre: true, telefono: true } });
+  const igual = libres.find((f) => (tel.length === 10 && digitos(f.telefono) === tel) || f.nombre.trim().toLowerCase() === nombre.trim().toLowerCase());
+  return igual ? `Ya existe la ficha «${igual.nombre}»${tel && digitos(igual.telefono) === tel ? " con ese teléfono" : ""}: elígela en «Ficha del asesor de pensiones» para que conserve sus casos y comisiones.` : null;
+}
+
 /** Ficha del asesor de pensiones: la elegida o una nueva con su nombre (% y costo por omisión, ajustables después). */
 async function ligarFicha(tx: Tx, d: { rol: string; socio_id: string | null; nombre: string; telefono: string | null }, email: string | null, creador: string): Promise<string | null> {
   if (d.rol !== "socio") return null;
@@ -125,7 +137,7 @@ export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Res
   if (!r.success) return { errores: errores(r.error) };
   const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
   if (ya) return { errores: { email: "Ese correo ya es usuario del sistema" } };
-  const ocupada = r.data.rol === "socio" ? await conUsuario(s.claims, (tx) => fichaLibre(tx, r.data.socio_id), s.ip) : null;
+  const ocupada = r.data.rol === "socio" ? await conUsuario(s.claims, (tx) => r.data.socio_id ? fichaLibre(tx, r.data.socio_id) : fichaParecida(tx, r.data.nombre, r.data.telefono), s.ip) : null;
   if (ocupada) return { errores: { socio_id: ocupada } };
   const cuenta = await invitarCuenta(r.data.email);
   if (!cuenta.id) return { error: cuenta.error };
@@ -157,6 +169,8 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
       if (await tx.socio.findFirst({ where: { archivado_at: null, nombre: { equals: f.data.nombre.trim(), mode: "insensitive" } }, select: { id: true } })) {
         return { errores: { nombre: "Ya hay un asesor de pensiones con ese nombre" } };
       }
+      const parecida = await fichaParecida(tx, f.data.nombre, f.data.telefono);
+      if (parecida) return { errores: { telefono: parecida.replace("elígela en «Ficha del asesor de pensiones» para que conserve sus casos y comisiones.", "ya está registrado; edítalo en «Asesores de pensiones sin cuenta».") } };
       await ligarFicha(tx, { ...f.data, socio_id: null }, null, s.usuario.id);
       return { ok: true };
     }, s.ip);
@@ -167,7 +181,7 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
   if (!r.success) return { errores: errores(r.error) };
   const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
   if (ya) return { errores: { email: "Ese correo ya es usuario del sistema" } };
-  const ocupada = r.data.rol === "socio" ? await conUsuario(s.claims, (tx) => fichaLibre(tx, r.data.socio_id), s.ip) : null;
+  const ocupada = r.data.rol === "socio" ? await conUsuario(s.claims, (tx) => r.data.socio_id ? fichaLibre(tx, r.data.socio_id) : fichaParecida(tx, r.data.nombre, r.data.telefono), s.ip) : null;
   if (ocupada) return { errores: { socio_id: ocupada } };
   const cuenta = await crearCuentaConClave(r.data.email);
   if (!cuenta.id || !cuenta.clave) return { error: cuenta.error };

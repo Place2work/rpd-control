@@ -393,3 +393,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   «Mis comisiones por caso» en lugar de «Ingresos de los últimos 12 meses». No ve honorarios, costo administrativo,
   ganancia ni comisiones de otros. Director y analistas sin cambios.
 - Modo demostración (solo desarrollo): `RPD_DEMO_ROL` y `RPD_DEMO_SOCIO` para revisar la pantalla de otro rol.
+
+## 8-nov-2026 · Ficha duplicada de Juan Carlos Arteaga Gomez
+
+- Su cuenta se creó con «Nueva con su nombre» y quedó en una ficha vacía; sus 4 casos (RP-0006, 0007, 0008, 0010)
+  estaban en la ficha «Juan Carvajal» (mismo teléfono). Se ligó la cuenta a esa ficha, se le puso su nombre completo
+  y correo, y la ficha vacía se archivó (sin borrar).
+- Prevención (`fichaParecida`): al crear un asesor con ficha nueva, si ya hay una ficha sin cuenta con el mismo
+  teléfono o nombre, se pide elegirla (con correo) o editarla (sin correo). Se revisa antes de crear la cuenta en Auth.
