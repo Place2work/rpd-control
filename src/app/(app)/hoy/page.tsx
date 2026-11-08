@@ -5,6 +5,7 @@ import { cifrasHoy, proyecciones } from "@/lib/dinero/consultas";
 import { altasYCostos } from "@/lib/dinero/costo-alta";
 import { comisionesProyectadas } from "@/lib/comisiones/proyectadas";
 import { costoAdministrativo } from "@/lib/reglas/costo-alta";
+import { gananciaProyectada } from "@/lib/reglas/comisiones";
 import { embudoDelMes } from "@/lib/reglas/cerrados";
 import { mxn } from "@/lib/formato";
 import type { Metadata } from "next";
@@ -15,7 +16,7 @@ import Link from "next/link";
 import { formatoFecha } from "@/components/rpd/insignia-dia46";
 import { misAlertas } from "@/lib/alertas/consultas";
 import { obtenerSesion } from "@/lib/auth/sesion";
-import { parametrosFechas } from "@/lib/parametros";
+import { parametrosDinero, parametrosFechas } from "@/lib/parametros";
 import { ETAPAS_PROSPECTO, listarCasos, nombreCompleto } from "@/lib/prospectos/consultas";
 import { diasEntre, fechasRetiroDesempleo } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
@@ -37,7 +38,7 @@ export default async function Hoy() {
     listarCasos(sesion), parametrosFechas(hoy), misAlertas(sesion), veDinero ? cifrasHoy(sesion, hoy.slice(0, 7)) : null,
     movimientosDelMes(sesion, hoy.slice(0, 7)),
   ]);
-  const [costos, proy, comProy] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion), comisionesProyectadas(sesion)]) : [null, null, null];
+  const [costos, proy, comProy, pDinero] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion), comisionesProyectadas(sesion), parametrosDinero(hoy)]) : [null, null, null, null];
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
   // Total de todas las altas (cada una con el costo vigente el día de su alta); no baja aunque el cliente pague.
   const costoTotal = costos ? costoAdministrativo(costos.altas, costos.vigencias) : null;
@@ -53,6 +54,10 @@ export default async function Hoy() {
     .filter(({ d, f }) => d.diasFaltan <= 14 && diasEntre(f.tramite.fecha, hoy) <= 7)
     .sort((a, b) => a.d.fecha.localeCompare(b.d.fecha));
 
+  // Ganancia proyectada: lo ya cobrable + lo proyectado − comisiones proyectadas − costo administrativo total.
+  const honorariosProy = dinero && proy ? (Math.round(proy.total * 100) + Math.round(dinero.porCobrar * 100)) / 100 : 0;
+  const ganancia = dinero && comProy && costoTotal ? gananciaProyectada({ honorarios: honorariosProy, comisiones: comProy.total, costoAltas: costoTotal.total, iva: pDinero?.IVA ?? 0,
+    comisionesAsesor: comProy.filas.filter((f) => f.tipo === "socio").reduce((a, f) => a + Math.round(f.monto * 100), 0) / 100 }) : null;
   // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
   const slaEnRiesgo = new Set(alertas.filter((a) => a.regla.startsWith("SLA_15")).map((a) => a.casoId)).size;
   const INDICADORES: { t: string; v: string; nota?: string; liga?: string }[] = [
@@ -78,6 +83,8 @@ export default async function Hoy() {
       // Todo lo que falta pagar a asesores de pensiones y referidores: devengadas + estimadas + proyección.
       { t: "Comisiones proyectadas por pagar", v: mxn(comProy?.total ?? 0), liga: "/comisiones#proyectadas",
         nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · ${mxn(comProy.devengado)} ya devengadas` : "Elige asesor o referidor en el Canal de cada caso" },
+      ...(usuario.rol === "director" && ganancia ? [{ t: "Ganancia proyectada", v: mxn(ganancia.ganancia), liga: "/dinero",
+        nota: `Honorarios ${mxn(honorariosProy)} − comisiones ${mxn(comProy?.total ?? 0)} − altas ${mxn(costoTotal?.total ?? 0)} · sin IVA: ${mxn(ganancia.gananciaSinIva)}` }] : []),
     ] : []),
   ];
 

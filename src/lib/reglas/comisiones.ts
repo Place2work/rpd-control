@@ -487,3 +487,17 @@ export function comisionesProyectadasPorPagar(casos: CasoComisionProyectable[], 
     porBeneficiario: [...porBenef.values()].map((g) => ({ ...g, casos: g.casos.size })).sort((a, b) => b.monto - a.monto),
   };
 }
+
+/**
+ * Ganancia proyectada (Hoy, Director): honorarios por cobrar y proyectados (con IVA) − comisiones proyectadas por
+ * pagar − costo administrativo total de las altas. «Sin IVA» descuenta además el IVA neto que se entera al SAT:
+ * IVA del honorario − IVA acreditable de las facturas de los asesores (su comisión ya trae su IVA).
+ */
+export function gananciaProyectada(e: { honorarios: number; comisiones: number; comisionesAsesor: number; costoAltas: number; iva: number }) {
+  const h = cent(e.honorarios);
+  const ganancia = h - cent(e.comisiones) - cent(e.costoAltas);
+  const ivaHonorario = h - Math.round(h / (1 + e.iva));
+  const ivaAcreditable = cent(facturaAsesor(e.comisionesAsesor, e.iva).iva);
+  const ivaNeto = ivaHonorario - ivaAcreditable;
+  return { ganancia: pesos(ganancia), ivaNeto: pesos(ivaNeto), gananciaSinIva: pesos(ganancia - ivaNeto) };
+}

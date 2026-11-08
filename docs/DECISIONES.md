@@ -337,3 +337,9 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Hoy (Director): tabla «Comisiones proyectadas por pagar» por beneficiario (devengado, proyectado y total).
 - Logotipos de las 10 Afores en public/afores/<CLAVE>.png (proporcionados por la empresa) en la insignia de la
   Afore: expediente, lista de Prospectos, tabla de Casos y Clientes cerrados. Sin logotipo: iniciales con su color.
+
+## 8-nov-2026 · Ganancia proyectada
+
+- Tarjeta en Hoy (solo Director): honorarios por cobrar + proyectados (con IVA) − comisiones proyectadas por pagar −
+  costo administrativo total de las altas (`gananciaProyectada`). La nota muestra la cifra «sin IVA», que descuenta el
+  IVA neto (IVA del honorario − IVA acreditable de las facturas de los asesores). IVA del parámetro, no fijo.

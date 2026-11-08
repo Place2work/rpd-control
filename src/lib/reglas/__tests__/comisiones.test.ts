@@ -1,7 +1,7 @@
 // Casos de la sección 9 y 14.1 (T11, T12, T13) con los parámetros de la sección 14.
 import { describe, expect, it } from "vitest";
 import {
-  facturaAsesor, proyectarComisiones, honorarioParaProyectar, comisionesProyectadasPorPagar,
+  facturaAsesor, gananciaProyectada, proyectarComisiones, honorarioParaProyectar, comisionesProyectadasPorPagar,
   alertasDinero, comisionesDelCaso, conciliar, desglosarTotal, finDeMes, honorarioDePago, leerPctPactado, liquidacionReferidor, margenCaso,
   honorariosProyectados, pagoRepetido, pagosAforePermitidos, pctHonorarioRetiro, type CasoProyectable,
   repartoSocio, sumar, type CasoDinero, type ComisionGuardada, type EsquemasCaso, type ParametrosDinero,
@@ -275,5 +275,14 @@ describe("comisiones proyectadas por pagar", () => {
       { casoId: "b", folio: "RP-2", cliente: "B", honorario: null, subtotal: null, costoAlta: 500, asesor: { id: "e", nombre: "E", pct: 0.4 }, referidor: null, comisiones: [] },
     ], P2);
     expect(r).toMatchObject({ total: 4022.8, devengado: 4022.8, proyectado: 0, sinMonto: 1 });
+  });
+});
+
+describe("ganancia proyectada", () => {
+  it("95,021.10 − 24,084.62 − 5,500 = 65,436.48; sin IVA descuenta el IVA neto", () => {
+    const g = gananciaProyectada({ honorarios: 95021.1, comisiones: 24084.62, comisionesAsesor: 24084.62, costoAltas: 5500, iva: 0.16 });
+    expect(g.ganancia).toBe(65436.48);
+    // IVA del honorario 13,106.36 − IVA acreditable 3,322.02 = 9,784.34
+    expect(g).toEqual({ ganancia: 65436.48, ivaNeto: 9784.34, gananciaSinIva: 55652.14 });
   });
 });
