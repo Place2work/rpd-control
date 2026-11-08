@@ -11,6 +11,13 @@ const nextConfig: NextConfig = {
   },
   serverExternalPackages: ["@react-pdf/renderer"],
   partialPrefetching: true,
+  // Toda pantalla depende del usuario (rol y RLS) y el layout ya declara `instant = false`: la validación de
+  // navegación instantánea solo corre en los segmentos que la pidan con `instant` (evita avisos falsos en desarrollo).
+  experimental: {
+    instantInsights: {
+      validationLevel: "manual-warning",
+    },
+  },
   turbopack: {
     rules: {
       "*.css": {

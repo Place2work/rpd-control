@@ -353,3 +353,15 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   estimada del depósito (`flujoHonorarios`). Comisiones proyectadas por beneficiario (barras) sobre su tabla.
 - Colores validados para daltonismo con el validador del skill de visualización: azul #004AAD, magenta #C2255C,
   verde #5E9E3A. En celular las etiquetas del eje se abrevian o se espacian.
+
+## 8-nov-2026 · Revisión general del sistema
+
+- Recorrido automático de 65 pantallas (todas las secciones, reportes y las 9 pestañas de cada caso) y descargas
+  (contrato, hoja, .ics, Excel): sin errores. Registros de Supabase: sin errores del sistema.
+- 19 revisiones de integridad de datos en producción en cero (IVA, fechas, pagos duplicados, cerrados sin cobro,
+  vigencias encimadas, fichas sin cuenta, etc.).
+- Migración 3000: search_path fijo en `app.tg_costo_admin_alta` (aviso de seguridad) e índices de llaves foráneas
+  más consultadas. «Comisiones por pagar» excluye las archivadas.
+- `experimental.instantInsights.validationLevel = "manual-warning"`: toda pantalla depende del usuario (el layout ya
+  es `instant = false`); los avisos de navegación instantánea en desarrollo eran falsos positivos.
+- Pendiente del usuario: activar «Leaked password protection» en Supabase → Authentication (si el plan lo permite).

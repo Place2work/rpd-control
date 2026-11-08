@@ -56,7 +56,7 @@ export async function cifrasHoy(s: Sesion, mes: string) {
       tx.cobro.aggregate({ where: { estado: "cobrado", archivado_at: null, fecha_cobro: { gte: desde, lte: hasta } }, _sum: { honorario_total: true } }),
       tx.pagoAfore.aggregate({ where: { archivado_at: null, fecha_deposito: { gte: desde, lte: hasta } }, _sum: { monto_neto: true } }),
       tx.cobro.aggregate({ where: { estado: "por_cobrar", archivado_at: null }, _sum: { honorario_total: true }, _count: true }),
-      tx.comision.aggregate({ where: { estado: "devengada" }, _sum: { monto: true }, _count: true }),
+      tx.comision.aggregate({ where: { estado: "devengada", archivado_at: null }, _sum: { monto: true }, _count: true }),
       ultimos12(tx, desde),
       // Para la ganancia proyectada: todo lo cobrado desde el inicio y las comisiones ya pagadas.
       tx.cobro.aggregate({ where: { estado: "cobrado", archivado_at: null }, _sum: { honorario_total: true }, _count: true }),

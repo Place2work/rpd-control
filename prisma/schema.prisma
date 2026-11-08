@@ -293,6 +293,7 @@ model Usuario {
   alertas         Alerta[]
   eventos         Evento[]
 
+  @@index([socio_id])
   @@map("usuarios")
   @@schema("public")
 }
@@ -541,6 +542,8 @@ model Caso {
   @@index([asignado_a])
   @@index([vendedor_id])
   @@index([socio_id])
+  @@index([persona_id])
+  @@index([referidor_id])
   @@map("casos")
   @@schema("public")
 }
@@ -576,6 +579,7 @@ model SuspensionContrato {
 
   caso Caso @relation(fields: [caso_id], references: [id])
 
+  @@index([caso_id])
   @@map("suspensiones_contrato")
   @@schema("public")
 }
@@ -756,6 +760,7 @@ model Alerta {
 
   @@unique([clave_dedup, asignado_a])
   @@index([asignado_a, estado, severidad])
+  @@index([caso_id])
   @@map("alertas")
   @@schema("public")
 }
@@ -833,6 +838,7 @@ model Cobro {
   comisiones Comision[]
 
   @@index([estado, fecha_cobro])
+  @@index([caso_id])
   @@map("cobros")
   @@schema("public")
 }
@@ -909,6 +915,8 @@ model Comision {
   liquidacion Liquidacion?    @relation(fields: [liquidacion_id], references: [id])
 
   @@index([beneficiario_tipo, beneficiario_id, estado])
+  @@index([cobro_id])
+  @@index([pago_afore_id])
   @@map("comisiones")
   @@schema("public")
 }
