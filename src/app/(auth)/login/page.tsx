@@ -7,6 +7,7 @@ export const metadata: Metadata = { title: "Iniciar sesión" };
 const MOTIVOS: Record<string, string> = {
   inactividad: "Cerramos tu sesión tras 30 minutos sin actividad.",
   "sin-acceso": "Tu cuenta no tiene acceso activo. Pídeselo al Director.",
+  "clave-lista": "Listo, tu contraseña quedó guardada. Entra con tu correo, la contraseña nueva y el código de tu app.",
 };
 
 type Props = { searchParams: Promise<{ motivo?: string }> };

@@ -379,3 +379,6 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Crear una cuenta de asesor en producción mostró «This page couldn't load»: la petición nunca llegó a Supabase Auth
   (registros limpios), lo que apunta a que falta `SUPABASE_SECRET_KEY` en Vercel. Las operaciones de src/lib/auth/admin.ts
   ahora regresan `{ error }` (con el aviso de la llave faltante) en vez de lanzar una excepción.
+- (8-nov) Cambio de contraseña temporal: Supabase revoca las sesiones al cambiarla desde el servidor, así que la
+  pantalla se quedaba en «Guardando…». Ahora, si la sesión no se renueva, cierra la local y manda a /login con el
+  aviso «tu contraseña quedó guardada».

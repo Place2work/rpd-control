@@ -40,8 +40,14 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
     if (temporal) {
       const r = await cambiarClaveTemporal(nueva, String(form.get("confirmacion")));
       if (r.error) { setEnviando(false); return setError(r.error); }
-      await supabase.auth.refreshSession(); // la sesión nueva ya no trae la marca
-      return router.replace("/hoy");
+      // Al cambiar la contraseña, Supabase cierra las sesiones de la cuenta por seguridad: si la sesión ya no
+      // se puede renovar, se entra de nuevo con la contraseña nueva (nunca se queda en «Guardando…»).
+      try {
+        const { error: e } = await supabase.auth.refreshSession();
+        if (!e) return router.replace("/hoy");
+      } catch { /* sesión revocada */ }
+      await supabase.auth.signOut({ scope: "local" }).catch(() => {});
+      return router.replace("/login?motivo=clave-lista");
     }
     const { error } = await supabase.auth.updateUser({ password: nueva });
     setEnviando(false);
