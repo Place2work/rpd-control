@@ -52,12 +52,16 @@ export async function cifrasHoy(s: Sesion, mes: string) {
   const desde = dia(`${mes}-01`);
   const hasta = dia(finDeMes(mes));
   return conUsuario(s.claims, async (tx) => {
-    const [cobrado, depositos, porCobrar, comisiones, meses] = await Promise.all([
+    const [cobrado, depositos, porCobrar, comisiones, meses, cobradoTotal, pagadas, pagadasAsesor] = await Promise.all([
       tx.cobro.aggregate({ where: { estado: "cobrado", archivado_at: null, fecha_cobro: { gte: desde, lte: hasta } }, _sum: { honorario_total: true } }),
       tx.pagoAfore.aggregate({ where: { archivado_at: null, fecha_deposito: { gte: desde, lte: hasta } }, _sum: { monto_neto: true } }),
       tx.cobro.aggregate({ where: { estado: "por_cobrar", archivado_at: null }, _sum: { honorario_total: true }, _count: true }),
       tx.comision.aggregate({ where: { estado: "devengada" }, _sum: { monto: true }, _count: true }),
       ultimos12(tx, desde),
+      // Para la ganancia proyectada: todo lo cobrado desde el inicio y las comisiones ya pagadas.
+      tx.cobro.aggregate({ where: { estado: "cobrado", archivado_at: null }, _sum: { honorario_total: true }, _count: true }),
+      tx.comision.aggregate({ where: { estado: "pagada", archivado_at: null }, _sum: { monto: true } }),
+      tx.comision.aggregate({ where: { estado: "pagada", archivado_at: null, tipo: "socio" }, _sum: { monto: true } }),
     ]);
     const n = (v: unknown) => Number(v ?? 0);
     return {
@@ -65,6 +69,8 @@ export async function cifrasHoy(s: Sesion, mes: string) {
       depositadoMes: n(depositos._sum.monto_neto),
       porCobrar: n(porCobrar._sum.honorario_total), cobrosPendientes: porCobrar._count,
       comisionesPorPagar: n(comisiones._sum.monto), comisionesPendientes: comisiones._count,
+      cobradoTotal: n(cobradoTotal._sum.honorario_total), cobrosCobrados: cobradoTotal._count,
+      comisionesPagadas: n(pagadas._sum.monto), comisionesPagadasAsesor: n(pagadasAsesor._sum.monto),
       meses,
     };
   }, s.ip);

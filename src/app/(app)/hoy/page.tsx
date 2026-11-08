@@ -54,13 +54,17 @@ export default async function Hoy() {
     .filter(({ d, f }) => d.diasFaltan <= 14 && diasEntre(f.tramite.fecha, hoy) <= 7)
     .sort((a, b) => a.d.fecha.localeCompare(b.d.fecha));
 
-  // Ganancia proyectada: lo ya cobrable + lo proyectado − comisiones proyectadas − costo administrativo total.
-  const honorariosProy = dinero && proy ? (Math.round(proy.total * 100) + Math.round(dinero.porCobrar * 100)) / 100 : 0;
-  const ganancia = dinero && comProy && costoTotal ? gananciaProyectada({ honorarios: honorariosProy, comisiones: comProy.total, costoAltas: costoTotal.total, iva: pDinero?.IVA ?? 0,
-    comisionesAsesor: comProy.filas.filter((f) => f.tipo === "socio").reduce((a, f) => a + Math.round(f.monto * 100), 0) / 100 }) : null;
+  // Ganancia proyectada: lo ya cobrado (desde el inicio, p. ej. clientes cerrados) + lo por cobrar + lo proyectado
+  // − comisiones (pagadas y proyectadas por pagar) − costo administrativo total de las altas.
+  const cents = (x: number) => Math.round(x * 100);
+  const honorariosProy = dinero && proy ? (cents(proy.total) + cents(dinero.porCobrar)) / 100 : 0;
+  const honorariosTodos = dinero ? (cents(honorariosProy) + cents(dinero.cobradoTotal)) / 100 : 0;
+  const comisionesTodas = dinero && comProy ? (cents(comProy.total) + cents(dinero.comisionesPagadas)) / 100 : 0;
+  const ganancia = dinero && comProy && costoTotal ? gananciaProyectada({ honorarios: honorariosTodos, comisiones: comisionesTodas, costoAltas: costoTotal.total, iva: pDinero?.IVA ?? 0,
+    comisionesAsesor: (comProy.filas.filter((f) => f.tipo === "socio").reduce((a, f) => a + cents(f.monto), 0) + cents(dinero.comisionesPagadasAsesor)) / 100 }) : null;
   // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
   const slaEnRiesgo = new Set(alertas.filter((a) => a.regla.startsWith("SLA_15")).map((a) => a.casoId)).size;
-  const INDICADORES: { t: string; v: string; nota?: string; liga?: string }[] = [
+  const INDICADORES: { t: string; v: string; nota?: string; liga?: string; destacado?: boolean }[] = [
     { t: "Prospectos activos", v: String(casos.filter((c) => ETAPAS_PROSPECTO.includes(c.etapa)).length), liga: "/prospectos" },
     { t: "Casos en trámite", v: String(casos.filter((c) => EN_TRAMITE.has(c.etapa)).length), liga: "/casos" },
     { t: "Listos para retirar esta semana", v: String(proximos.filter(({ d }) => d.diasFaltan <= 7).length) },
@@ -83,8 +87,8 @@ export default async function Hoy() {
       // Todo lo que falta pagar a asesores de pensiones y referidores: devengadas + estimadas + proyección.
       { t: "Comisiones proyectadas por pagar", v: mxn(comProy?.total ?? 0), liga: "/comisiones#proyectadas",
         nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · ${mxn(comProy.devengado)} ya devengadas` : "Elige asesor o referidor en el Canal de cada caso" },
-      ...(usuario.rol === "director" && ganancia ? [{ t: "Ganancia proyectada", v: mxn(ganancia.ganancia), liga: "/dinero",
-        nota: `Honorarios ${mxn(honorariosProy)} − comisiones ${mxn(comProy?.total ?? 0)} − altas ${mxn(costoTotal?.total ?? 0)} · sin IVA: ${mxn(ganancia.gananciaSinIva)}` }] : []),
+      ...(usuario.rol === "director" && ganancia ? [{ t: "Ganancia proyectada", v: mxn(ganancia.ganancia), liga: "/dinero", destacado: true,
+        nota: `Cobrado ${mxn(dinero.cobradoTotal)} + por cobrar y proyectado ${mxn(honorariosProy)} − comisiones ${mxn(comisionesTodas)} − altas ${mxn(costoTotal?.total ?? 0)} · sin IVA: ${mxn(ganancia.gananciaSinIva)}` }] : []),
     ] : []),
   ];
 
@@ -107,17 +111,20 @@ export default async function Hoy() {
     <>
       <Encabezado titulo={`Hola, ${usuario.nombre.split(" ")[0]}`} descripcion={fecha.charAt(0).toUpperCase() + fecha.slice(1)} />
       <section aria-label="Indicadores" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-3">
-        {INDICADORES.map(({ t, v, nota, liga }) => {
+        {INDICADORES.map(({ t, v, nota, liga, destacado }) => {
           const contenido = (
             <>
-              <p className="text-xs text-ink-muted">{t}</p>
+              {/* Ganancia: cuadro amarillo y «proyectada» en verde de la marca. */}
+              {destacado
+                ? <p className="text-xs font-semibold text-ink">{t.replace(/ proyectada$/, "")} <span className="text-exito-texto">proyectada</span></p>
+                : <p className="text-xs text-ink-muted">{t}</p>}
               <p className="cifra mt-1 font-display text-[22px] font-semibold text-ink">{v}</p>
-              {nota && <p className="text-xs text-ink-muted">{nota}</p>}
+              {nota && <p className={destacado ? "text-xs text-ink" : "text-xs text-ink-muted"}>{nota}</p>}
             </>
           );
           return (
-            <Card key={t} className="p-0">
-              {liga ? <Link href={liga} className="block h-full rounded-[inherit] p-4 hover:bg-brand-tint/40">{contenido}</Link> : <div className="p-4">{contenido}</div>}
+            <Card key={t} className={destacado ? "border-yellow-300 bg-yellow-100 p-0" : "p-0"}>
+              {liga ? <Link href={liga} className={`block h-full rounded-[inherit] p-4 ${destacado ? "hover:bg-yellow-200/60" : "hover:bg-brand-tint/40"}`}>{contenido}</Link> : <div className="p-4">{contenido}</div>}
             </Card>
           );
         })}

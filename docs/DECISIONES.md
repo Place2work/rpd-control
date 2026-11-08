@@ -343,3 +343,5 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Tarjeta en Hoy (solo Director): honorarios por cobrar + proyectados (con IVA) − comisiones proyectadas por pagar −
   costo administrativo total de las altas (`gananciaProyectada`). La nota muestra la cifra «sin IVA», que descuenta el
   IVA neto (IVA del honorario − IVA acreditable de las facturas de los asesores). IVA del parámetro, no fijo.
+- (8-nov) La ganancia suma también lo ya cobrado desde el inicio (p. ej. RP-0001, cliente cerrado) y resta las
+  comisiones ya pagadas, para cuadrar con el costo total de las altas. Cuadro en amarillo; «proyectada» en verde.
