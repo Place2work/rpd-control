@@ -7,15 +7,28 @@ import { claveTemporal } from "./clave";
 import { modoDemo } from "./demo";
 import { urlApp } from "@/lib/url";
 
+const SIN_LLAVE = "Falta la llave secreta de Supabase en el servidor (SUPABASE_SECRET_KEY). Agrégala en Vercel → Settings → Environment Variables y vuelve a publicar; sin ella no se pueden crear cuentas ni contraseñas.";
+
 function admin() {
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL, llave = process.env.SUPABASE_SECRET_KEY;
-  if (!url || !llave) throw new Error("Falta configurar SUPABASE_SECRET_KEY en el servidor.");
+  if (!url || !llave) throw new Error(SIN_LLAVE);
   return createClient(url, llave, { auth: { persistSession: false, autoRefreshToken: false } }).auth.admin;
+}
+
+/** Cualquier falla (llave faltante, red, Supabase caído) regresa como aviso para el formulario, nunca como pantalla de error. */
+async function seguro<T extends { error?: string }>(fn: () => Promise<T>): Promise<T | { error: string }> {
+  try {
+    return await fn();
+  } catch (e) {
+    const m = (e as Error).message;
+    console.error("[auth admin]", m);
+    return { error: m === SIN_LLAVE ? SIN_LLAVE : `No se pudo completar con Supabase: ${m}. Intenta de nuevo.` };
+  }
 }
 
 
 /** Manda la invitación (el correo lleva a definir contraseña y luego al 2FA). Devuelve el id de Auth. */
-export async function invitarCuenta(email: string): Promise<{ id?: string; error?: string }> {
+async function invitarCuentaInterno(email: string): Promise<{ id?: string; error?: string }> {
   if (modoDemo()) {
     // Sin Supabase: se crea la cuenta en el auth local de prueba.
     const filas = await prismaSistema.$queryRaw<{ id: string }[]>`INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), ${email}) RETURNING id::text`;
@@ -44,7 +57,7 @@ export async function bloquearCuenta(id: string, bloquear: boolean): Promise<voi
 const DEBE_CAMBIAR = { debe_cambiar_clave: true };
 
 /** Cuenta ya confirmada con contraseña temporal (sin correo). Al entrar se le exige 2FA y cambiarla. */
-export async function crearCuentaConClave(email: string): Promise<{ id?: string; clave?: string; error?: string }> {
+async function crearCuentaConClaveInterno(email: string): Promise<{ id?: string; clave?: string; error?: string }> {
   const clave = claveTemporal();
   if (modoDemo()) {
     const filas = await prismaSistema.$queryRaw<{ id: string }[]>`INSERT INTO auth.users (id, email) VALUES (gen_random_uuid(), ${email}) RETURNING id::text`;
@@ -59,7 +72,7 @@ export async function crearCuentaConClave(email: string): Promise<{ id?: string;
 }
 
 /** Nueva contraseña temporal para alguien que olvidó la suya (mientras no haya correo de recuperación). */
-export async function restablecerConClave(id: string): Promise<{ clave?: string; error?: string }> {
+async function restablecerConClaveInterno(id: string): Promise<{ clave?: string; error?: string }> {
   const clave = claveTemporal();
   if (modoDemo()) return { clave };
   const { error } = await admin().updateUserById(id, { password: clave, app_metadata: DEBE_CAMBIAR });
@@ -68,7 +81,7 @@ export async function restablecerConClave(id: string): Promise<{ clave?: string;
 }
 
 /** El propio usuario fija su contraseña y se quita la marca de cambio obligatorio, en una sola llamada. */
-export async function fijarClavePropia(id: string, clave: string): Promise<{ error?: string }> {
+async function fijarClavePropiaInterno(id: string, clave: string): Promise<{ error?: string }> {
   if (modoDemo()) return {};
   const { error } = await admin().updateUserById(id, { password: clave, app_metadata: { debe_cambiar_clave: false } });
   if (error) return { error: /same|different/i.test(error.message) ? "Usa una contraseña distinta a la temporal." : "No pudimos guardar la contraseña. Intenta con otra." };
@@ -79,7 +92,7 @@ export async function fijarClavePropia(id: string, clave: string): Promise<{ err
  * Perdió el celular: se borran todos sus factores (el teléfono viejo ya no sirve para entrar) y se
  * le da una contraseña temporal. Al entrar vuelve a inscribir el 2FA y pone una contraseña propia.
  */
-export async function restablecerVerificacion(id: string): Promise<{ clave?: string; borrados?: number; error?: string }> {
+async function restablecerVerificacionInterno(id: string): Promise<{ clave?: string; borrados?: number; error?: string }> {
   if (modoDemo()) return { clave: claveTemporal(), borrados: 0 };
   const mfa = admin().mfa;
   const { data, error } = await mfa.listFactors({ userId: id });
@@ -90,4 +103,24 @@ export async function restablecerVerificacion(id: string): Promise<{ clave?: str
   }
   const nueva = await restablecerConClave(id);
   return nueva.clave ? { clave: nueva.clave, borrados: data.factors.length } : { error: nueva.error };
+}
+
+export async function invitarCuenta(email: string): Promise<{ id?: string; error?: string }> {
+  return seguro(() => invitarCuentaInterno(email)) as Promise<{ id?: string; error?: string }>;
+}
+
+export async function crearCuentaConClave(email: string): Promise<{ id?: string; clave?: string; error?: string }> {
+  return seguro(() => crearCuentaConClaveInterno(email)) as Promise<{ id?: string; clave?: string; error?: string }>;
+}
+
+export async function restablecerConClave(id: string): Promise<{ clave?: string; error?: string }> {
+  return seguro(() => restablecerConClaveInterno(id)) as Promise<{ clave?: string; error?: string }>;
+}
+
+export async function fijarClavePropia(id: string, clave: string): Promise<{ error?: string }> {
+  return seguro(() => fijarClavePropiaInterno(id, clave)) as Promise<{ error?: string }>;
+}
+
+export async function restablecerVerificacion(id: string): Promise<{ clave?: string; borrados?: number; error?: string }> {
+  return seguro(() => restablecerVerificacionInterno(id)) as Promise<{ clave?: string; borrados?: number; error?: string }>;
 }

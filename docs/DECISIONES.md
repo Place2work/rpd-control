@@ -373,3 +373,9 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   definir»: su comisión se define cuando el IMSS resuelva. Los montos siguen siendo solo del retiro (`casosPorBeneficiario`).
 - (8-nov) Configuración → Usuarios: «Editar» en cada asesor de pensiones sin cuenta (nombre y teléfono de su ficha,
   `actualizarFicha`; nombre repetido se avisa). Al editar un usuario asesor con cuenta, su ficha toma el mismo nombre.
+
+## 8-nov-2026 · Fallas de Auth como aviso, no como pantalla de error
+
+- Crear una cuenta de asesor en producción mostró «This page couldn't load»: la petición nunca llegó a Supabase Auth
+  (registros limpios), lo que apunta a que falta `SUPABASE_SECRET_KEY` en Vercel. Las operaciones de src/lib/auth/admin.ts
+  ahora regresan `{ error }` (con el aviso de la llave faltante) en vez de lanzar una excepción.
