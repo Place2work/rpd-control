@@ -27,6 +27,10 @@ const fecha = (iso: string) => new Date(`${iso}T00:00:00Z`);
 export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promise<EstadoAlta> {
   const { claims, ip, usuario } = await obtenerSesion();
   const valores = Object.fromEntries([...form.entries()].filter(([, v]) => typeof v === "string")) as Record<string, string>;
+  // Un cliente puede pedir varios servicios: se abre un caso por cada uno (cada uno con su embudo, contrato y cobro).
+  const servicios = [...new Set(form.getAll("tipo_servicio").filter((v): v is string => typeof v === "string" && /^[A-Z0-9_]{2,40}$/.test(v)))];
+  valores.tipo_servicio = servicios[0] ?? "";
+  valores.servicios = servicios.join(",");
 
   const r = esquemaAlta.safeParse(valores);
   if (!r.success) {
@@ -83,32 +87,42 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
             privacidad_ip: d.privacidad ? ip : undefined,
           },
         });
-        const caso = await tx.caso.create({
-          select: { id: true },
-          data: {
-            persona_id: persona.id,
-            tipo_servicio: d.tipo_servicio,
-            owner_id: usuario.id,
-            vendedor_id: usuario.rol === "vendedor" ? usuario.id : undefined,
-            socio_id: usuario.rol === "socio" ? usuario.socio_id : undefined,
-            asignado_a: usuario.rol === "asesor" ? usuario.id : undefined,
-            referidor_id: d.referidor_id,
-            fecha_primer_contacto: fecha(hoyCDMX()),
-          },
-        });
-        if (d.fecha_baja) {
-          await tx.datosImss.create({ data: { caso_id: caso.id, fecha_baja: fecha(d.fecha_baja) } });
+        const validos = await tx.tipoServicio.findMany({ where: { clave: { in: servicios }, activo: true }, select: { clave: true, nombre: true } });
+        const orden = servicios.filter((s) => validos.some((v) => v.clave === s));
+        if (!orden.length) throw new Error("SERVICIO_INVALIDO");
+        let primero: string | null = null;
+        for (const servicio of orden) {
+          const caso = await tx.caso.create({
+            select: { id: true },
+            data: {
+              persona_id: persona.id,
+              tipo_servicio: servicio,
+              owner_id: usuario.id,
+              vendedor_id: usuario.rol === "vendedor" ? usuario.id : undefined,
+              socio_id: usuario.rol === "socio" ? usuario.socio_id : undefined,
+              asignado_a: usuario.rol === "asesor" ? usuario.id : undefined,
+              referidor_id: d.referidor_id,
+              fecha_primer_contacto: fecha(hoyCDMX()),
+            },
+          });
+          if (d.fecha_baja) {
+            await tx.datosImss.create({ data: { caso_id: caso.id, fecha_baja: fecha(d.fecha_baja) } });
+          }
+          await tx.historialEtapa.create({ data: { caso_id: caso.id, etapa_nueva: "PROSPECTO", usuario_id: usuario.id } });
+          const otros = validos.filter((v) => v.clave !== servicio).map((v) => v.nombre.split(" (")[0]);
+          await tx.evento.create({
+            data: { caso_id: caso.id, tipo: "sistema", usuario_id: usuario.id, datos: { origen: d.origen },
+              texto: otros.length ? `Alta de prospecto · también pidió: ${otros.join(", ")}` : "Alta de prospecto" },
+          });
+          primero ??= caso.id;
         }
-        await tx.historialEtapa.create({ data: { caso_id: caso.id, etapa_nueva: "PROSPECTO", usuario_id: usuario.id } });
-        await tx.evento.create({
-          data: { caso_id: caso.id, tipo: "sistema", texto: "Alta de prospecto", usuario_id: usuario.id, datos: { origen: d.origen } },
-        });
-        return caso.id;
+        return primero!;
       },
       ip,
     );
   } catch (e) {
     // Dos altas simultáneas con la misma CURP/NSS: gana la primera.
+    if (e instanceof Error && e.message === "SERVICIO_INVALIDO") return { valores, errores: { tipo_servicio: "Elige al menos un servicio" } };
     if (e instanceof Prisma.PrismaClientKnownRequestError && e.code === "P2002") {
       return { valores, mensaje: "Ya hay una persona registrada con esa CURP o ese NSS." };
     }

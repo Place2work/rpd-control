@@ -74,11 +74,22 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy }: Props) {
             <Input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" defaultValue={v.whatsapp} placeholder="777 123 4567"
               autoComplete="off" required aria-invalid={!!e.whatsapp} />
           </Campo>
-          <Campo id="tipo_servicio" etiqueta="Servicio de interés" error={e.tipo_servicio}>
-            <select id="tipo_servicio" name="tipo_servicio" defaultValue={v.tipo_servicio ?? "RETIRO_DESEMPLEO"} className={claseSelect}>
-              {servicios.map((s) => <option key={s.clave} value={s.clave}>{s.nombre.split(" (")[0]}</option>)}
-            </select>
-          </Campo>
+          {/* Varios servicios: se abre un caso por cada uno para la misma persona. */}
+          <fieldset className="grid gap-2">
+            <legend className="mb-1 text-sm font-medium text-ink">Servicios de interés <span className="font-normal text-ink-muted">· marca todos los que necesite</span></legend>
+            <div className="grid gap-2 sm:grid-cols-2">
+              {servicios.map((s) => {
+                const marcado = v.servicios ? v.servicios.split(",").includes(s.clave) : s.clave === "RETIRO_DESEMPLEO";
+                return (
+                  <label key={s.clave} className="flex min-h-11 cursor-pointer items-start gap-3 rounded-[var(--radius-boton)] border border-borde px-3 py-2 text-sm text-ink has-[:checked]:border-brand has-[:checked]:bg-brand-tint">
+                    <input type="checkbox" name="tipo_servicio" value={s.clave} defaultChecked={marcado} className="mt-0.5 size-5 shrink-0" />
+                    <span>{s.nombre}</span>
+                  </label>
+                );
+              })}
+            </div>
+            {e.tipo_servicio && <p role="alert" className="text-xs text-critico">{e.tipo_servicio}</p>}
+          </fieldset>
           <div className="grid gap-4 sm:grid-cols-2">
             <Campo id="fecha_baja" etiqueta="Fecha de baja" ayuda="Si la sabe" error={e.fecha_baja}>
               <Input id="fecha_baja" name="fecha_baja" type="date" max={hoy} defaultValue={v.fecha_baja} />

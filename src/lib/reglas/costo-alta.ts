@@ -17,3 +17,11 @@ export function costoAdministrativo(altas: Alta[], vigencias: VigenciaCosto[], p
   const centavos = dentro.reduce((t, a) => t + Math.round(costoVigente(a.fecha, vigencias) * 100), 0);
   return { altas: dentro.length, total: centavos / 100 };
 }
+
+/** Una alta por persona: su primer caso (los demás servicios o un desvío de la misma persona no cuentan otra vez). */
+export function altasPorPersona<T extends { personaId: string; fecha: FechaISO; vendedorId: string | null }>(casos: T[]): Alta[] {
+  const vistas = new Set<string>();
+  return [...casos].sort((a, b) => (a.fecha < b.fecha ? -1 : a.fecha > b.fecha ? 1 : 0))
+    .filter((c) => !vistas.has(c.personaId) && Boolean(vistas.add(c.personaId)))
+    .map((c) => ({ fecha: c.fecha, vendedorId: c.vendedorId }));
+}

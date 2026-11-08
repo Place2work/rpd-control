@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { costoAdministrativo, costoVigente, type Alta } from "../costo-alta";
+import { altasPorPersona, costoAdministrativo, costoVigente, type Alta } from "../costo-alta";
 
 const V = [
   { desde: "2026-01-01", hasta: "2026-11-30", monto: 500 },
@@ -21,5 +21,16 @@ describe("costo administrativo por alta", () => {
     const altas = [alta("2025-12-31"), alta("2026-11-07"), alta("2026-11-20")];
     expect(costoAdministrativo(altas, V, { desde: "2026-11-01", hasta: "2026-11-30" })).toEqual({ altas: 2, total: 1000 });
     expect(costoAdministrativo(altas, V)).toEqual({ altas: 3, total: 1000 });
+  });
+});
+
+describe("una alta por persona", () => {
+  it("un cliente con tres servicios es una sola alta (la primera)", () => {
+    const casos = [
+      { personaId: "ana", fecha: "2026-11-06", vendedorId: "v1" }, { personaId: "ana", fecha: "2026-11-06", vendedorId: "v1" },
+      { personaId: "ana", fecha: "2026-11-20", vendedorId: null }, { personaId: "luis", fecha: "2026-10-27", vendedorId: null },
+    ];
+    expect(altasPorPersona(casos)).toEqual([{ fecha: "2026-10-27", vendedorId: null }, { fecha: "2026-11-06", vendedorId: "v1" }]);
+    expect(costoAdministrativo(altasPorPersona(casos), V).total).toBe(1000);
   });
 });

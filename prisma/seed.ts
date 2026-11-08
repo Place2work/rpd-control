@@ -63,12 +63,12 @@ const PARAMETROS: { clave: string; valor: string; tipo?: string; descripcion: st
 // ───────────── Servicios (2.1) ─────────────
 const SERVICIOS: Prisma.TipoServicioCreateInput[] = [
   { clave: "RETIRO_DESEMPLEO", nombre: "Retiro parcial por desempleo (art. 191-II LSS)", embudo: "retiro", forma_cobro: "30% de lo que paga la Afore, IVA incluido", honorario_pct: "0.30", notas: "Preferente para Ley 97 o cuando no afecta la pensión. Sin monto mínimo de retiro", orden: 1 },
-  { clave: "PENSION_L73", nombre: "Asesoría de pensión Ley 73 (cesantía, vejez, invalidez)", embudo: "pension", forma_cobro: "Honorario fijo capturado por caso", notas: "Línea prioritaria del negocio", orden: 2 },
+  { clave: "PENSION_L73", nombre: "Pensión Ley 73 (cesantía, vejez, invalidez)", embudo: "pension", forma_cobro: "Honorario fijo capturado por caso", notas: "Línea prioritaria del negocio", orden: 2 },
   { clave: "PENSION_L97", nombre: "Asesoría de pensión Ley 97", embudo: "pension", forma_cobro: "Honorario fijo", orden: 3 },
   { clave: "MODALIDAD_40", nombre: "Continuación voluntaria (arts. 218-221)", embudo: "pension", forma_cobro: "Honorario fijo", notas: "Requiere seguimiento mensual de pagos", orden: 4 },
   { clave: "PTI_M10", nombre: "Incorporación voluntaria / independiente", embudo: "pension", forma_cobro: "Honorario fijo", notas: "Ventana de 12 meses del art. 85 RACERF", orden: 5 },
   { clave: "FALLECIMIENTO", nombre: "Pensión de viudez/orfandad y recuperación de saldos", embudo: "pension", forma_cobro: "Honorario fijo + % de lo recuperado (configurable)", notas: "Esquema de comisión especial (sección 9)", orden: 6 },
-  { clave: "DEVOLUCION_INFONAVIT", nombre: "Devolución de subcuenta de vivienda (DSSV)", embudo: "pension", forma_cobro: "Honorario fijo o % (configurable)", notas: "Trámite gratuito ante Infonavit: se vende la revisión y corrección", orden: 7 },
+  { clave: "DEVOLUCION_INFONAVIT", nombre: "Devolución Infonavit (subcuenta de vivienda)", embudo: "pension", forma_cobro: "Honorario fijo o % (configurable)", notas: "Trámite gratuito ante Infonavit: se vende la revisión y corrección", orden: 7 },
   { clave: "CORRECCION_NSS", nombre: "Unificación de NSS / corrección de semanas", embudo: "pension", forma_cobro: "Honorario fijo", orden: 8 },
 ];
 

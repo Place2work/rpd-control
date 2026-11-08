@@ -259,3 +259,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   no pagadas; las pagadas no cambian. Migración 2400.
 - Altas de referidores, socios y usuarios: el formulario se limpia al guardar y un nombre ya registrado se avisa (había
   quedado «JUAN CARVAJAL» dos veces; se archivó el duplicado sin casos).
+
+## 8-nov-2026 · Alta con varios servicios
+
+- El alta rápida permite marcar varios servicios: se crea un caso por servicio para la misma persona (cada uno con su
+  embudo, contrato, cobro y comisiones). El seguimiento de cada caso anota qué más pidió.
+- El costo administrativo cuenta una alta por persona (su primer caso), no por servicio.
+- Nombres del catálogo: «Pensión Ley 73 (cesantía, vejez, invalidez)» y «Devolución Infonavit (subcuenta de vivienda)»
+  (la clave no cambia). Migración 2500.

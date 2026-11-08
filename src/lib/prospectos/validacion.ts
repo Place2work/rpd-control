@@ -43,7 +43,7 @@ export const esquemaAlta = z
       .string()
       .trim()
       .refine((v) => normalizarWhatsapp(v) !== null, "Escribe 10 dígitos, por ejemplo 777 123 4567"),
-    tipo_servicio: z.string().min(1, "Elige el servicio de interés"),
+    tipo_servicio: z.string().min(1, "Elige al menos un servicio"),
     fecha_baja: opcional.refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Fecha no válida"),
     origen: z.enum(ORIGENES.map(([v]) => v) as [string, ...string[]], { message: "Elige el origen" }),
     referidor_id: opcional,
