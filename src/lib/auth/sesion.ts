@@ -17,7 +17,10 @@ export type Sesion = {
 const SESION_DEMO: Sesion = {
   claims: { sub: "00000000-0000-0000-0000-000000000000", aal: "aal2" },
   ip: null,
-  usuario: { id: "00000000-0000-0000-0000-000000000000", nombre: "Irving (demo)", email: "demo@local", rol: "director", socio_id: null },
+  // Solo desarrollo: RPD_DEMO_ROL / RPD_DEMO_SOCIO permiten revisar la pantalla de otro rol (la fila del usuario
+  // demo en la BD local debe tener el mismo rol para que RLS coincida).
+  usuario: { id: "00000000-0000-0000-0000-000000000000", nombre: "Irving (demo)", email: "demo@local",
+    rol: (process.env.RPD_DEMO_ROL as Rol | undefined) ?? "director", socio_id: process.env.RPD_DEMO_SOCIO ?? null },
 };
 
 /** Cuenta con contraseña temporal: la marca vive en app_metadata (solo la cambia el servidor). */

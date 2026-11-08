@@ -385,3 +385,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - (8-nov) Toda contraseña (temporal, invitación o recuperación) se guarda desde el servidor (`cambiarClavePropia`,
   `cambiarClaveTemporal`); el cliente espera a Supabase con límite de tiempo y, si la sesión fue revocada, manda a
   /login con «tu contraseña quedó guardada». Enlace «¿Ya tienes contraseña? Ir al inicio» en la pantalla normal.
+
+## 8-nov-2026 · Pantalla de inicio del asesor de pensiones
+
+- Para el rol `socio`, Hoy habla de SUS comisiones: retiros de mis clientes del mes, mis comisiones por cobrar
+  (devengadas), mis comisiones proyectadas, comisiones cobradas, mis casos de pensión (monto por definir) y la tabla
+  «Mis comisiones por caso» en lugar de «Ingresos de los últimos 12 meses». No ve honorarios, costo administrativo,
+  ganancia ni comisiones de otros. Director y analistas sin cambios.
+- Modo demostración (solo desarrollo): `RPD_DEMO_ROL` y `RPD_DEMO_SOCIO` para revisar la pantalla de otro rol.

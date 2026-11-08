@@ -78,16 +78,28 @@ export default async function Hoy() {
       devengado, proyectado: (Math.round(total * 100) - Math.round(devengado * 100)) / 100, total };
   }).sort((x, y) => y.total - x.total || y.retiro + y.pensiones - (x.retiro + x.pensiones)) : [];
   const conOtros = filasBenef.some((f) => f.otros > 0);
+  const esAsesor = usuario.rol === "socio";
+  const misPensiones = comProy?.conteos.reduce((a, c) => a + c.pensiones, 0) ?? 0;
   // 10.1: fila de indicadores. Cada uno lleva a la pantalla donde se trabaja.
   const slaEnRiesgo = new Set(alertas.filter((a) => a.regla.startsWith("SLA_15")).map((a) => a.casoId)).size;
   const INDICADORES: { t: string; v: string; nota?: string; liga?: string; destacado?: boolean }[] = [
-    { t: "Prospectos activos", v: String(casos.filter((c) => ETAPAS_PROSPECTO.includes(c.etapa)).length), liga: "/prospectos" },
-    { t: "Casos en trámite", v: String(casos.filter((c) => EN_TRAMITE.has(c.etapa)).length), liga: "/casos" },
+    { t: esAsesor ? "Mis prospectos activos" : "Prospectos activos", v: String(casos.filter((c) => ETAPAS_PROSPECTO.includes(c.etapa)).length), liga: "/prospectos" },
+    { t: esAsesor ? "Mis casos en trámite" : "Casos en trámite", v: String(casos.filter((c) => EN_TRAMITE.has(c.etapa)).length), liga: "/casos" },
     { t: "Listos para retirar esta semana", v: String(proximos.filter(({ d }) => d.diasFaltan <= 7).length) },
-    { t: "Clientes cerrados del mes", v: String(casos.filter((c) => c.etapa === "CERRADO" && hoyCDMX(c.etapa_desde).slice(0, 7) === hoy.slice(0, 7)).length),
+    { t: esAsesor ? "Mis clientes cerrados del mes" : "Clientes cerrados del mes", v: String(casos.filter((c) => c.etapa === "CERRADO" && hoyCDMX(c.etapa_desde).slice(0, 7) === hoy.slice(0, 7)).length),
       nota: `${casos.filter((c) => c.etapa === "CERRADO").length} en total`, liga: "/clientes-cerrados" },
     { t: "SLA en riesgo", v: String(slaEnRiesgo), nota: "casos con alerta de 15 días hábiles", liga: "#alertas" },
-    ...(dinero ? [
+    // Asesor de pensiones: su pantalla habla de SUS comisiones, no de los honorarios de la empresa.
+    ...(dinero && esAsesor ? [
+      { t: "Retiros de mis clientes del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/clientes-cerrados" },
+      { t: "Mis comisiones por cobrar", v: mxn(comProy?.devengado ?? 0), liga: "/comisiones",
+        nota: "ya entró el dinero del cliente; se te paga en la liquidación del mes" },
+      { t: "Mis comisiones proyectadas", v: mxn(comProy ? (Math.round(comProy.total * 100) - Math.round(comProy.devengado * 100)) / 100 : 0), liga: "/comisiones#proyectadas",
+        nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · se confirman cuando se cobra el honorario` : "Aparecen cuando tus clientes tengan monto de la Afore" },
+      { t: "Comisiones cobradas", v: mxn(dinero.comisionesPagadas), nota: "pagadas por RetiroPorDesempleo desde el inicio", liga: "/comisiones" },
+      ...(misPensiones > 0 ? [{ t: "Mis casos de pensión", v: String(misPensiones), nota: "monto por definir hasta que el IMSS resuelva", liga: "/casos" }] : []),
+    ] : []),
+    ...(dinero && !esAsesor ? [
       { t: "Monto retirado del mes", v: mxn(dinero.depositadoMes), nota: "depósitos netos de la Afore", liga: "/dinero" },
       { t: "Honorarios cobrados del mes", v: mxn(dinero.cobradoMes), nota: "con IVA", liga: "/dinero" },
       { t: "Por cobrar", v: mxn(dinero.porCobrar), liga: "/dinero",
@@ -256,24 +268,52 @@ export default async function Hoy() {
               {dinero && (
                 <dl className="grid grid-cols-2 gap-3 border-t border-borde pt-3 text-sm">
                   <div><dt className="text-xs text-ink-muted">Monto retirado</dt><dd className="cifra font-display text-lg font-semibold text-ink">{mxn(dinero.depositadoMes)}</dd></div>
-                  <div><dt className="text-xs text-ink-muted">Honorario cobrado</dt><dd className="cifra font-display text-lg font-semibold text-exito-texto">{mxn(dinero.cobradoMes)}</dd></div>
+                  {esAsesor
+                    ? <div><dt className="text-xs text-ink-muted">Mis comisiones proyectadas</dt><dd className="cifra font-display text-lg font-semibold text-exito-texto">{mxn(comProy?.total ?? 0)}</dd></div>
+                    : <div><dt className="text-xs text-ink-muted">Honorario cobrado</dt><dd className="cifra font-display text-lg font-semibold text-exito-texto">{mxn(dinero.cobradoMes)}</dd></div>}
                 </dl>
               )}
               <p className="text-xs text-ink-muted">Cuenta lo que pasó este mes, aunque el caso se haya dado de alta antes.</p>
             </div>
           )}
         </Card>
-        <Card className="lg:col-span-2">
-          <CardHeader><CardTitle>Ingresos de los últimos 12 meses</CardTitle></CardHeader>
-          {ingresos.some((m) => m.valor > 0) ? (
-            <div className="px-5 pb-5 pt-2">
-              <GraficaBarras formato="pesos" color="exito" datos={ingresos} />
-              <p className="mt-2 text-xs text-ink-muted">Honorarios cobrados con IVA. El detalle por mes está en <Link href="/dinero" className="text-brand underline">Dinero</Link>.</p>
-            </div>
-          ) : (
-            <EstadoVacio icono={LineChart} titulo="Sin honorarios cobrados" texto={veDinero ? "Aquí verás los honorarios cobrados por mes." : "Los ingresos solo los ven el Director y los analistas de expedientes."} />
-          )}
-        </Card>
+        {esAsesor ? (
+          <Card className="lg:col-span-2">
+            <CardHeader><CardTitle>Mis comisiones por caso</CardTitle><Link href="/comisiones" className="text-sm font-medium text-brand hover:underline">Estado de cuenta</Link></CardHeader>
+            {comProy && comProy.filas.length > 0 ? (
+              <div className="overflow-x-auto px-5 pb-5 pt-2">
+                <table className="w-full min-w-[520px] text-sm">
+                  <thead><tr className="text-left text-xs text-ink-muted">{["Caso", "Cliente", "Estado", "Comisión"].map((t) => <th key={t} className="pb-2 pr-3 font-medium">{t}</th>)}</tr></thead>
+                  <tbody>
+                    {comProy.filas.map((f, i) => (
+                      <tr key={`${f.casoId}-${i}`} className="border-t border-borde align-middle">
+                        <td className="cifra py-2 pr-3"><Link href={`/casos/${f.casoId}`} className="text-brand hover:underline">{f.folio}</Link></td>
+                        <td className="py-2 pr-3">{f.cliente}</td>
+                        <td className="py-2 pr-3 text-ink-muted">{f.origen === "devengada" ? "Por cobrar" : f.origen === "estimada" ? "Estimada (contrato firmado)" : "Proyectada"}</td>
+                        <td className="cifra py-2 pr-3 font-medium">{mxn(f.monto)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+                <p className="mt-2 text-xs text-ink-muted">Tu comisión es el total de tu factura, con IVA incluido: (honorario − costo administrativo del alta) × tu %.{misPensiones > 0 ? ` Además tienes ${misPensiones} ${misPensiones === 1 ? "caso" : "casos"} de pensión con monto por definir.` : ""}</p>
+              </div>
+            ) : (
+              <EstadoVacio icono={LineChart} titulo="Sin comisiones todavía" texto={misPensiones > 0 ? `Tienes ${misPensiones} ${misPensiones === 1 ? "caso" : "casos"} de pensión con monto por definir. Las comisiones de retiro aparecen cuando el cliente tenga monto de la Afore.` : "Aparecen cuando tus clientes de retiro tengan monto de la Afore."} />
+            )}
+          </Card>
+        ) : (
+          <Card className="lg:col-span-2">
+            <CardHeader><CardTitle>Ingresos de los últimos 12 meses</CardTitle></CardHeader>
+            {ingresos.some((m) => m.valor > 0) ? (
+              <div className="px-5 pb-5 pt-2">
+                <GraficaBarras formato="pesos" color="exito" datos={ingresos} />
+                <p className="mt-2 text-xs text-ink-muted">Honorarios cobrados con IVA. El detalle por mes está en <Link href="/dinero" className="text-brand underline">Dinero</Link>.</p>
+              </div>
+            ) : (
+              <EstadoVacio icono={LineChart} titulo="Sin honorarios cobrados" texto={veDinero ? "Aquí verás los honorarios cobrados por mes." : "Los ingresos solo los ven el Director y los analistas de expedientes."} />
+            )}
+          </Card>
+        )}
       </div>
     </>
   );
