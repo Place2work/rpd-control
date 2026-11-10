@@ -126,15 +126,21 @@ export async function guardarPagoEsperado(casoId: string, _p: Resultado, form: F
   if (!r.success) return { errores: errores(r.error) };
   const { monto_esperado, fecha_estimada } = r.data;
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
-    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true } });
+    const caso = await tx.caso.findUnique({ where: { id: casoId }, select: { tipo_servicio: true, monto_afore_esperado: true, fecha_afore_estimada: true } });
     if (!caso) return { error: "No encontramos el caso." };
     if (caso.tipo_servicio !== "RETIRO_DESEMPLEO") return { error: "El pago esperado de la Afore es del retiro por desempleo." };
     await tx.caso.update({ where: { id: casoId }, select: { id: true },
       data: { monto_afore_esperado: monto_esperado, fecha_afore_estimada: monto_esperado && fecha_estimada ? dia(fecha_estimada) : null } });
+    // Bitácora entre la empresa y el asesor: quién lo cambió, el valor anterior y el nuevo (también se ve en Seguimiento).
+    const pesosTxt = (n: number) => `$${n.toLocaleString("es-MX", { minimumFractionDigits: 2 })}`;
+    const antes = caso.monto_afore_esperado === null ? null : Number(caso.monto_afore_esperado);
+    const fechaAntes = caso.fecha_afore_estimada ? caso.fecha_afore_estimada.toISOString().slice(0, 10) : null;
+    const quien = usuario.rol === "socio" ? "el asesor de pensiones" : usuario.rol === "director" ? "el Director" : "el analista";
     await tx.evento.create({ data: { caso_id: casoId, tipo: "pago", usuario_id: usuario.id,
-      texto: monto_esperado
-        ? `Pago esperado de la Afore: $${monto_esperado.toLocaleString("es-MX", { minimumFractionDigits: 2 })}${fecha_estimada ? ` (estimado para el ${fechaLarga(fecha_estimada)})` : ""}.`
-        : "Se quitó el pago esperado de la Afore." } });
+      datos: { campo: "pago_esperado", antes, despues: monto_esperado, fecha_antes: fechaAntes, fecha_despues: monto_esperado ? fecha_estimada : null, rol: usuario.rol },
+      texto: (monto_esperado
+        ? `Pago esperado de la Afore: ${pesosTxt(monto_esperado)}${fecha_estimada ? ` (estimado para el ${fechaLarga(fecha_estimada)})` : ""}${antes !== null && antes !== monto_esperado ? `; antes ${pesosTxt(antes)}` : ""}.`
+        : `Se quitó el pago esperado de la Afore${antes !== null ? ` (era ${pesosTxt(antes)})` : ""}.`) + ` Lo registró ${quien}.` } });
     return { ok: true };
   }, ip);
   if (res.ok) revalidatePath(`/casos/${casoId}`);

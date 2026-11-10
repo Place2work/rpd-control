@@ -43,6 +43,11 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
     pagos: await tx.pagoAfore.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { numero: "asc" } }),
     calculo: await tx.calculo.findFirst({ where: { caso_id: caso.id }, orderBy: { created_at: "desc" }, select: { modalidad_elegida: true, monto_estimado: true } }),
     cobros: await tx.cobro.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { created_at: "asc" }, include: { pago_afore: { select: { numero: true } } } }),
+    // Bitácora del pago esperado (Director, analista y asesor de pensiones).
+    cambiosEsperado: await tx.evento.findMany({
+      where: { caso_id: caso.id, archivado_at: null, OR: [{ datos: { path: ["campo"], equals: "pago_esperado" } }, { texto: { startsWith: "Pago esperado de la Afore" } }, { texto: { startsWith: "Se quitó el pago esperado" } }] },
+      orderBy: { fecha: "desc" }, take: 8, select: { id: true, fecha: true, texto: true, usuario: { select: { nombre: true } } },
+    }),
     comisiones: await tx.comision.findMany({ where: { caso_id: caso.id, archivado_at: null, estado: { not: "cancelada" } }, orderBy: { created_at: "asc" } }),
     referidores: puedeCanal ? await tx.referidor.findMany({ where: { archivado_at: null }, select: { id: true, nombre: true }, orderBy: { nombre: "asc" } }) : [],
     // Referidos con su primer honorario cobrado este mes (para el escalón de la proyección), sin contar este caso.
@@ -155,7 +160,8 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                 ? `Cuando la Afore deposite ${mxn(proyeccion.montoEsperado)}, el honorario del ${pctTxt(proyeccion.pct)} será ${mxn(proyeccion.honorario)} (IVA incluido).${caso.fecha_afore_estimada ? ` Depósito estimado: ${corta(caso.fecha_afore_estimada)}.` : ""}`
                 : "¿Ya sabes cuánto va a pagar la Afore? Captúralo para ver el honorario proyectado por cobrar. No cuenta como pago hasta que registres el depósito con su fecha."}
             </p>
-            {rol !== "socio" && (
+            {/* El asesor de pensiones también lo captura en sus casos; cada cambio queda en la bitácora de abajo. */}
+            {(
               <FormularioAccion accion={guardarPagoEsperado.bind(null, caso.id)} boton={proyeccion ? "Actualizar" : "Guardar monto esperado"}
                 etiquetas={{ monto_esperado: "Monto esperado", fecha_estimada: "Fecha estimada" }}>
                 <div className="grid gap-3 sm:grid-cols-2">
@@ -163,6 +169,16 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                   <CampoTexto id="fecha_estimada" etiqueta="Fecha estimada del depósito" ayuda="opcional" tipo="date" valor={isoDe(caso.fecha_afore_estimada) ?? ""} />
                 </div>
               </FormularioAccion>
+            )}
+            {d.cambiosEsperado.length > 0 && (
+              <div className="rounded-[var(--radius-boton)] bg-slate-50 p-3">
+                <p className="text-xs font-medium text-ink">Bitácora de cambios</p>
+                <ul className="mt-1 grid gap-1 text-xs text-ink-muted">
+                  {d.cambiosEsperado.map((e) => (
+                    <li key={e.id}><span className="cifra">{corta(e.fecha)}</span> · <span className="font-medium text-ink">{e.usuario?.nombre ?? "Sistema"}</span>: {e.texto}</li>
+                  ))}
+                </ul>
+              </div>
             )}
           </CardContent>
         </Card>

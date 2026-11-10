@@ -433,3 +433,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 
 - El WhatsApp es opcional en el alta rápida y en Datos personales (la BD ya lo permitía): con el nombre basta. Si se
   escribe, se valida a 10 dígitos. Sin teléfono no se buscan duplicados por teléfono (sí por CURP/NSS).
+
+## 10-nov-2026 · El asesor de pensiones captura el pago esperado, con bitácora
+
+- Pestaña Dinero: el «Pago esperado de la Afore» (monto y fecha estimada) lo pueden capturar y actualizar el Director, el
+  analista y el asesor de pensiones en sus propios casos (RLS ya lo limitaba a `socio_id = app.socio_id()`).
+- Cada cambio deja un evento con `datos.campo = "pago_esperado"`, el valor anterior, el nuevo y el rol de quien lo hizo.
+  Se muestra debajo del formulario como «Bitácora de cambios» (últimos 8) y también en Seguimiento. No se borra.
+- En «Ver como» sigue siendo de solo lectura: el Director sale del modo para editar.
