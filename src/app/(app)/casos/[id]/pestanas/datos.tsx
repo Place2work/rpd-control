@@ -31,7 +31,7 @@ export async function PestanaDatos({ caso, puedeVer }: { caso: CasoDetalle; pued
           </dl>
           <FormularioAccion accion={guardarDatosPersonales.bind(null, caso.id, p.id)} etiquetas={ETIQUETAS}>
             <div className="grid gap-4 sm:grid-cols-3">
-              <CampoTexto id="nombre" etiqueta="Nombre(s)" ayuda="sin apellidos" valor={p.nombre} required />
+              <CampoTexto id="nombre" etiqueta="Nombre(s)" placeholder="Sin apellidos" valor={p.nombre} required />
               <CampoTexto id="apellido_paterno" etiqueta="Apellido paterno" valor={p.apellido_paterno} />
               <CampoTexto id="apellido_materno" etiqueta="Apellido materno" valor={p.apellido_materno} />
             </div>

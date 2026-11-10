@@ -6,7 +6,7 @@ export const claseSelect = "h-11 w-full rounded-[var(--radius-boton)] border bor
 
 export function Campo({ id, etiqueta, ayuda, className, children }: { id: string; etiqueta: string; ayuda?: string; className?: string; children: React.ReactNode }) {
   return (
-    <div className={cn("flex flex-col gap-1.5", className)}>
+    <div className={cn("flex flex-col justify-end gap-1.5", className)}>
       <Label htmlFor={id}>{etiqueta} {ayuda && <span className="font-normal text-ink-muted">· {ayuda}</span>}</Label>
       {children}
     </div>
