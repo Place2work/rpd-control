@@ -105,6 +105,17 @@ async function restablecerVerificacionInterno(id: string): Promise<{ clave?: str
   return nueva.clave ? { clave: nueva.clave, borrados: data.factors.length } : { error: nueva.error };
 }
 
+/** Liga para definir su contraseña a una cuenta que ya existe (llega con la plantilla «Reset password»). */
+async function enviarLigaContrasenaInterno(email: string): Promise<{ ok?: boolean; error?: string }> {
+  if (modoDemo()) return { ok: true };
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, llave = process.env.NEXT_PUBLIC_SUPABASE_PUBLISHABLE_KEY;
+  if (!url || !llave) return { error: "Falta configurar Supabase en el servidor." };
+  const cliente = createClient(url, llave, { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false } });
+  const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: `${urlApp()}/auth/callback` });
+  if (error) return { error: /rate limit/i.test(error.message) ? "Se alcanzó el límite de correos por hora. Intenta más tarde." : `Supabase no pudo enviar el correo: ${error.message}` };
+  return { ok: true };
+}
+
 export async function invitarCuenta(email: string): Promise<{ id?: string; error?: string }> {
   return seguro(() => invitarCuentaInterno(email)) as Promise<{ id?: string; error?: string }>;
 }
@@ -123,4 +134,8 @@ export async function fijarClavePropia(id: string, clave: string): Promise<{ err
 
 export async function restablecerVerificacion(id: string): Promise<{ clave?: string; borrados?: number; error?: string }> {
   return seguro(() => restablecerVerificacionInterno(id)) as Promise<{ clave?: string; borrados?: number; error?: string }>;
+}
+
+export async function enviarLigaContrasena(email: string): Promise<{ ok?: boolean; error?: string }> {
+  return seguro(() => enviarLigaContrasenaInterno(email)) as Promise<{ ok?: boolean; error?: string }>;
 }

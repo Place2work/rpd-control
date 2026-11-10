@@ -420,3 +420,11 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   flujo implícito) y la liga abre en cualquier dispositivo. Las invitaciones ya salían del servidor.
 - Plantillas de Supabase: «Reset password» e «Invite user» en español; sirven con `{{ .ConfirmationURL }}` o con
   `{{ .SiteURL }}/auth/callback?token_hash={{ .TokenHash }}&type=…` (el callback acepta ambos).
+
+## 10-nov-2026 · Acceso por correo dentro del alta
+
+- Configuración → Usuarios: la misma alta pregunta «¿Cómo le das acceso?»: invitación por correo (recomendado; Supabase
+  manda «Invite user» por Resend) o contraseña temporal. Igual en «Crear su cuenta» de los asesores sin cuenta.
+- Botón «Enviar acceso por correo» en cada usuario: manda una liga para poner su contraseña (plantilla «Reset password»,
+  flujo implícito, abre en cualquier dispositivo) sin volver a darlo de alta. Bitácora: INVITACION_CORREO y
+  ACCESO_CORREO (migración 3200).

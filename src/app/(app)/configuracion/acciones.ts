@@ -3,7 +3,7 @@
 // Configuración (10.9): solo el Director. Todo pasa por RLS (conUsuario) y queda en la bitácora.
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
-import { bloquearCuenta, crearCuentaConClave, invitarCuenta, restablecerConClave, restablecerVerificacion } from "@/lib/auth/admin";
+import { bloquearCuenta, crearCuentaConClave, enviarLigaContrasena, invitarCuenta, restablecerConClave, restablecerVerificacion } from "@/lib/auth/admin";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { validarPlantilla } from "@/lib/contratos/plantilla";
 import { planNuevaVigencia, validarValor, type TipoParametro } from "@/lib/configuracion/parametros";
@@ -146,12 +146,14 @@ export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Res
       socio_id: await ligarFicha(tx, r.data, r.data.email, s.usuario.id) },
     select: { id: true },
   }), s.ip);
+  await registrarCuenta(s, cuenta.id, "INVITACION_CORREO");
   revalidatePath("/configuracion");
-  return { ok: true };
+  return { ok: true, unaVez: { titulo: `Invitación enviada a ${r.data.nombre}`, valor: r.data.email,
+    nota: "Le llegó un correo para activar su cuenta: pone su contraseña y activa la verificación en dos pasos en su celular. Si no lo ve, que revise Spam; puedes reenviarlo con «Enviar acceso por correo»." } };
 }
 
 /** Bitácora de lo que pasa en Supabase Auth (no hay tabla con trigger que lo registre). */
-async function registrarCuenta(s: NonNullable<Awaited<ReturnType<typeof director>>>, id: string, accion: "CLAVE_TEMPORAL" | "RESTABLECER_2FA") {
+async function registrarCuenta(s: NonNullable<Awaited<ReturnType<typeof director>>>, id: string, accion: "CLAVE_TEMPORAL" | "RESTABLECER_2FA" | "INVITACION_CORREO" | "ACCESO_CORREO") {
   await conUsuario(s.claims, (tx) => tx.$executeRaw`SELECT app.registrar_accion_cuenta(${id}::uuid, ${accion})`, s.ip);
 }
 
@@ -159,6 +161,8 @@ async function registrarCuenta(s: NonNullable<Awaited<ReturnType<typeof director
 export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promise<Resultado> {
   const s = await director();
   if (!s) return { error: "Solo el Director da de alta usuarios." };
+  // Con correo y «Enviarle invitación por correo»: le llega un correo para activar su cuenta (sin contraseña temporal).
+  if (String(form.get("acceso") ?? "") === "correo" && String(form.get("email") ?? "").trim()) return invitarUsuario(_p, form);
   // Asesor de pensiones sin correo todavía: solo su ficha (cobra comisiones); la cuenta se crea cuando haya correo.
   const datos = datosDe(form);
   if (datos.rol === "socio" && !String(datos.email ?? "").trim()) {
@@ -375,15 +379,22 @@ export async function crearCuentaAsesor(socioId: string, _p: Resultado, form: Fo
   }, s.ip);
   const ficha = "ficha" in pre ? pre.ficha : null;
   if (!ficha) return pre as Resultado;
-  const cuenta = await crearCuentaConClave(r.data.email);
-  if (!cuenta.id || !cuenta.clave) return { error: cuenta.error };
+  const porCorreo = String(form.get("acceso") ?? "") === "correo";
+  const cuenta: { id?: string; clave?: string; error?: string } = porCorreo ? await invitarCuenta(r.data.email) : await crearCuentaConClave(r.data.email);
+  if (!cuenta.id || (!porCorreo && !cuenta.clave)) return { error: cuenta.error };
   await conUsuario(s.claims, async (tx) => {
     await tx.usuario.create({ data: { id: cuenta.id!, email: r.data.email, nombre: ficha.nombre, rol: "socio", socio_id: socioId, telefono: ficha.telefono, created_by: s.usuario.id }, select: { id: true } });
     await tx.socio.update({ where: { id: socioId }, data: { email: r.data.email }, select: { id: true } });
   }, s.ip);
+  if (porCorreo) {
+    await registrarCuenta(s, cuenta.id, "INVITACION_CORREO");
+    revalidatePath("/configuracion");
+    return { ok: true, unaVez: { titulo: `Invitación enviada a ${ficha.nombre}`, valor: r.data.email,
+      nota: "Le llegó un correo para activar su cuenta. Si no lo ve, que revise Spam; puedes reenviarlo con «Enviar acceso por correo» en Equipo." } };
+  }
   await registrarCuenta(s, cuenta.id, "CLAVE_TEMPORAL");
   revalidatePath("/configuracion");
-  return { ok: true, unaVez: { titulo: `Contraseña temporal de ${ficha.nombre}`, valor: cuenta.clave,
+  return { ok: true, unaVez: { titulo: `Contraseña temporal de ${ficha.nombre}`, valor: cuenta.clave!,
     nota: `Entra en ${dominioApp()} con ${r.data.email} y esta contraseña. Al entrar activará la verificación en dos pasos y pondrá su propia contraseña. No se vuelve a mostrar.` } };
 }
 
@@ -407,4 +418,19 @@ export async function actualizarFicha(socioId: string, _p: Resultado, form: Form
   }, s.ip);
   if (res.ok) { revalidatePath("/configuracion"); revalidatePath("/comisiones/beneficiarios"); revalidatePath("/hoy"); }
   return res;
+}
+
+/** Reenviar acceso por correo a una cuenta existente: le llega una liga para poner su contraseña (no se borra nada). */
+export async function enviarAccesoPorCorreo(id: string): Promise<Resultado> {
+  const s = await director();
+  if (!s) return { error: "Solo el Director envía accesos." };
+  if (id === s.usuario.id) return { error: "Tu propio acceso lo recuperas con «¿Olvidaste tu contraseña?»." };
+  const u = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { id }, select: { nombre: true, email: true, activo: true } }), s.ip);
+  if (!u) return { error: "No encontramos al usuario." };
+  if (!u.activo) return { error: "Primero dale acceso de nuevo." };
+  const r = await enviarLigaContrasena(u.email);
+  if (r.error) return { error: r.error };
+  await registrarCuenta(s, id, "ACCESO_CORREO");
+  return { ok: true, unaVez: { titulo: `Acceso enviado a ${u.nombre}`, valor: u.email,
+    nota: "Le llegó un correo con una liga para poner su contraseña. Al entrar activa la verificación en dos pasos en su celular. La liga sirve una sola vez." } };
 }

@@ -4,7 +4,7 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { actualizarFicha, actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearCuentaAsesor, crearUsuarioConClave, invitarUsuario, restablecerDosPasos } from "../acciones";
+import { actualizarFicha, actualizarUsuario, cambiarAcceso, claveTemporalUsuario, crearCuentaAsesor, crearUsuarioConClave, enviarAccesoPorCorreo, restablecerDosPasos } from "../acciones";
 import { BotonAccion } from "../boton-accion";
 import { verComo } from "../../acciones";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
@@ -17,6 +17,23 @@ const QUE_VE: Record<string, string> = {
   socio: "Solo los clientes de su cartera (los que da de alta o le asignan), su dinero y sus comisiones; no ve Configuración.",
 };
 const ETIQUETAS = { nombre: "Nombre", email: "Correo", rol: "Rol", telefono: "Teléfono", socio_id: "Ficha del asesor" };
+
+/** Cómo se le da acceso: invitación por correo (recomendado) o contraseña temporal que se entrega en persona. */
+function OpcionAcceso() {
+  return (
+    <fieldset className="grid gap-2">
+      <legend className="mb-1 text-sm font-medium text-ink">¿Cómo le das acceso?</legend>
+      <label className="flex items-start gap-2 text-sm text-ink">
+        <input type="radio" name="acceso" value="correo" defaultChecked className="mt-0.5 size-4" />
+        <span>Enviarle invitación por correo <span className="text-ink-muted">· le llega una liga para poner su contraseña</span></span>
+      </label>
+      <label className="flex items-start gap-2 text-sm text-ink">
+        <input type="radio" name="acceso" value="clave" className="mt-0.5 size-4" />
+        <span>Darle una contraseña temporal <span className="text-ink-muted">· te la muestro y se la entregas</span></span>
+      </label>
+    </fieldset>
+  );
+}
 
 export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
   const { usuarios, fichas } = await conUsuario(sesion.claims, async (tx) => ({
@@ -70,7 +87,9 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                     </FormularioAccion>
                     {u.activo && u.id !== sesion.usuario.id && (
                       <div className="mt-3 border-t border-borde pt-3">
-                        <p className="mb-2 text-xs text-ink-muted">¿Olvidó su contraseña? Genera una temporal y dásela en persona; al entrar pondrá una nueva.</p>
+                        <p className="mb-2 text-xs text-ink-muted">Mándale por correo una liga para poner su contraseña (sirve para un alta nueva o si la olvidó).</p>
+                        <FormularioAccion accion={enviarAccesoPorCorreo.bind(null, u.id)} boton="Enviar acceso por correo"><span hidden /></FormularioAccion>
+                        <p className="mb-2 mt-4 text-xs text-ink-muted">¿Prefieres dársela en persona? Genera una contraseña temporal; al entrar pondrá una nueva.</p>
                         <FormularioAccion accion={claveTemporalUsuario.bind(null, u.id)} boton="Generar contraseña temporal"><span hidden /></FormularioAccion>
                         <p className="mb-2 mt-4 text-xs text-ink-muted">¿Perdió o cambió de celular y ya no le llega el código? Esto quita su verificación en dos pasos y le da una contraseña temporal; al entrar, la activa en su celular nuevo.</p>
                         <FormularioAccion accion={restablecerDosPasos.bind(null, u.id)} boton="Restablecer verificación en dos pasos"
@@ -108,8 +127,9 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                   <details>
                     <summary className="cursor-pointer text-xs font-medium text-brand">Crear su cuenta</summary>
                     <div className="mt-2 rounded-[var(--radius-boton)] bg-slate-50 p-3">
-                      <FormularioAccion accion={crearCuentaAsesor.bind(null, f.id)} boton="Crear cuenta y contraseña" etiquetas={{ email: "Correo" }}>
+                      <FormularioAccion accion={crearCuentaAsesor.bind(null, f.id)} boton="Crear su cuenta" etiquetas={{ email: "Correo" }}>
                         <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra" tipo="email" />
+                        <OpcionAcceso />
                       </FormularioAccion>
                     </div>
                   </details>
@@ -124,28 +144,16 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
         <Card>
           <CardHeader><CardTitle>Dar de alta a alguien</CardTitle></CardHeader>
           <CardContent>
-            <FormularioAccion accion={crearUsuarioConClave} boton="Crear cuenta" etiquetas={ETIQUETAS} limpiar>
+            <FormularioAccion accion={crearUsuarioConClave} boton="Dar de alta" etiquetas={ETIQUETAS} limpiar>
               <CampoTexto id="nombre" etiqueta="Nombre completo" />
               <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra · asesor de pensiones: puede ir vacío" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
               <Seleccion id="rol" etiqueta="Rol" valor="socio" opciones={ROLES} />
               <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} vacia="Nueva con su nombre" opciones={opcionesFicha} />
+              <OpcionAcceso />
             </FormularioAccion>
             <p className="mt-3 text-xs text-ink-muted">Asesor de pensiones sin correo: se guarda su ficha (ya cobra comisiones) y aparece en «Asesores sin cuenta» para crearle el acceso cuando tengas su correo.</p>
-            <p className="mt-2 text-xs text-ink-muted">El sistema genera una contraseña temporal y te la muestra una sola vez para que se la entregues. Al entrar, activa la verificación en dos pasos (app autenticadora) y pone su propia contraseña.</p>
-            <details className="mt-4 border-t border-borde pt-3">
-              <summary className="cursor-pointer text-sm font-medium text-brand">Invitar por correo</summary>
-              <p className="mt-2 text-xs text-ink-muted">Requiere configurar el envío de correos (Resend) en Supabase; sin eso la invitación no llega.</p>
-              <div className="mt-3">
-                <FormularioAccion accion={invitarUsuario} boton="Enviar invitación" etiquetas={ETIQUETAS}>
-                  <CampoTexto id="nombre" etiqueta="Nombre completo" />
-                  <CampoTexto id="email" etiqueta="Correo" tipo="email" />
-                  <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />
-                  <Seleccion id="rol" etiqueta="Rol" valor="socio" opciones={ROLES} />
-                  <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} vacia="Nueva con su nombre" opciones={opcionesFicha} />
-                </FormularioAccion>
-              </div>
-            </details>
+            <p className="mt-2 text-xs text-ink-muted">Con invitación, le llega un correo de RetiroPorDesempleo.com para poner su contraseña. Con contraseña temporal, te la muestro una sola vez para que se la entregues. En los dos casos, al entrar activa la verificación en dos pasos (app autenticadora).</p>
           </CardContent>
         </Card>
         <Card>

@@ -184,6 +184,7 @@ describe("tres esquemas: analista, asesor de pensiones y referidor", () => {
 describe("ver como asesor (Director, solo lectura)", () => {
   it("solo el Director registra VER_COMO en la bitácora; con transacción de solo lectura no se escribe nada", async () => {
     await como(U.director, "SELECT app.registrar_accion_cuenta($1::uuid, 'VER_COMO')", [U.socio]);
+    await como(U.director, "SELECT app.registrar_accion_cuenta($1::uuid, 'INVITACION_CORREO'), app.registrar_accion_cuenta($1::uuid, 'ACCESO_CORREO')", [U.socio]);
     expect((await db.query("SELECT count(*)::int n FROM auditoria.auditoria WHERE accion = 'VER_COMO' AND registro_id = $1", [U.socio])).rows[0].n).toBe(1);
     await expect(como(U.asesor, "SELECT app.registrar_accion_cuenta($1::uuid, 'VER_COMO')", [U.socio])).rejects.toThrow(/Solo el Director/);
     // Así corre conUsuario en «ver como»: identidad del asesor y READ ONLY.
