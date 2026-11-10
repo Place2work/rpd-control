@@ -1,15 +1,21 @@
 import { describe, expect, it } from "vitest";
-import { estadoVisible, rutaDocumento, validarArchivo, validarComprobante } from "./reglas";
+import { avisoArchivo, estadoVisible, rutaDocumento, validarArchivo, validarComprobante } from "./reglas";
 
 describe("archivos del expediente", () => {
   it("acepta fotos y PDF dentro de los límites", () => {
     expect(validarArchivo("image/jpeg", 2_000_000)).toBeNull();
     expect(validarArchivo("application/pdf", 50_000)).toBeNull(); // el mínimo de 256 KB es solo para fotos
   });
-  it("rechaza tipos raros, archivos enormes y fotos muy ligeras", () => {
+  it("rechaza tipos raros, archivos enormes y vacíos", () => {
     expect(validarArchivo("application/zip", 1000)).toMatch(/foto|PDF/);
     expect(validarArchivo("image/jpeg", 16 * 1024 * 1024)).toMatch(/15 MB/);
-    expect(validarArchivo("image/png", 100 * 1024)).toMatch(/256 KB/);
+    expect(validarArchivo("image/png", 0)).toMatch(/vacío/);
+  });
+  it("una foto de menos de 256 KB se sube, pero con aviso para revisarla", () => {
+    expect(validarArchivo("image/png", 100 * 1024)).toBeNull();
+    expect(avisoArchivo("image/png", 100 * 1024)).toMatch(/100 KB.*256 KB/);
+    expect(avisoArchivo("image/jpeg", 300 * 1024)).toBeNull();
+    expect(avisoArchivo("application/pdf", 50_000)).toBeNull();
   });
   it("la ruta no lleva datos personales", () => {
     expect(rutaDocumento("caso-1", "abc", "image/jpeg")).toBe("caso-1/abc.jpg");

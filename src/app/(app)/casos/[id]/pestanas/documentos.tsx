@@ -4,7 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { formatoFecha, isoDe } from "@/components/rpd/insignia-dia46";
 import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
-import { estadoVisible, type EstadoVisible } from "@/lib/documentos/reglas";
+import { avisoArchivo, estadoVisible, type EstadoVisible } from "@/lib/documentos/reglas";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { RevisarDocumento } from "../revisar-documento";
@@ -58,7 +58,7 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
               {caso.fecha_limite_ingreso && ` Ingresar a la Afore a más tardar el ${formatoFecha(isoDe(caso.fecha_limite_ingreso)!, { dateStyle: "long" })}.`}
             </p>
           ) : (
-            <p className="mt-2 text-xs text-ink-muted">Fotos a color, mínimo 256 KB, sin tachaduras. Al validar el último obligatorio arrancan los 15 días hábiles para ingresar.</p>
+            <p className="mt-2 text-xs text-ink-muted">Fotos a color, de preferencia de 256 KB o más (si pesa menos se sube con aviso), sin tachaduras. Al validar el último obligatorio arrancan los 15 días hábiles para ingresar.</p>
           )}
         </CardContent>
       </Card>
@@ -83,6 +83,9 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
                       {versiones > 1 && <span>{versiones} versiones</span>}
                     </div>
                     {estado === "rechazado" && ultimo?.motivo_rechazo && <p className="mt-1 text-sm text-critico">Motivo: {ultimo.motivo_rechazo}</p>}
+                    {estado === "recibido" && ultimo?.archivo_mime && ultimo.archivo_bytes !== null && avisoArchivo(ultimo.archivo_mime, Number(ultimo.archivo_bytes)) && (
+                      <p className="mt-1 text-xs text-amber-700">{avisoArchivo(ultimo.archivo_mime, Number(ultimo.archivo_bytes))}.</p>
+                    )}
                   </div>
                 </div>
                 <div className="flex flex-col gap-2 md:items-end">

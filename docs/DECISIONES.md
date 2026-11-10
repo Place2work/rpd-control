@@ -441,3 +441,10 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Cada cambio deja un evento con `datos.campo = "pago_esperado"`, el valor anterior, el nuevo y el rol de quien lo hizo.
   Se muestra debajo del formulario como «Bitácora de cambios» (últimos 8) y también en Seguimiento. No se borra.
 - En «Ver como» sigue siendo de solo lectura: el Director sale del modo para editar.
+
+## 10-nov-2026 · Fotos de menos de 256 KB se suben con aviso
+
+- Cambia 5.6: una foto de menos de 256 KB ya no bloquea la subida (el Director lo pidió; en la práctica llegan fotos
+  ligeras que sí se leen). Se sube como «Por revisar» con el aviso «Foto ligera (N KB, la Afore pide mínimo 256 KB):
+  revisa que se lea bien antes de validarla», que también queda en Seguimiento. Quien valida decide.
+- Siguen bloqueados: formatos distintos de foto/PDF, archivos de más de 15 MB y archivos vacíos.

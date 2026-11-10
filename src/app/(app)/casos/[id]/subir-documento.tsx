@@ -3,7 +3,7 @@
 import { Camera, Upload } from "lucide-react";
 import { useRouter } from "next/navigation";
 import { useRef, useState } from "react";
-import { validarArchivo } from "@/lib/documentos/reglas";
+import { avisoArchivo, validarArchivo } from "@/lib/documentos/reglas";
 import { crearClienteNavegador } from "@/lib/supabase/client";
 import { prepararDocumento, registrarDocumento } from "./acciones-documentos";
 
@@ -14,7 +14,7 @@ export function SubirDocumento({ casoId, tipoId, pideEmision, hoy, textoBoton = 
   const router = useRouter();
   const input = useRef<HTMLInputElement>(null);
   const [emision, setEmision] = useState("");
-  const [estado, setEstado] = useState<{ cargando?: string; error?: string }>({});
+  const [estado, setEstado] = useState<{ cargando?: string; error?: string; aviso?: string }>({});
 
   async function subir(archivo: File) {
     const mime = archivo.type || (archivo.name.toLowerCase().endsWith(".heic") ? "image/heic" : "");
@@ -38,7 +38,7 @@ export function SubirDocumento({ casoId, tipoId, pideEmision, hoy, textoBoton = 
 
     const r = await registrarDocumento(casoId, tipoId, p.subida.ruta, mime, archivo.size, pideEmision ? emision : null);
     if (r.error) return setEstado({ error: r.error });
-    setEstado({});
+    setEstado({ aviso: avisoArchivo(mime, archivo.size) ?? undefined });
     router.refresh();
   }
 
@@ -61,6 +61,7 @@ export function SubirDocumento({ casoId, tipoId, pideEmision, hoy, textoBoton = 
         </button>
       </div>
       {estado.error && <p role="alert" className="text-xs text-critico">{estado.error}</p>}
+      {estado.aviso && <p role="status" className="text-xs text-amber-700">Se subió. {estado.aviso}.</p>}
     </div>
   );
 }

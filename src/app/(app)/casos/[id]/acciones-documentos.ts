@@ -6,7 +6,7 @@ import { obtenerSesion, type Sesion } from "@/lib/auth/sesion";
 import { documentosPendientes } from "@/lib/casos/foto";
 import { conUsuario, type Tx } from "@/lib/db/prisma";
 import { prepararSubida, urlLectura, type Subida } from "@/lib/documentos/almacen";
-import { rutaDocumento, validarArchivo } from "@/lib/documentos/reglas";
+import { avisoArchivo, rutaDocumento, validarArchivo } from "@/lib/documentos/reglas";
 import { parametrosFechas } from "@/lib/parametros";
 import { formatoFechaLarga } from "@/lib/formato";
 import { sumarDias, sumarDiasHabiles } from "@/lib/reglas/fechas";
@@ -60,7 +60,8 @@ export async function registrarDocumento(
       },
       select: { id: true },
     });
-    await tx.evento.create({ data: { caso_id: casoId, tipo: "documento", texto: `Se recibió: ${tipo.nombre}`, usuario_id: sesion.usuario.id } });
+    const aviso = avisoArchivo(mime, bytes);
+    await tx.evento.create({ data: { caso_id: casoId, tipo: "documento", texto: `Se recibió: ${tipo.nombre}${aviso ? `. ${aviso}.` : ""}`, usuario_id: sesion.usuario.id } });
     return { ok: true };
   }, sesion.ip);
   if (r.ok) revalidatePath(`/casos/${casoId}`);

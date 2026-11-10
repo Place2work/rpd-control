@@ -6,10 +6,14 @@ export const MIN_BYTES_FOTO = 256 * 1024; // "Fotos a color, mínimo 256 KB" (5.
 export function validarArchivo(mime: string, bytes: number): string | null {
   if (!(TIPOS_PERMITIDOS as readonly string[]).includes(mime)) return "Sube una foto (JPG, PNG, WEBP, HEIC) o un PDF";
   if (bytes > MAX_BYTES) return "El archivo pesa más de 15 MB";
-  if (mime.startsWith("image/") && bytes < MIN_BYTES_FOTO) {
-    return "La foto pesa menos de 256 KB; la Afore la puede rechazar. Tómala de nuevo con más luz y sin recortar";
-  }
+  if (bytes <= 0) return "El archivo está vacío";
   return null;
+}
+
+/** Foto de menos de 256 KB: ya no bloquea la subida (decisión 10-nov-2026); se avisa para revisarla antes de validar. */
+export function avisoArchivo(mime: string, bytes: number): string | null {
+  if (!mime.startsWith("image/") || bytes >= MIN_BYTES_FOTO) return null;
+  return `Foto ligera (${Math.max(1, Math.round(bytes / 1024))} KB, la Afore pide mínimo 256 KB): revisa que se lea bien antes de validarla`;
 }
 
 const EXTENSION: Record<string, string> = {
