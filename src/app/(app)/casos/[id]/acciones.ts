@@ -72,7 +72,8 @@ export async function agregarNota(casoId: string, _previo: Resultado, form: Form
 
 const esquemaPersona = z.object({
   nombre: z.string().trim().min(2, "Escribe el nombre"),
-  whatsapp: z.string().refine((v) => normalizarWhatsapp(v) !== null, "Escribe 10 dígitos"),
+  // Opcional (se puede dar de alta sin teléfono); si se escribe, 10 dígitos.
+  whatsapp: z.string().trim().refine((v) => !v || normalizarWhatsapp(v) !== null, "Escribe 10 dígitos"),
   email: z.string().email("Correo no válido").nullable(),
   curp: z.string().nullable().refine((v) => !v || validarCurp(v).valido, "CURP no válida"),
   nss: z.string().nullable().refine((v) => !v || validarNss(v).valido, "NSS no válido"),
@@ -93,7 +94,7 @@ export async function guardarDatosPersonales(casoId: string, personaId: string, 
   });
   if (!r.success) return { errores: erroresDe(r.error) };
   const d = r.data;
-  const wa = normalizarWhatsapp(d.whatsapp)!;
+  const wa = d.whatsapp ? normalizarWhatsapp(d.whatsapp)! : null;
   const partes = {
     calle: texto(form, "calle"), numero_exterior: texto(form, "numero_exterior"), numero_interior: texto(form, "numero_interior"),
     colonia: texto(form, "colonia"), codigo_postal: d.codigo_postal, municipio: texto(form, "municipio"), estado: texto(form, "estado"),

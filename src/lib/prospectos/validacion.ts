@@ -39,10 +39,8 @@ export const esquemaAlta = z
     nombre: z.string().trim().min(2, "Escribe el nombre"),
     apellido_paterno: opcional,
     apellido_materno: opcional,
-    whatsapp: z
-      .string()
-      .trim()
-      .refine((v) => normalizarWhatsapp(v) !== null, "Escribe 10 dígitos, por ejemplo 777 123 4567"),
+    // Opcional: se puede dar de alta sin teléfono y completarlo después; si se escribe, debe ser válido.
+    whatsapp: opcional.refine((v) => !v || normalizarWhatsapp(v) !== null, "Escribe 10 dígitos, por ejemplo 777 123 4567"),
     tipo_servicio: z.string().min(1, "Elige al menos un servicio"),
     fecha_baja: opcional.refine((v) => !v || /^\d{4}-\d{2}-\d{2}$/.test(v), "Fecha no válida"),
     origen: z.enum(ORIGENES.map(([v]) => v) as [string, ...string[]], { message: "Elige el origen" }),
@@ -60,7 +58,7 @@ export const esquemaAlta = z
   })
   .transform((d) => ({
     ...d,
-    whatsapp: normalizarWhatsapp(d.whatsapp)!,
+    whatsapp: d.whatsapp ? normalizarWhatsapp(d.whatsapp)! : undefined,
     curp: d.curp ? normalizarCurp(d.curp) : undefined,
     nss: d.nss ? normalizarNss(d.nss) : undefined,
   }));

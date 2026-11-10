@@ -72,9 +72,9 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy, costoGenera
               <Input id="apellido_materno" name="apellido_materno" defaultValue={v.apellido_materno} placeholder="Terán" autoComplete="off" />
             </Campo>
           </div>
-          <Campo id="whatsapp" etiqueta="WhatsApp" ayuda="10 dígitos" error={e.whatsapp}>
+          <Campo id="whatsapp" etiqueta="WhatsApp" ayuda="10 dígitos · opcional, puedes agregarlo después" error={e.whatsapp}>
             <Input id="whatsapp" name="whatsapp" type="tel" inputMode="tel" defaultValue={v.whatsapp} placeholder="777 123 4567"
-              autoComplete="off" required aria-invalid={!!e.whatsapp} />
+              autoComplete="off" aria-invalid={!!e.whatsapp} />
           </Campo>
           {/* Varios servicios: se abre un caso por cada uno para la misma persona. */}
           <fieldset className="grid gap-2">

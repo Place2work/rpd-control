@@ -428,3 +428,8 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Botón «Enviar acceso por correo» en cada usuario: manda una liga para poner su contraseña (plantilla «Reset password»,
   flujo implícito, abre en cualquier dispositivo) sin volver a darlo de alta. Bitácora: INVITACION_CORREO y
   ACCESO_CORREO (migración 3200).
+
+## 10-nov-2026 · Alta sin WhatsApp
+
+- El WhatsApp es opcional en el alta rápida y en Datos personales (la BD ya lo permitía): con el nombre basta. Si se
+  escribe, se valida a 10 dígitos. Sin teléfono no se buscan duplicados por teléfono (sí por CURP/NSS).

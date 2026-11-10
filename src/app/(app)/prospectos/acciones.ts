@@ -54,7 +54,7 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
   // Duplicados (10.2): CURP o NSS repetidos bloquean; el mismo teléfono solo avisa.
   const duplicados = await conUsuario(
     claims,
-    (tx) => tx.$queryRaw<Duplicado[]>`SELECT * FROM app.buscar_duplicados(${d.whatsapp}, ${curpHash}, ${nssHash})`,
+    (tx) => tx.$queryRaw<Duplicado[]>`SELECT * FROM app.buscar_duplicados(${d.whatsapp ?? null}, ${curpHash}, ${nssHash})`,
     ip,
   );
   if (duplicados.some((x) => x.campo !== "telefono")) {

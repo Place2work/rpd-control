@@ -36,7 +36,7 @@ export async function PestanaDatos({ caso, puedeVer }: { caso: CasoDetalle; pued
               <CampoTexto id="apellido_materno" etiqueta="Apellido materno" valor={p.apellido_materno} />
             </div>
             <div className="grid gap-4 sm:grid-cols-2">
-              <CampoTexto id="whatsapp" etiqueta="WhatsApp" tipo="tel" inputMode="tel" valor={local(p.whatsapp)} required />
+              <CampoTexto id="whatsapp" etiqueta="WhatsApp" ayuda="10 dígitos · opcional" tipo="tel" inputMode="tel" valor={local(p.whatsapp)} />
               <CampoTexto id="email" etiqueta="Correo" tipo="email" valor={p.email} />
               <CampoTexto id="curp" etiqueta="CURP nueva" ayuda="solo si cambia; se guarda cifrada" maxLength={18} className="font-mono" />
               <CampoTexto id="nss" etiqueta="NSS nuevo" ayuda="solo si cambia; se guarda cifrado" inputMode="numeric" maxLength={13} />

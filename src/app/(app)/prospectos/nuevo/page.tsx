@@ -14,7 +14,7 @@ export default async function NuevoProspecto() {
   const [opciones, ligas, costo] = await Promise.all([opcionesAlta(sesion), ligasConsulta(), director ? parametrosVigentes(["COSTO_ADMIN_ALTA"]) : null]);
   return (
     <>
-      <Encabezado titulo="Alta rápida" descripcion="Nombre y WhatsApp bastan. Lo demás se completa después." />
+      <Encabezado titulo="Alta rápida" descripcion="Con el nombre basta. El WhatsApp y lo demás se pueden completar después." />
       <FormularioAlta servicios={opciones.servicios} referidores={opciones.referidores} ligas={ligas} hoy={hoyCDMX()}
         costoGeneral={costo ? Number(costo.COSTO_ADMIN_ALTA) || 0 : null} />
     </>
