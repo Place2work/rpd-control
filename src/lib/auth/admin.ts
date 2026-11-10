@@ -112,7 +112,13 @@ async function enviarLigaContrasenaInterno(email: string): Promise<{ ok?: boolea
   if (!url || !llave) return { error: "Falta configurar Supabase en el servidor." };
   const cliente = createClient(url, llave, { auth: { flowType: "implicit", persistSession: false, autoRefreshToken: false } });
   const { error } = await cliente.auth.resetPasswordForEmail(email, { redirectTo: `${urlApp()}/auth/callback` });
-  if (error) return { error: /rate limit/i.test(error.message) ? "Se alcanzó el límite de correos por hora. Intenta más tarde." : `Supabase no pudo enviar el correo: ${error.message}` };
+  if (error) {
+    // Supabase no deja mandar dos correos al mismo usuario en menos de un minuto: el primero ya salió.
+    if (/only request this after|over_email_send_rate_limit/i.test(error.message + (error.code ?? ""))) {
+      return { error: "Ya se le envió un correo hace un momento. Si necesitas reenviarlo, espera un minuto." };
+    }
+    return { error: /rate limit/i.test(error.message) ? "Se alcanzó el límite de correos por hora. Intenta más tarde." : `Supabase no pudo enviar el correo: ${error.message}` };
+  }
   return { ok: true };
 }
 
