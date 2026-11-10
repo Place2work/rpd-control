@@ -61,9 +61,10 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy, costoGenera
 
       <Card>
         <CardContent className="grid gap-4">
-          <div className="grid gap-4 sm:grid-cols-3">
-            <Campo id="nombre" etiqueta="Nombre(s)" ayuda="sin apellidos" error={e.nombre}>
-              <Input id="nombre" name="nombre" defaultValue={v.nombre} placeholder="Rubicel" autoComplete="off" autoFocus required aria-invalid={!!e.nombre} />
+          {/* Las tres etiquetas miden una línea (la ayuda del nombre va en el recuadro) y los recuadros quedan alineados. */}
+          <div className="grid gap-4 sm:grid-cols-3 sm:items-start">
+            <Campo id="nombre" etiqueta="Nombre(s)" error={e.nombre}>
+              <Input id="nombre" name="nombre" defaultValue={v.nombre} placeholder="Sin apellidos" autoComplete="off" autoFocus required aria-invalid={!!e.nombre} />
             </Campo>
             <Campo id="apellido_paterno" etiqueta="Apellido paterno">
               <Input id="apellido_paterno" name="apellido_paterno" defaultValue={v.apellido_paterno} placeholder="Salgado" autoComplete="off" />
