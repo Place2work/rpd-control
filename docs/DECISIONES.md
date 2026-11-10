@@ -448,3 +448,12 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   ligeras que sí se leen). Se sube como «Por revisar» con el aviso «Foto ligera (N KB, la Afore pide mínimo 256 KB):
   revisa que se lea bien antes de validarla», que también queda en Seguimiento. Quien valida decide.
 - Siguen bloqueados: formatos distintos de foto/PDF, archivos de más de 15 MB y archivos vacíos.
+
+## 10-nov-2026 · Panel «Asesores y referidores»
+
+- Nuevo módulo `/asesores` (Director y analista): cada asesor de pensiones y cada referidor es una fila que se despliega
+  con sus prospectos y casos (Afore, servicio, etapa, comisión por pagar o pago esperado). Cuenta prospectos, en trámite
+  y cerrados, y su comisión total por pagar (misma cuenta que «Comisiones proyectadas por pagar»).
+- «Editar» en cada caso: nombre, apellidos, WhatsApp, asesor de pensiones y referidor. Cada cambio queda en Seguimiento
+  («Editado desde el panel de asesores: …», con antes → después) y, si cambia el canal, se recalculan las comisiones.
+- Grupo «Sin asesor ni referidor» con los casos vivos sin asignar, para repartirlos desde ahí. Los perdidos no se listan.
