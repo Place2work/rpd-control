@@ -9,6 +9,7 @@ import { exigirRol } from "@/lib/auth/sesion";
 import { comisionesProyectadas } from "@/lib/comisiones/proyectadas";
 import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
+import { NOMBRE_PARENTESCO } from "@/lib/prospectos/referencias";
 import { NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
@@ -24,7 +25,8 @@ const local = (wa: string | null) => (wa ? wa.replace(/^\+?52/, "") : "");
 type CasoPanel = {
   id: string; folio: string; etapa: string; servicio: string; afore: string | null; esperado: number | null;
   socio_id: string | null; referidor_id: string | null;
-  persona: { nombre: string; apellido_paterno: string | null; apellido_materno: string | null; whatsapp: string | null };
+  persona: { nombre: string; apellido_paterno: string | null; apellido_materno: string | null; whatsapp: string | null;
+    referencias: { orden: number; nombre: string; telefono: string | null; parentesco: string | null; confirmada_at: Date | null }[] };
 };
 
 export default async function Asesores({ searchParams }: { searchParams: Promise<{ abierto?: string }> }) {
@@ -39,7 +41,8 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
       casos: await tx.caso.findMany({ where: { archivado_at: null, etapa: { not: "PERDIDO" } }, orderBy: { created_at: "desc" },
         select: { id: true, folio: true, etapa: true, tipo_servicio: true, socio_id: true, referidor_id: true, monto_afore_esperado: true,
           datos_afore: { select: { afore: true } },
-          persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true, whatsapp: true } } } }),
+          persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true, whatsapp: true,
+            referencias: { where: { archivado_at: null }, orderBy: { orden: "asc" }, select: { orden: true, nombre: true, telefono: true, parentesco: true, confirmada_at: true } } } } } }),
     }), sesion.ip),
     comisionesProyectadas(sesion),
   ]);
@@ -145,6 +148,20 @@ function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcion
                     <span><Badge tono={c.etapa === "CERRADO" ? "pagado" : PROSPECTO.has(c.etapa) ? "prospecto" : "tramite"}>{NOMBRE_ETAPA[c.etapa as keyof typeof NOMBRE_ETAPA] ?? c.etapa}</Badge></span>
                     <span className="cifra text-right text-ink">{monto !== undefined ? mxn(monto) : c.esperado !== null ? <span className="text-xs text-ink-muted">Afore {mxn(c.esperado)}</span> : <span className="text-xs text-ink-muted">por definir</span>}</span>
                     <Link href={`/casos/${c.id}`} className="text-xs text-brand underline md:text-right">Abrir expediente</Link>
+                  </div>
+                  {/* Referencias personales: nombre, parentesco y teléfono (se editan en Datos personales). */}
+                  <div className="mt-2 flex flex-wrap items-center gap-x-4 gap-y-1 text-xs text-ink-muted">
+                    <span className="font-medium text-ink">Referencias:</span>
+                    {c.persona.referencias.length === 0 && <span>sin capturar</span>}
+                    {c.persona.referencias.map((r) => (
+                      <span key={r.orden}>
+                        <span className="text-ink">{r.nombre}</span>
+                        {r.parentesco && <> · {NOMBRE_PARENTESCO[r.parentesco] ?? r.parentesco}</>}
+                        {r.telefono && <> · <a href={`tel:${r.telefono}`} className="cifra text-brand hover:underline">{local(r.telefono)}</a></>}
+                        {r.confirmada_at && <span className="text-exito-texto"> ✓</span>}
+                      </span>
+                    ))}
+                    <Link href={`/casos/${c.id}?tab=datos`} className="text-brand underline">{c.persona.referencias.length ? "Editar referencias" : "Agregar referencias"}</Link>
                   </div>
                   <details className="mt-2">
                     <summary className="inline-flex cursor-pointer list-none items-center gap-1 text-xs font-medium text-brand"><Pencil className="size-3.5" aria-hidden /> Editar</summary>

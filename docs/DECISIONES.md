@@ -483,3 +483,5 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - (11-nov, después) El alta del prospecto también trae «Referencias personales · opcional» (sección desplegable).
   Vacías no impiden guardar; una empezada se valida completa (nombre, teléfono y parentesco). Se guardan con la persona
   después de crear los casos y quedan en Seguimiento («Referencias en el alta: …»).
+- (11-nov, después) El panel «Asesores y referidores» muestra en cada caso sus referencias: nombre, parentesco y
+  teléfono (con liga para llamar) y ✓ si está confirmada; liga a Datos personales para agregarlas o editarlas.
