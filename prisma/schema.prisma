@@ -449,10 +449,11 @@ model Persona {
   archivado_at             DateTime?    @db.Timestamptz(6)
   motivo_archivo           String?
 
-  referidor Referidor?      @relation(fields: [referidor_id], references: [id])
-  owner     Usuario         @relation("PersonaOwner", fields: [owner_id], references: [id])
-  casos     Caso[]
-  arco      SolicitudArco[]
+  referidor   Referidor?           @relation(fields: [referidor_id], references: [id])
+  owner       Usuario              @relation("PersonaOwner", fields: [owner_id], references: [id])
+  casos       Caso[]
+  arco        SolicitudArco[]
+  referencias ReferenciaPersonal[]
 
   @@index([telefono])
   @@index([whatsapp])
@@ -719,16 +720,16 @@ model Documento {
 // ───────────────────── Operación y seguimiento ─────────────────────
 
 model Evento {
-  id         String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  caso_id    String     @db.Uuid
-  tipo       TipoEvento
-  texto      String
-  datos      Json?
-  usuario_id String?    @db.Uuid
-  fecha      DateTime   @default(now()) @db.Timestamptz(6)
-  created_at DateTime   @default(now()) @db.Timestamptz(6)
-  archivado_at  DateTime? @db.Timestamptz(6) // nota «eliminada»: deja de verse, no se borra
-  archivado_por String?   @db.Uuid
+  id            String     @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id       String     @db.Uuid
+  tipo          TipoEvento
+  texto         String
+  datos         Json?
+  usuario_id    String?    @db.Uuid
+  fecha         DateTime   @default(now()) @db.Timestamptz(6)
+  created_at    DateTime   @default(now()) @db.Timestamptz(6)
+  archivado_at  DateTime?  @db.Timestamptz(6) // nota «eliminada»: deja de verse, no se borra
+  archivado_por String?    @db.Uuid
 
   caso    Caso     @relation(fields: [caso_id], references: [id])
   usuario Usuario? @relation(fields: [usuario_id], references: [id])
@@ -1000,6 +1001,30 @@ model ParteCaso {
   caso Caso @relation(fields: [caso_id], references: [id])
 
   @@map("partes_caso")
+  @@schema("public")
+}
+
+// Referencias personales del cliente (11-nov): dos por persona, se archivan (nunca se borran).
+model ReferenciaPersonal {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  persona_id      String    @db.Uuid
+  orden           Int       @db.SmallInt
+  nombre          String
+  telefono        String?
+  parentesco      String?
+  domicilio       String?
+  anios_conocerlo Int?      @db.SmallInt
+  notas           String?
+  confirmada_at   DateTime? @db.Timestamptz(6)
+  confirmada_por  String?   @db.Uuid
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by      String?   @db.Uuid
+  archivado_at    DateTime? @db.Timestamptz(6)
+
+  persona Persona @relation(fields: [persona_id], references: [id])
+
+  @@map("referencias_personales")
   @@schema("public")
 }
 

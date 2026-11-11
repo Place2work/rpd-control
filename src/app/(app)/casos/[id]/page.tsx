@@ -125,7 +125,7 @@ export default async function Expediente({ params, searchParams }: Props) {
       </nav>
 
       {pestana === "resumen" && <PestanaResumen caso={caso} sesion={sesion} />}
-      {pestana === "datos" && <PestanaDatos caso={caso} puedeVer={sesion.usuario.rol !== "vendedor"} />}
+      {pestana === "datos" && <PestanaDatos caso={caso} sesion={sesion} puedeVer={sesion.usuario.rol !== "vendedor"} />}
       {pestana === "imss" && <PestanaImss caso={caso} sesion={sesion} />}
       {pestana === "calculo" && <PestanaCalculo caso={caso} sesion={sesion} />}
       {pestana === "documentos" && <PestanaDocumentos caso={caso} sesion={sesion} />}

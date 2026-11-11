@@ -470,3 +470,13 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   cambiar la baja queda en Seguimiento (antes → después) y se descartan los avisos DIA46_PROXIMO, DIA46_HOY y
   TRAMITE_LISTO del caso; la tarea diaria crea los de la fecha nueva.
 - Se rechazan fechas anteriores a 1940 (p. ej. «01/01/0001») y fechas futuras en baja, primera alta y constancia.
+
+## 11-nov-2026 · Referencias personales; dos documentos menos en el retiro
+
+- Cambia 5.6: el retiro ya no pide «Certificación de baja del IMSS» ni «Comprobante de registro en Afore». Se
+  desactivan en el catálogo (`activo = false`, migración 3300): no se muestran ni cuentan como obligatorios. Ningún
+  caso los tenía subidos.
+- Nueva tabla `referencias_personales` (migración 3300): dos por cliente (van con la persona, sirven para cualquier
+  servicio). Nombre completo, teléfono (10 dígitos, distinto del del cliente), parentesco, domicilio, años de conocerlo,
+  notas y «confirmada por llamada» (quién y cuándo). RLS con `app.persona_visible`; sin DELETE: «Quitar» la archiva.
+  Se capturan en Datos personales; cada cambio queda en Seguimiento.

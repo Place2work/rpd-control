@@ -75,9 +75,10 @@ const SERVICIOS: Prisma.TipoServicioCreateInput[] = [
 
 // ───────────── Documentos (5.6) ─────────────
 const TODOS = SERVICIOS.map((s) => s.clave);
-const DOCUMENTOS: { nombre: string; servicios: string[]; vigencia_dias?: number; requiere_original?: boolean; obligatorio?: boolean; instrucciones?: string }[] = [
-  { nombre: "Certificación de baja del IMSS", servicios: ["RETIRO_DESEMPLEO"], requiere_original: true },
-  { nombre: "Comprobante de registro en Afore", servicios: ["RETIRO_DESEMPLEO"] },
+// 11-nov: «Certificación de baja del IMSS» y «Comprobante de registro en Afore» ya no se piden (activo: false).
+const DOCUMENTOS: { nombre: string; servicios: string[]; vigencia_dias?: number; requiere_original?: boolean; obligatorio?: boolean; instrucciones?: string; activo?: boolean }[] = [
+  { nombre: "Certificación de baja del IMSS", servicios: ["RETIRO_DESEMPLEO"], requiere_original: true, activo: false },
+  { nombre: "Comprobante de registro en Afore", servicios: ["RETIRO_DESEMPLEO"], activo: false },
   { nombre: "Identificación oficial (INE, cédula, pasaporte o cartilla)", servicios: TODOS },
   { nombre: "Contrato firmado", servicios: TODOS, obligatorio: false, instrucciones: "El contrato generado por el sistema, firmado por el cliente en todas sus hojas. Escaneado o foto clara de cada hoja (un PDF de preferencia)" },
   { nombre: "Aviso de privacidad firmado", servicios: TODOS, obligatorio: false, instrucciones: "El aviso de privacidad generado por el sistema, firmado por el cliente. Escaneado o foto clara (un PDF de preferencia)" },
@@ -169,6 +170,7 @@ async function main() {
       vigencia_dias: doc.vigencia_dias ?? null,
       requiere_original: doc.requiere_original ?? false,
       obligatorio: doc.obligatorio ?? true,
+      activo: doc.activo ?? true,
       instrucciones: [doc.instrucciones, INSTRUCCIONES_FOTO].filter(Boolean).join(". "),
       orden,
     };
