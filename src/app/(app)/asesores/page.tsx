@@ -14,7 +14,7 @@ import { NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { Casilla, CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
 import { editarProspecto } from "./acciones";
-import { guardarReferencia } from "../casos/[id]/acciones-referencias";
+import { guardarReferencia, quitarReferencia } from "../casos/[id]/acciones-referencias";
 import { Desplegable } from "./desplegable";
 
 export const metadata: Metadata = { title: "Asesores y referidores" };
@@ -196,6 +196,13 @@ function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcion
                                 </div>
                                 <Casilla id="confirmada" etiqueta="Ya le llamé y confirmó que conoce al cliente" marcada={Boolean(r?.confirmada_at)} />
                               </FormularioAccion>
+                              {r && (
+                                <FormularioAccion accion={quitarReferencia.bind(null, c.id, c.persona_id, orden)} boton="Quitar esta referencia"
+                                  confirmar={`¿Quitar la referencia ${orden} (${r.nombre})? Queda en la bitácora.`}
+                                  className="[&_button]:bg-transparent [&_button]:px-0 [&_button]:text-critico [&_button]:hover:underline">
+                                  <span className="sr-only">Quitar referencia {orden}</span>
+                                </FormularioAccion>
+                              )}
                             </div>
                           );
                         })}

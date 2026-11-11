@@ -487,3 +487,4 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   teléfono (con liga para llamar) y ✓ si está confirmada; liga a Datos personales para agregarlas o editarlas.
 - (11-nov, después) Las referencias también se editan desde el panel: dentro de «Editar» de cada caso van Referencia 1
   y 2 con todos sus campos (misma acción `guardarReferencia`, misma validación y mismo registro en Seguimiento).
+- (11-nov, después) «Quitar esta referencia» también en el panel (pide confirmación; archiva, no borra; queda en Seguimiento).

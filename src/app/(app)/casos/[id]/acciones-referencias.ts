@@ -50,6 +50,6 @@ export async function quitarReferencia(casoId: string, personaId: string, orden:
       texto: `Se quitó la referencia ${orden}: ${previa.nombre}.` } });
     return { ok: true };
   }, ip);
-  if (res.ok) revalidatePath(`/casos/${casoId}`);
+  if (res.ok) { revalidatePath(`/casos/${casoId}`); revalidatePath("/asesores"); }
   return res;
 }
