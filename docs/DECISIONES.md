@@ -485,3 +485,5 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   después de crear los casos y quedan en Seguimiento («Referencias en el alta: …»).
 - (11-nov, después) El panel «Asesores y referidores» muestra en cada caso sus referencias: nombre, parentesco y
   teléfono (con liga para llamar) y ✓ si está confirmada; liga a Datos personales para agregarlas o editarlas.
+- (11-nov, después) Las referencias también se editan desde el panel: dentro de «Editar» de cada caso van Referencia 1
+  y 2 con todos sus campos (misma acción `guardarReferencia`, misma validación y mismo registro en Seguimiento).

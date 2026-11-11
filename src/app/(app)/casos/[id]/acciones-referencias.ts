@@ -35,7 +35,7 @@ export async function guardarReferencia(casoId: string, personaId: string, orden
       texto: `Referencia ${orden} ${previa ? "actualizada" : "agregada"}: ${d.nombre} (${NOMBRE_PARENTESCO[d.parentesco] ?? d.parentesco})${confirmar && !previa?.confirmada_at ? ", confirmada por llamada" : ""}.` } });
     return { ok: true };
   }, ip);
-  if (res.ok) revalidatePath(`/casos/${casoId}`);
+  if (res.ok) { revalidatePath(`/casos/${casoId}`); revalidatePath("/asesores"); }
   return res;
 }
 

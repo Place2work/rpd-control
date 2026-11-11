@@ -9,24 +9,26 @@ import { exigirRol } from "@/lib/auth/sesion";
 import { comisionesProyectadas } from "@/lib/comisiones/proyectadas";
 import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
-import { NOMBRE_PARENTESCO } from "@/lib/prospectos/referencias";
+import { NOMBRE_PARENTESCO, PARENTESCOS } from "@/lib/prospectos/referencias";
 import { NOMBRE_ETAPA } from "@/lib/reglas/etapas";
-import { CampoTexto, Seleccion } from "../casos/[id]/campos";
+import { Casilla, CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
 import { editarProspecto } from "./acciones";
+import { guardarReferencia } from "../casos/[id]/acciones-referencias";
 import { Desplegable } from "./desplegable";
 
 export const metadata: Metadata = { title: "Asesores y referidores" };
 
+const ETIQUETAS_REF = { nombre: "Nombre completo", telefono: "Teléfono", parentesco: "Parentesco", domicilio: "Domicilio", anios_conocerlo: "Años de conocerlo", notas: "Notas" };
 const ETIQUETAS = { nombre: "Nombre(s)", apellido_paterno: "Apellido paterno", apellido_materno: "Apellido materno", whatsapp: "WhatsApp", socio_id: "Asesor de pensiones", referidor_id: "Referidor" };
 const PROSPECTO = new Set(["PROSPECTO", "PRECALIFICADO", "DIAGNOSTICO"]);
 const local = (wa: string | null) => (wa ? wa.replace(/^\+?52/, "") : "");
 
 type CasoPanel = {
-  id: string; folio: string; etapa: string; servicio: string; afore: string | null; esperado: number | null;
+  id: string; persona_id: string; folio: string; etapa: string; servicio: string; afore: string | null; esperado: number | null;
   socio_id: string | null; referidor_id: string | null;
   persona: { nombre: string; apellido_paterno: string | null; apellido_materno: string | null; whatsapp: string | null;
-    referencias: { orden: number; nombre: string; telefono: string | null; parentesco: string | null; confirmada_at: Date | null }[] };
+    referencias: { orden: number; nombre: string; telefono: string | null; parentesco: string | null; domicilio: string | null; anios_conocerlo: number | null; notas: string | null; confirmada_at: Date | null }[] };
 };
 
 export default async function Asesores({ searchParams }: { searchParams: Promise<{ abierto?: string }> }) {
@@ -39,17 +41,17 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
       referidores: await tx.referidor.findMany({ where: { archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, telefono: true } }),
       servicios: await tx.tipoServicio.findMany({ select: { clave: true, nombre: true } }),
       casos: await tx.caso.findMany({ where: { archivado_at: null, etapa: { not: "PERDIDO" } }, orderBy: { created_at: "desc" },
-        select: { id: true, folio: true, etapa: true, tipo_servicio: true, socio_id: true, referidor_id: true, monto_afore_esperado: true,
+        select: { id: true, persona_id: true, folio: true, etapa: true, tipo_servicio: true, socio_id: true, referidor_id: true, monto_afore_esperado: true,
           datos_afore: { select: { afore: true } },
           persona: { select: { nombre: true, apellido_paterno: true, apellido_materno: true, whatsapp: true,
-            referencias: { where: { archivado_at: null }, orderBy: { orden: "asc" }, select: { orden: true, nombre: true, telefono: true, parentesco: true, confirmada_at: true } } } } } }),
+            referencias: { where: { archivado_at: null }, orderBy: { orden: "asc" }, select: { orden: true, nombre: true, telefono: true, parentesco: true, domicilio: true, anios_conocerlo: true, notas: true, confirmada_at: true } } } } } }),
     }), sesion.ip),
     comisionesProyectadas(sesion),
   ]);
 
   const servicio = new Map(d.servicios.map((s) => [s.clave, s.nombre]));
   const casos: CasoPanel[] = d.casos.map((c) => ({
-    id: c.id, folio: c.folio, etapa: c.etapa, servicio: servicio.get(c.tipo_servicio) ?? c.tipo_servicio, afore: c.datos_afore?.afore ?? null,
+    id: c.id, persona_id: c.persona_id, folio: c.folio, etapa: c.etapa, servicio: servicio.get(c.tipo_servicio) ?? c.tipo_servicio, afore: c.datos_afore?.afore ?? null,
     esperado: c.monto_afore_esperado === null ? null : Number(c.monto_afore_esperado), socio_id: c.socio_id, referidor_id: c.referidor_id, persona: c.persona,
   }));
   // Comisión por pagar de cada caso, por beneficiario (lo devengado o, si aún no hay, lo proyectado).
@@ -176,6 +178,28 @@ function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcion
                           <Seleccion id="referidor_id" etiqueta="Referidor" valor={c.referidor_id} vacia="Ninguno" opciones={opcionesReferidor} />
                         </div>
                       </FormularioAccion>
+                      {/* Referencias personales del cliente: misma acción y validación que en Datos personales. */}
+                      <div className="mt-4 grid gap-3 border-t border-borde pt-3 md:grid-cols-2">
+                        {([1, 2] as const).map((orden) => {
+                          const r = c.persona.referencias.find((x) => x.orden === orden);
+                          return (
+                            <div key={orden} className="grid content-start gap-2 rounded-[var(--radius-boton)] border border-borde bg-surface p-3">
+                              <p className="text-sm font-medium text-ink">Referencia {orden}{r?.confirmada_at && <span className="ml-2 text-xs font-normal text-exito-texto">✓ confirmada</span>}</p>
+                              <FormularioAccion accion={guardarReferencia.bind(null, c.id, c.persona_id, orden)} etiquetas={ETIQUETAS_REF} boton={r ? "Guardar referencia" : "Agregar referencia"}>
+                                <div className="grid gap-3 sm:grid-cols-2">
+                                  <CampoTexto id="nombre" etiqueta="Nombre completo" placeholder="Nombre y apellidos" valor={r?.nombre} className="sm:col-span-2" required />
+                                  <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="10 dígitos" tipo="tel" inputMode="tel" valor={local(r?.telefono ?? null)} required />
+                                  <Seleccion id="parentesco" etiqueta="Parentesco" valor={r?.parentesco ?? ""} vacia="Elige…" opciones={PARENTESCOS} />
+                                  <CampoTexto id="domicilio" etiqueta="Domicilio" valor={r?.domicilio} className="sm:col-span-2" />
+                                  <CampoTexto id="anios_conocerlo" etiqueta="Años de conocerlo" ayuda="opcional" inputMode="numeric" valor={r?.anios_conocerlo} />
+                                  <CampoTexto id="notas" etiqueta="Notas" ayuda="opcional" valor={r?.notas} />
+                                </div>
+                                <Casilla id="confirmada" etiqueta="Ya le llamé y confirmó que conoce al cliente" marcada={Boolean(r?.confirmada_at)} />
+                              </FormularioAccion>
+                            </div>
+                          );
+                        })}
+                      </div>
                     </div>
                   </details>
                 </li>
