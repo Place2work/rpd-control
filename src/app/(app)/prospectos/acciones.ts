@@ -6,6 +6,7 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { cifrar, hashIdentificador } from "@/lib/cripto";
 import { conUsuario } from "@/lib/db/prisma";
 import { parametrosVigentes } from "@/lib/parametros";
+import { leerReferenciasAlta, NOMBRE_PARENTESCO } from "@/lib/prospectos/referencias";
 import { esquemaAlta } from "@/lib/prospectos/validacion";
 import { curpParcial, datosDeCurp } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
@@ -35,11 +36,14 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
   valores.servicios = servicios.join(",");
 
   const r = esquemaAlta.safeParse(valores);
+  // Referencias personales (opcionales): vacías se omiten; empezadas se validan completas.
+  const refs = leerReferenciasAlta(valores, r.success ? r.data.whatsapp ?? null : null);
   if (!r.success) {
-    const errores: Record<string, string> = {};
+    const errores: Record<string, string> = { ...refs.errores };
     for (const i of r.error.issues) errores[String(i.path[0])] ??= i.message;
     return { errores, valores };
   }
+  if (Object.keys(refs.errores).length) return { errores: refs.errores, valores, mensaje: "Revisa las referencias: complétalas o déjalas vacías." };
   // Costo administrativo propio de esta alta (solo el Director; vacío = el general).
   let costoAlta: number | null = null;
   if (usuario.rol === "director") {
@@ -126,6 +130,14 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
                 costoAlta !== null ? `costo administrativo ${mxn(costoAlta)}` : null].filter(Boolean).join(" · ") },
           });
           primero ??= caso.id;
+        }
+        // Las referencias van con la persona; se guardan después de los casos (RLS del asesor de pensiones).
+        for (const ref of refs.referencias) {
+          await tx.referenciaPersonal.create({ select: { id: true }, data: { persona_id: persona.id, created_by: usuario.id, ...ref } });
+        }
+        if (refs.referencias.length) {
+          await tx.evento.create({ data: { caso_id: primero!, tipo: "sistema", usuario_id: usuario.id, datos: { campo: "referencia" },
+            texto: `Referencias en el alta: ${refs.referencias.map((x) => `${x.nombre} (${NOMBRE_PARENTESCO[x.parentesco] ?? x.parentesco})`).join("; ")}.` } });
         }
         return primero!;
       },

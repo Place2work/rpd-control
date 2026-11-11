@@ -480,3 +480,6 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   servicio). Nombre completo, teléfono (10 dígitos, distinto del del cliente), parentesco, domicilio, años de conocerlo,
   notas y «confirmada por llamada» (quién y cuándo). RLS con `app.persona_visible`; sin DELETE: «Quitar» la archiva.
   Se capturan en Datos personales; cada cambio queda en Seguimiento.
+- (11-nov, después) El alta del prospecto también trae «Referencias personales · opcional» (sección desplegable).
+  Vacías no impiden guardar; una empezada se valida completa (nombre, teléfono y parentesco). Se guardan con la persona
+  después de crear los casos y quedan en Seguimiento («Referencias en el alta: …»).

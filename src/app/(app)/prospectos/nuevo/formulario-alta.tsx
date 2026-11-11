@@ -8,6 +8,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Input, Label } from "@/components/ui/input";
 import { LigasConsulta } from "@/components/rpd/ligas-consulta";
 import type { LigasConsulta as Ligas } from "@/lib/parametros";
+import { PARENTESCOS } from "@/lib/prospectos/referencias";
 import { ORIGENES } from "@/lib/prospectos/validacion";
 import { cn } from "@/lib/utils";
 import { crearProspecto, type EstadoAlta } from "../acciones";
@@ -30,6 +31,9 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy, costoGenera
   const v = estado.valores ?? {};
   const e = estado.errores ?? {};
   const [masDatos, setMasDatos] = useState(Boolean(v.curp || v.nss));
+  const [verRefs, setVerRefs] = useState(Object.keys(v).some((k) => k.startsWith("ref") && v[k]));
+  // Si una referencia trae error, la sección se abre para que se vea.
+  const refsConError = Object.keys(e).some((k) => k.startsWith("ref"));
   const soloTelefono = estado.duplicados?.length && estado.duplicados.every((d) => d.campo === "telefono");
 
   return (
@@ -132,6 +136,49 @@ export function FormularioAlta({ servicios, referidores, ligas, hoy, costoGenera
           <div>
             <p className="text-xs font-medium text-ink-muted">¿No los tiene a la mano? Consúltalos en:</p>
             <LigasConsulta ligas={ligas} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <button type="button" onClick={() => setVerRefs(!verRefs)} aria-expanded={verRefs || refsConError}
+          className="flex h-14 w-full items-center justify-between px-5 text-left font-medium text-ink">
+          Referencias personales <span className="text-sm font-normal text-ink-muted">opcional</span>
+          <ChevronDown className={cn("size-5 text-ink-muted transition-transform", (verRefs || refsConError) && "rotate-180")} aria-hidden />
+        </button>
+        <CardContent className={cn("grid gap-4 pt-0", !(verRefs || refsConError) && "hidden")}>
+          <p className="text-xs text-ink-muted">Puedes dejarlas vacías y agregarlas después en el caso (Datos personales). Si empiezas una, completa nombre, teléfono y parentesco.</p>
+          <div className="grid gap-4 md:grid-cols-2">
+            {([1, 2] as const).map((n) => (
+              <div key={n} className="grid content-start gap-3 rounded-[var(--radius-boton)] border border-borde p-3">
+                <p className="text-sm font-medium text-ink">Referencia {n}</p>
+                <Campo id={`ref${n}_nombre`} etiqueta="Nombre completo" error={e[`ref${n}_nombre`]}>
+                  <Input id={`ref${n}_nombre`} name={`ref${n}_nombre`} defaultValue={v[`ref${n}_nombre`]} placeholder="Nombre y apellidos" autoComplete="off" aria-invalid={!!e[`ref${n}_nombre`]} />
+                </Campo>
+                <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
+                  <Campo id={`ref${n}_telefono`} etiqueta="Teléfono" error={e[`ref${n}_telefono`]}>
+                    <Input id={`ref${n}_telefono`} name={`ref${n}_telefono`} type="tel" inputMode="tel" defaultValue={v[`ref${n}_telefono`]} placeholder="10 dígitos" autoComplete="off" aria-invalid={!!e[`ref${n}_telefono`]} />
+                  </Campo>
+                  <Campo id={`ref${n}_parentesco`} etiqueta="Parentesco" error={e[`ref${n}_parentesco`]}>
+                    <select id={`ref${n}_parentesco`} name={`ref${n}_parentesco`} defaultValue={v[`ref${n}_parentesco`] ?? ""} className={claseSelect}>
+                      <option value="">Elige…</option>
+                      {PARENTESCOS.map(([valor, texto]) => <option key={valor} value={valor}>{texto}</option>)}
+                    </select>
+                  </Campo>
+                </div>
+                <Campo id={`ref${n}_domicilio`} etiqueta="Domicilio" error={e[`ref${n}_domicilio`]}>
+                  <Input id={`ref${n}_domicilio`} name={`ref${n}_domicilio`} defaultValue={v[`ref${n}_domicilio`]} placeholder="Calle, número, colonia y municipio" autoComplete="off" />
+                </Campo>
+                <div className="grid gap-3 sm:grid-cols-2 sm:items-start">
+                  <Campo id={`ref${n}_anios_conocerlo`} etiqueta="Años de conocerlo" error={e[`ref${n}_anios_conocerlo`]}>
+                    <Input id={`ref${n}_anios_conocerlo`} name={`ref${n}_anios_conocerlo`} inputMode="numeric" defaultValue={v[`ref${n}_anios_conocerlo`]} autoComplete="off" />
+                  </Campo>
+                  <Campo id={`ref${n}_notas`} etiqueta="Notas" error={e[`ref${n}_notas`]}>
+                    <Input id={`ref${n}_notas`} name={`ref${n}_notas`} defaultValue={v[`ref${n}_notas`]} placeholder="Horario para llamar" autoComplete="off" />
+                  </Campo>
+                </div>
+              </div>
+            ))}
           </div>
         </CardContent>
       </Card>
