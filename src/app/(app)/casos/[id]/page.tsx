@@ -1,3 +1,4 @@
+import { BotonRegresar } from "@/components/rpd/regresar";
 import { CalendarPlus, CheckCircle2, MessageCircle, Phone } from "lucide-react";
 import type { Metadata } from "next";
 import Link from "next/link";
@@ -73,6 +74,7 @@ export default async function Expediente({ params, searchParams }: Props) {
         </div>
       )}
 
+      <BotonRegresar />
       <header className="mb-4 flex flex-wrap items-start justify-between gap-3">
         <div className="min-w-0">
           <h1 className="font-display text-[22px] font-semibold text-ink md:text-[28px]">{nombre}</h1>

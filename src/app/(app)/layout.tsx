@@ -4,6 +4,7 @@ import { Suspense } from "react";
 import { BarraInferior, BarraLateral } from "@/components/rpd/barra-lateral";
 import { CierrePorInactividad } from "@/components/rpd/inactividad";
 import { Marca } from "@/components/rpd/marca";
+import { RecordarPantalla } from "@/components/rpd/regresar";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 import { modoDemo } from "@/lib/auth/demo";
 import { contarMisAlertas } from "@/lib/alertas/consultas";
@@ -70,6 +71,7 @@ async function Estructura({ children }: { children: React.ReactNode }) {
           </div>
         </div>
         <main className="mx-auto max-w-7xl px-4 pb-24 pt-6 md:px-8 md:pb-10">
+          <Suspense fallback={null}><RecordarPantalla /></Suspense>
           <Suspense fallback={<p className="text-sm text-ink-muted">Cargando…</p>}>{children}</Suspense>
         </main>
       </div>

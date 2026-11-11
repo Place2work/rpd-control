@@ -147,6 +147,15 @@ export async function guardarImss(casoId: string, _p: Resultado, form: FormData)
   const fechas = ["fecha_primera_alta", "fecha_constancia", "fecha_baja"] as const;
   const errores: Record<string, string> = {};
   for (const f of fechas) if (!esFecha(texto(form, f))) errores[f] = "Fecha no válida";
+  // Fechas reales (10-nov): un «01/01/0001» o una baja futura no pasan; para quitarla se usa «Borrar».
+  const hoyIso = hoyCDMX();
+  for (const f of fechas) {
+    const v = texto(form, f);
+    if (v && esFecha(v) && !errores[f]) {
+      if (v < "1940-01-01") errores[f] = "Revisa el año: la fecha no es válida (para quitarla usa «Borrar»)";
+      else if (v > hoyIso) errores[f] = "No puede ser futura";
+    }
+  }
   const numeros = ["semanas_cotizadas", "semanas_descontadas", "semanas_reintegradas", "bimestres_cotizados", "sbc_ultimo", "sbc_promedio_250"] as const;
   const n: Record<string, number | null> = {};
   for (const k of numeros) {
@@ -196,6 +205,18 @@ export async function guardarImss(casoId: string, _p: Resultado, form: FormData)
       data.bimestres_cotizados = bimestresEntre(primeraAlta, baja);
     }
     await tx.datosImss.upsert({ where: { caso_id: casoId }, update: data, create: { caso_id: casoId, ...data }, select: { id: true } });
+    // Si cambió o se borró la fecha de baja: queda en Seguimiento y se descartan los avisos del día 46 que salían de la fecha anterior
+    // (la tarea diaria vuelve a crear los que correspondan a la nueva).
+    if (bajaPrev !== (baja ?? null)) {
+      const larga = (v: string | null) => (v ? new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeZone: "UTC" }).format(fecha(v)) : null);
+      await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: claims.sub,
+        datos: { campo: "fecha_baja", antes: bajaPrev, despues: baja ?? null },
+        texto: baja ? `Fecha de baja: ${larga(baja)}${bajaPrev ? ` (antes ${larga(bajaPrev)})` : ""}.` : `Se borró la fecha de baja${bajaPrev ? ` (era ${larga(bajaPrev)})` : ""}.` } });
+      if (bajaPrev) {
+        await tx.alerta.updateMany({ where: { caso_id: casoId, regla: { in: ["DIA46_PROXIMO", "DIA46_HOY", "TRAMITE_LISTO"] }, estado: { in: ["activa", "pospuesta"] } },
+          data: { estado: "descartada" } });
+      }
+    }
   }, ip);
   revalidatePath(`/casos/${casoId}`);
   return { ok: true };

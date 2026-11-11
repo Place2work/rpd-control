@@ -13,6 +13,7 @@ import { NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
 import { editarProspecto } from "./acciones";
+import { Desplegable } from "./desplegable";
 
 export const metadata: Metadata = { title: "Asesores y referidores" };
 
@@ -26,7 +27,8 @@ type CasoPanel = {
   persona: { nombre: string; apellido_paterno: string | null; apellido_materno: string | null; whatsapp: string | null };
 };
 
-export default async function Asesores() {
+export default async function Asesores({ searchParams }: { searchParams: Promise<{ abierto?: string }> }) {
+  const { abierto } = await searchParams;
   const sesion = await exigirRol("director", "asesor");
   const [d, proy] = await Promise.all([
     conUsuario(sesion.claims, async (tx) => ({
@@ -57,7 +59,7 @@ export default async function Asesores() {
   const sinAsignar = casos.filter((c) => !c.socio_id && !c.referidor_id && c.etapa !== "CERRADO");
 
   const grupo = (clave: string, titulo: string, detalle: string, lista: CasoPanel[]) => (
-    <Grupo key={clave} clave={clave} titulo={titulo} detalle={detalle} casos={lista} comision={comision} total={totalDe(clave)}
+    <Grupo key={clave} clave={clave} abierto={abierto === clave} titulo={titulo} detalle={detalle} casos={lista} comision={comision} total={totalDe(clave)}
       opcionesSocio={opcionesSocio} opcionesReferidor={opcionesReferidor} />
   );
 
@@ -99,15 +101,15 @@ export default async function Asesores() {
   );
 }
 
-function Grupo({ clave, titulo, detalle, casos, comision, total, opcionesSocio, opcionesReferidor }: {
-  clave: string; titulo: string; detalle: string; casos: CasoPanel[]; comision: Map<string, number>; total: number;
+function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcionesSocio, opcionesReferidor }: {
+  clave: string; abierto: boolean; titulo: string; detalle: string; casos: CasoPanel[]; comision: Map<string, number>; total: number;
   opcionesSocio: (readonly [string, string])[]; opcionesReferidor: (readonly [string, string])[];
 }) {
   const prospectos = casos.filter((c) => PROSPECTO.has(c.etapa)).length;
   const cerrados = casos.filter((c) => c.etapa === "CERRADO").length;
   const tramite = casos.length - prospectos - cerrados;
   return (
-    <details className="group rounded-[var(--radius-boton)] border border-borde">
+    <Desplegable clave={clave} abierto={abierto}>
       <summary className="flex cursor-pointer list-none flex-wrap items-center gap-x-4 gap-y-1 px-4 py-3 hover:bg-slate-50">
         <ChevronDown className="size-4 shrink-0 text-ink-muted transition-transform group-open:rotate-180" aria-hidden />
         <span className="min-w-0 flex-1">
@@ -165,6 +167,6 @@ function Grupo({ clave, titulo, detalle, casos, comision, total, opcionesSocio, 
           </ul>
         )}
       </div>
-    </details>
+    </Desplegable>
   );
 }

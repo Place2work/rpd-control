@@ -457,3 +457,16 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - «Editar» en cada caso: nombre, apellidos, WhatsApp, asesor de pensiones y referidor. Cada cambio queda en Seguimiento
   («Editado desde el panel de asesores: …», con antes → después) y, si cambia el canal, se recalculan las comisiones.
 - Grupo «Sin asesor ni referidor» con los casos vivos sin asignar, para repartirlos desde ahí. Los perdidos no se listan.
+
+## 11-nov-2026 · Flecha «Regresar» en el expediente
+
+- Arriba del expediente: «← Regresar a <módulo>». Vuelve a la última pantalla fuera de un expediente (con sus filtros),
+  aunque se hayan recorrido pestañas del caso. Se guarda en `sessionStorage` (por pestaña del navegador); si no hay, va a Casos.
+- En «Asesores y referidores», el asesor desplegado queda en la URL (`?abierto=…#…`) y se vuelve con él abierto.
+
+## 11-nov-2026 · Borrar la fecha de baja; fechas imposibles no pasan
+
+- IMSS y Afore: botón «Borrar» junto a «Fecha de baja» y «Primera alta» (pide confirmación y guarda). Al borrar o
+  cambiar la baja queda en Seguimiento (antes → después) y se descartan los avisos DIA46_PROXIMO, DIA46_HOY y
+  TRAMITE_LISTO del caso; la tarea diaria crea los de la fecha nueva.
+- Se rechazan fechas anteriores a 1940 (p. ej. «01/01/0001») y fechas futuras en baja, primera alta y constancia.

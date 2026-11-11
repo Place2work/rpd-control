@@ -8,6 +8,7 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { guardarAfore, guardarDictamen, guardarImss } from "../acciones";
 import { Campo, CampoTexto, Casilla, Dato, isoODefecto, numero, Seleccion } from "../campos";
 import { FormularioAccion } from "../formulario-accion";
+import { CampoFechaBorrable } from "../campo-fecha-borrable";
 import { InsigniaAfore } from "@/components/rpd/insignia-afore";
 
 const REGIMENES = [["L73", "Ley 73"], ["L97", "Ley 97"], ["por_definir", "Por definir"]] as const;
@@ -48,8 +49,10 @@ export async function PestanaImss({ caso, sesion }: { caso: CasoDetalle; sesion:
         <CardContent>
           <FormularioAccion accion={guardarImss.bind(null, caso.id)} etiquetas={ETIQUETAS}>
             <div className="grid gap-4 sm:grid-cols-2">
-              <CampoTexto id="fecha_baja" etiqueta="Fecha de baja" tipo="date" max={hoy} valor={isoODefecto(i?.fecha_baja)} />
-              <CampoTexto id="fecha_primera_alta" etiqueta="Primera alta en el IMSS" tipo="date" valor={isoODefecto(i?.fecha_primera_alta)} />
+              <CampoFechaBorrable id="fecha_baja" etiqueta="Fecha de baja" min="1950-01-01" max={hoy} valor={isoODefecto(i?.fecha_baja) || null}
+                confirmar="¿Borrar la fecha de baja? Se quitan el día 46 y los avisos de «ya puede retirar» de este cliente." />
+              <CampoFechaBorrable id="fecha_primera_alta" etiqueta="Primera alta en el IMSS" min="1940-01-01" max={hoy} valor={isoODefecto(i?.fecha_primera_alta) || null}
+                confirmar="¿Borrar la fecha de primera alta?" />
               <Seleccion id="regimen" etiqueta="Régimen" ayuda={sugerido ? `por la primera alta: ${sugerido}` : "«Por definir» lo calcula con la primera alta"}
                 valor={i?.regimen ?? "por_definir"} opciones={REGIMENES} />
               <CampoTexto id="regimen_justificacion" etiqueta="Justificación" ayuda="solo si cambias el régimen sugerido" valor={i?.regimen_justificacion} />
