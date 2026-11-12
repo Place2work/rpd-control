@@ -1,0 +1,14 @@
+{
+ "version": 1,
+ "minimo": 80,
+ "criterios": [
+  {"clave": "fecha_baja_trabaja", "criterio": "Preguntó la fecha de baja y si trabaja hoy (incluido gobierno) antes que nada", "peso": 15, "eliminatorio": true},
+  {"clave": "regimen", "criterio": "Identificó el régimen (Ley 73 / Ley 97)", "peso": 10, "eliminatorio": true},
+  {"clave": "monto_y_semanas", "criterio": "Presentó monto y semanas juntos, como estimado", "peso": 20, "eliminatorio": true},
+  {"clave": "sin_promesas", "criterio": "No prometió montos ni plazos fuera de los permitidos", "peso": 15, "eliminatorio": true},
+  {"clave": "honorario", "criterio": "Explicó el honorario con claridad (30% IVA incluido)", "peso": 10, "eliminatorio": false},
+  {"clave": "objecion", "criterio": "Manejó la objeción planteada con la respuesta honesta", "peso": 15, "eliminatorio": false},
+  {"clave": "siguiente_paso", "criterio": "Siguiente paso claro (documentos, fecha, cita con el Director)", "peso": 10, "eliminatorio": false},
+  {"clave": "tono", "criterio": "Tono: claro, tuteo, sin tecnicismos frente al cliente", "peso": 5, "eliminatorio": false}
+ ]
+}

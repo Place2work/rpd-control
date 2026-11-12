@@ -614,3 +614,32 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   «semanas que se pierden».
 - La prueba con Playwright del plan (sin R1 / R1 / R1+L73 / R2) se cubrió con pruebas de base de datos y un recorrido
   en local (el conjunto e2e actual no tiene sesión con base de datos).
+
+## 14-nov-2026 · Academia, fase C: evaluación humana, incidencias y desempeño
+
+- **Juego de roles** con la rúbrica 9.2 (`content/academia/rubrica.json`, 8 criterios; 4 eliminatorios; aprueba con
+  80 puntos y sin fallar ninguno eliminatorio). Escenarios RP-01 a RP-05 en `roleplays.json` (R1: 01-02, R2: 03,
+  P1: 04-05). El Director califica desde la ficha de la persona (`/academia/equipo/[id]`), pensada para el celular;
+  la persona ve su puntaje, los criterios a mejorar y la retroalimentación en Mi ruta.
+- **Casos acompañados** (`cap_shadowing`): R1 pide 3 y R2 pide 2, que deben ser Ley 73 (régimen capturado en el
+  expediente; la base lo exige). Se registran por folio. **Diagnósticos validados** (P2 pide 10 sin corrección grave)
+  y **entrevista** P2 también los registra el Director. P2 ya se otorga sola al cumplir todo.
+- Solo el Director evalúa y nunca a sí mismo (RLS). Cada registro vuelve a revisar si la persona ya se certifica.
+- **Solicitudes**: con el examen de la ruta aprobado, el asesor pide su juego de roles, acompañamiento o entrevista
+  (una pendiente a la vez por cosa); aparecen en «Por evaluar» del Director y se cierran al evaluar.
+- **Incidencias (9.5)**: las registran el Director o el analista, desde la ficha de la persona o desde la pestaña
+  Seguimiento del caso (queda un evento en la línea de tiempo). Las de **línea roja** suspenden al momento todas las
+  certificaciones de la persona (disparador en la base) y avisan al Director con la alerta CAP_INCIDENCIA_LINEA_ROJA;
+  una suspensión bloquea los permisos aunque haya excepción. Solo el Director reactiva o revoca, con motivo.
+- **Desempeño (10)**: «Mi desempeño» (asesor de pensiones) y «Desempeño del equipo» (Director), últimos 90 días, con
+  reglas puras en `src/lib/reglas/desempeno.ts`. Definiciones:
+  - Primer contacto: primera llamada, WhatsApp, correo o nota de una persona dentro de `CAP_CONTACTO_HORAS` (24) desde
+    el alta; los que siguen en plazo sin contacto no cuentan.
+  - Apto → contrato: contrato generado. Expediente a la primera: casos con documentos y ninguno rechazado (estado
+    actual). Bloqueado: casos hoy en Bloqueado (todas las causas; el CRM no guarda si fue causa del asesor).
+  - Ley 73 con análisis de impacto: se agregó la meta `l73_analisis` (100%). «Califica, no conviene» → desvío: tiene
+    un caso de desvío creado.
+  - Alertas a tiempo: atendidas a más tardar `CAP_ALERTA_DIAS` (1) después del disparo, en hora de CDMX; las
+    descartadas no cuentan.
+  - Coaching: si dos o más métricas quedan debajo de la meta la semana pasada y la anterior, se sugieren sus módulos.
+  - Metas en `cap_metas` con vigencia; el Director las cambia desde el tablero (en porcentaje; línea roja en número).

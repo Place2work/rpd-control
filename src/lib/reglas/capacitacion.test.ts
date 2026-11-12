@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { ReglaIntentos, Ruta } from "@/lib/academia/tipos";
-import { calificar, estadoRuta, esCorrecta, puedeIntentar, seleccionarPreguntas, venceEl } from "./capacitacion";
+import { calificar, calificarRoleplay, estadoRuta, esCorrecta, puedeIntentar, seleccionarPreguntas, venceEl } from "./capacitacion";
 
 const q = (clave: string, critica = false, correcta = 1) => ({ clave, critica, tipo: "opcion_multiple" as const, correcta, tolerancia: null });
 
@@ -86,8 +86,9 @@ describe("estado de una ruta (3.2, 9.4)", () => {
     expect(estadoRuta(R1, r1, vacio())).toMatchObject({ disponible: false, bloqueo: expect.stringMatching(/N0/) });
     const a = vacio(); a.certificadas.add("N0"); a.examenesAprobados.add("N0"); r1.forEach((m) => a.leidos.add(m)); a.examenesAprobados.add("R1");
     const e = estadoRuta(R1, r1, a);
-    expect(e).toMatchObject({ disponible: true, otorgable: false, pendientes: ["Resolver 4 casos prácticos en el simulador (0 de 4)"] });
-    expect(e.proximamente).toEqual(["Juego de roles RP-01 y RP-02 con el Director", "3 casos acompañados"]);
+    expect(e).toMatchObject({ disponible: true, otorgable: false });
+    expect(e.pendientes).toEqual(["Resolver 4 casos prácticos en el simulador (0 de 4)", "Aprobar el juego de roles RP-01 con el Director",
+      "Aprobar el juego de roles RP-02 con el Director", "3 casos acompañados más (0 de 3)"]);
   });
 });
 
@@ -127,8 +128,47 @@ describe("casos prácticos contra el motor (sección 7, 14.1)", () => {
       requisitos: { examen: { minimo: 0.8, n: 25 }, casos: 4, roleplays: ["RP-01"], shadowing: 3 } };
     const a = { leidos: new Set(["R1-01"]), examenesAprobados: new Set<"N0" | "R1">(["N0", "R1"]), acuses: new Set<"codigo_conducta">(), certificadas: new Set<"N0">(["N0"]), casosAprobados: new Set(["C-R01", "C-R02"]) };
     const e = estadoRuta(R1, ["R1-01"], a, ["C-R01", "C-R02", "C-R03", "C-R04", "C-R08", "C-R09"]);
-    expect(e.pendientes).toEqual(["Resolver 2 casos prácticos en el simulador (2 de 4)"]);
+    expect(e.pendientes[0]).toBe("Resolver 2 casos prácticos en el simulador (2 de 4)");
     a.casosAprobados.add("C-R03"); a.casosAprobados.add("C-R09");
-    expect(estadoRuta(R1, ["R1-01"], a, ["C-R01", "C-R02", "C-R03", "C-R04", "C-R08", "C-R09"]).pendientes).toEqual([]);
+    expect(estadoRuta(R1, ["R1-01"], a, ["C-R01", "C-R02", "C-R03", "C-R04", "C-R08", "C-R09"]).pendientes).toEqual(["Aprobar el juego de roles RP-01 con el Director", "3 casos acompañados más (0 de 3)"]);
+  });
+});
+
+describe("evaluación humana (fase C: 9.2, 3.2, 9.5)", () => {
+  const criterios = [
+    { clave: "a", criterio: "A", peso: 15, eliminatorio: true }, { clave: "b", criterio: "B", peso: 10, eliminatorio: true },
+    { clave: "c", criterio: "C", peso: 20, eliminatorio: true }, { clave: "d", criterio: "D", peso: 15, eliminatorio: true },
+    { clave: "e", criterio: "E", peso: 10, eliminatorio: false }, { clave: "f", criterio: "F", peso: 15, eliminatorio: false },
+    { clave: "g", criterio: "G", peso: 10, eliminatorio: false }, { clave: "h", criterio: "H", peso: 5, eliminatorio: false },
+  ];
+  const todo = Object.fromEntries(criterios.map((c) => [c.clave, true]));
+  it("rúbrica: 100 si cumple todo; aprueba con 80 sin eliminatorios fallados", () => {
+    expect(calificarRoleplay(criterios, todo, 80)).toMatchObject({ total: 100, aprobado: true });
+    expect(calificarRoleplay(criterios, { ...todo, f: false, h: false }, 80)).toMatchObject({ total: 80, aprobado: true });
+    expect(calificarRoleplay(criterios, { ...todo, f: false, g: false }, 80)).toMatchObject({ total: 75, aprobado: false });
+  });
+  it("rúbrica: fallar un eliminatorio reprueba aunque el total pase de 80", () => {
+    expect(calificarRoleplay(criterios, { ...todo, b: false }, 80)).toMatchObject({ total: 90, eliminatorioFallado: true, eliminatoriosFallados: ["b"], aprobado: false });
+  });
+  const R1: Ruta = { clave: "R1", nombre: "Retiro", orden: 1, prerrequisitos: ["N0"], vigencia_meses: 12, permisos_habilita: [],
+    requisitos: { examen: { minimo: 0.8, n: 25 }, casos: 1, roleplays: ["RP-01", "RP-02"], shadowing: 3 } };
+  const completo = () => ({ leidos: new Set(["R1-01"]), examenesAprobados: new Set<"N0" | "R1">(["N0", "R1"]), acuses: new Set<"codigo_conducta">(),
+    certificadas: new Set<"N0" | "R1">(["N0"]), casosAprobados: new Set(["C-R01"]), roleplaysAprobados: new Set(["RP-01", "RP-02"]), acompanamientos: { R1: 3 } });
+  it("R1 se otorga con examen, casos, juegos de roles y 3 acompañamientos", () => {
+    expect(estadoRuta(R1, ["R1-01"], completo(), ["C-R01"])).toMatchObject({ pendientes: [], otorgable: true });
+    const a = completo(); a.acompanamientos = { R1: 2 };
+    expect(estadoRuta(R1, ["R1-01"], a, ["C-R01"]).pendientes).toEqual(["1 caso acompañado más (2 de 3)"]);
+  });
+  it("con una certificación suspendida (línea roja) no se otorga nada", () => {
+    const a = { ...completo(), suspendidas: new Set<"N0">(["N0"]) };
+    expect(estadoRuta(R1, ["R1-01"], a, ["C-R01"]).otorgable).toBe(false);
+  });
+  it("P2: 10 diagnósticos validados y entrevista", () => {
+    const P2: Ruta = { clave: "P2", nombre: "Especialista", orden: 4, prerrequisitos: ["P1"], vigencia_meses: 12, permisos_habilita: [],
+      requisitos: { examen: { minimo: 0.9, n: 25 }, diagnosticos: 10, entrevista: true } };
+    const a = { leidos: new Set(["P2-01"]), examenesAprobados: new Set<"P1" | "P2">(["P1", "P2"]), acuses: new Set<"codigo_conducta">(),
+      certificadas: new Set<"N0" | "P1">(["N0", "P1"]), diagnosticosValidos: 7, entrevistas: new Set<"P2">() };
+    expect(estadoRuta(P2, ["P2-01"], a).pendientes).toEqual(["3 diagnósticos iniciales validados más (7 de 10)", "Entrevista con el Director"]);
+    expect(estadoRuta(P2, ["P2-01"], { ...a, diagnosticosValidos: 10, entrevistas: new Set<"P2">(["P2"]) }).otorgable).toBe(true);
   });
 });

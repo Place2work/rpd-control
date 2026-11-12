@@ -299,6 +299,13 @@ model Usuario {
   cap_casos_intentos  CapCasoIntento[]   @relation("CapCasosIntentos")
   cap_excepciones     CapExcepcion[]     @relation("CapExcepciones")
 
+  cap_roleplays    CapEvaluacionRoleplay[]  @relation("CapRoleplays")
+  cap_shadowing    CapShadowing[]           @relation("CapShadowing")
+  cap_diagnosticos CapDiagnosticoValidado[] @relation("CapDiagnosticos")
+  cap_entrevistas  CapEntrevista[]          @relation("CapEntrevistas")
+  cap_incidencias  CapIncidencia[]          @relation("CapIncidencias")
+  cap_solicitudes  CapSolicitud[]           @relation("CapSolicitudes")
+
   @@index([socio_id])
   @@map("usuarios")
   @@schema("public")
@@ -547,6 +554,10 @@ model Caso {
   partes                 ParteCaso[]
   solicitudes_constancia SolicitudConstancia[]
   correos_entrantes      CorreoEntrante[]
+
+  cap_shadowing    CapShadowing[]           @relation("CapShadowingCaso")
+  cap_diagnosticos CapDiagnosticoValidado[] @relation("CapDiagnosticosCaso")
+  cap_incidencias  CapIncidencia[]          @relation("CapIncidenciasCaso")
 
   @@index([etapa])
   @@index([asignado_a])
@@ -1187,6 +1198,125 @@ model CapExcepcion {
   usuario Usuario @relation("CapExcepciones", fields: [usuario_id], references: [id])
 
   @@map("cap_excepciones")
+  @@schema("public")
+}
+
+model CapEvaluacionRoleplay {
+  id                   String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id           String    @db.Uuid
+  roleplay             String
+  evaluador_id         String    @db.Uuid
+  cumple               Json
+  total                Int
+  eliminatorio_fallado Boolean
+  aprobado             Boolean
+  comentarios          String?
+  created_at           DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at         DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapRoleplays", fields: [usuario_id], references: [id])
+
+  @@map("cap_evaluaciones_roleplay")
+  @@schema("public")
+}
+
+model CapShadowing {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id   String    @db.Uuid
+  ruta         String
+  caso_id      String    @db.Uuid
+  modo         String
+  ley73        Boolean   @default(false)
+  evaluador_id String    @db.Uuid
+  cumple       Boolean
+  notas        String?
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapShadowing", fields: [usuario_id], references: [id])
+  caso    Caso    @relation("CapShadowingCaso", fields: [caso_id], references: [id])
+
+  @@map("cap_shadowing")
+  @@schema("public")
+}
+
+model CapDiagnosticoValidado {
+  id               String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id       String    @db.Uuid
+  caso_id          String    @db.Uuid
+  validado_por     String    @db.Uuid
+  correccion_grave Boolean
+  notas            String?
+  created_at       DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at     DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapDiagnosticos", fields: [usuario_id], references: [id])
+  caso    Caso    @relation("CapDiagnosticosCaso", fields: [caso_id], references: [id])
+
+  @@map("cap_diagnosticos_validados")
+  @@schema("public")
+}
+
+model CapEntrevista {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id   String    @db.Uuid
+  ruta         String    @default("P2")
+  evaluador_id String    @db.Uuid
+  aprobada     Boolean
+  notas        String?
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapEntrevistas", fields: [usuario_id], references: [id])
+
+  @@map("cap_entrevistas")
+  @@schema("public")
+}
+
+model CapIncidencia {
+  id             String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id     String    @db.Uuid
+  caso_id        String?   @db.Uuid
+  tipo           String
+  severidad      String
+  descripcion    String
+  accion         String?
+  registrada_por String    @db.Uuid
+  created_at     DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at   DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapIncidencias", fields: [usuario_id], references: [id])
+  caso    Caso?   @relation("CapIncidenciasCaso", fields: [caso_id], references: [id])
+
+  @@map("cap_incidencias")
+  @@schema("public")
+}
+
+model CapSolicitud {
+  id         String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id String   @db.Uuid
+  tipo       String
+  referencia String
+  estado     String   @default("pendiente")
+  created_at DateTime @default(now()) @db.Timestamptz(6)
+  updated_at DateTime @default(now()) @updatedAt @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapSolicitudes", fields: [usuario_id], references: [id])
+
+  @@map("cap_solicitudes")
+  @@schema("public")
+}
+
+model CapMeta {
+  id            String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  metrica       String
+  valor         Decimal  @db.Decimal(6, 4)
+  vigente_desde DateTime @db.Date
+  created_by    String?  @db.Uuid
+  created_at    DateTime @default(now()) @db.Timestamptz(6)
+
+  @@unique([metrica, vigente_desde])
+  @@map("cap_metas")
   @@schema("public")
 }
 

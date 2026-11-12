@@ -18,7 +18,7 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { limpiarNombre } from "@/lib/reglas/nombres";
 import { componerDomicilio } from "@/lib/reglas/domicilio";
 
-export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; faltantes?: string[] };
+export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; faltantes?: string[]; mensaje?: string };
 
 const fecha = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const texto = (form: FormData, k: string) => {

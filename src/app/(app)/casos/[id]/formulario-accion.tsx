@@ -53,6 +53,7 @@ export function FormularioAccion({ accion, children, boton = "Guardar", etiqueta
           )}
         </div>
       )}
+      {estado.mensaje && !enviando && <p role="status" className="rounded-[var(--radius-boton)] bg-exito-tint p-3 text-sm font-medium text-exito-texto">{estado.mensaje}</p>}
       {estado.unaVez && !enviando && <DatoUnaVez {...estado.unaVez} />}
       <div className="flex items-center gap-3">
         <Button type="submit" disabled={enviando}>{enviando ? "Guardando…" : boton}</Button>

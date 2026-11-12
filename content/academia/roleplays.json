@@ -1,0 +1,7 @@
+[
+ {"clave": "RP-01", "ruta": "R1", "escenario": "Cliente Ley 97 apto que objeta el 30%", "perfil": "Ley 97, baja hace 2 meses, todo en regla", "objecion": "«¿Por qué 30%? Es mucho.»"},
+ {"clave": "RP-02", "ruta": "R1", "escenario": "Cliente que quiere retirar pero cotiza actualmente", "perfil": "Trabaja desde hace una semana en otra empresa", "objecion": "«Me dijeron que sí se puede.»"},
+ {"clave": "RP-03", "ruta": "R2", "escenario": "Cliente Ley 73 con 950 semanas y 59 años que «necesita el dinero ya»", "perfil": "Ley 73, 950 semanas, 59 años", "objecion": "«Necesito el dinero ya.» Debe terminar en «no te conviene» + cita con el Director"},
+ {"clave": "RP-04", "ruta": "P1", "escenario": "Viuda en unión libre cuya pareja murió hace 8 meses", "perfil": "Unión libre, pareja Ley 73 fallecida hace 8 meses", "objecion": "«Me dijeron que la Corte ya quitó los 5 años.»"},
+ {"clave": "RP-05", "ruta": "P1", "escenario": "Recién desempleado Ley 73 de 61 años interesado en M40 que cree que tendrá servicio médico", "perfil": "Ley 73, 61 años, baja hace 2 meses", "objecion": "«Con la 40 tengo IMSS, ¿verdad?»"}
+]

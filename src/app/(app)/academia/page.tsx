@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, CheckCircle2, Circle, FlaskConical, Lock, Users } from "lucide-react";
+import { Award, CheckCircle2, Circle, FlaskConical, Lock, TrendingUp, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
@@ -10,7 +10,10 @@ import { avanceDe, estadosDe } from "@/lib/academia/motor";
 import { puedeIntentar } from "@/lib/reglas/capacitacion";
 import { Casilla } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
-import { firmarAcuses } from "./acciones";
+import { firmarAcuses, solicitarEvaluacion } from "./acciones";
+import { conUsuario } from "@/lib/db/prisma";
+import { ROLEPLAYS, RUBRICA } from "@/lib/academia/contenido";
+import { etiquetaSeveridad, etiquetaTipo } from "@/lib/academia/incidencias";
 
 export const metadata: Metadata = { title: "Academia" };
 const fecha = (iso: string) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(iso));
@@ -22,6 +25,13 @@ export default async function Academia() {
   const estados = estadosDe(a);
   const faltanAcuses = ACUSES.filter((x) => !a.acuses.has(x.clave));
   const obligatoria = sesion.usuario.rol === "socio";
+  const yo = { usuario_id: sesion.usuario.id };
+  const h = await conUsuario(sesion.claims, async (tx) => ({
+    solicitudes: await tx.capSolicitud.findMany({ where: { ...yo, estado: "pendiente" }, select: { tipo: true, referencia: true } }),
+    roleplays: await tx.capEvaluacionRoleplay.findMany({ where: { ...yo, archivado_at: null }, orderBy: { created_at: "desc" }, select: { id: true, roleplay: true, total: true, aprobado: true, cumple: true, comentarios: true, created_at: true } }),
+    incidencias: await tx.capIncidencia.findMany({ where: { ...yo, archivado_at: null }, orderBy: { created_at: "desc" }, take: 10, select: { id: true, tipo: true, severidad: true, descripcion: true, accion: true, created_at: true } }),
+  }), sesion.ip);
+  const pedida = (tipo: string, ref: string) => h.solicitudes.some((x) => x.tipo === tipo && x.referencia === ref);
 
   return (
     <>
@@ -30,6 +40,9 @@ export default async function Academia() {
         : "Las rutas de capacitación del equipo. Para ti son de repaso: no cambian tus permisos."}>
         {sesion.usuario.rol === "director" && (
           <Link href="/academia/equipo" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><Users className="size-4" aria-hidden /> Avance del equipo</Link>
+        )}
+        {obligatoria && (
+          <Link href="/academia/desempeno" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><TrendingUp className="size-4" aria-hidden /> Mi desempeño</Link>
         )}
       </Encabezado>
 
@@ -61,6 +74,10 @@ export default async function Academia() {
             ))}
           </div>
         )}
+
+        {a.suspendidas?.size ? (
+          <Card className="border-critico/40"><CardContent className="pt-5 text-sm text-critico">Tus certificaciones están suspendidas por una incidencia de línea roja. Habla con el Director para revisarla.</CardContent></Card>
+        ) : null}
 
         {RUTAS.map((r) => {
           const e = estados.find((x) => x.clave === r.clave)!;
@@ -123,6 +140,20 @@ export default async function Academia() {
                 {!certificada && e.disponible && e.pendientes.length > 0 && (
                   <div><p className="text-xs font-medium text-ink">Te falta</p><ul className="mt-1 list-disc pl-5 text-ink-muted">{e.pendientes.map((p) => <li key={p}>{p}</li>)}</ul></div>
                 )}
+                {!certificada && e.disponible && obligatoria && a.examenesAprobados.has(r.clave) && (
+                  <div className="flex flex-wrap gap-2">
+                    {(r.requisitos.roleplays ?? []).filter((rp) => !a.roleplaysAprobados?.has(rp)).map((rp) => (
+                      <Pedir key={rp} hecho={pedida("roleplay", rp)} accion={solicitarEvaluacion.bind(null, "roleplay", rp)} texto={`Pedir juego de roles ${rp}`}
+                        ayuda={ROLEPLAYS.find((x) => x.clave === rp)?.escenario} />
+                    ))}
+                    {r.requisitos.shadowing && (a.acompanamientos?.[r.clave] ?? 0) < r.requisitos.shadowing && (
+                      <Pedir hecho={pedida("acompanamiento", r.clave)} accion={solicitarEvaluacion.bind(null, "acompanamiento", r.clave)} texto={`Pedir caso acompañado ${r.clave}`} />
+                    )}
+                    {r.requisitos.entrevista && !a.entrevistas?.has(r.clave) && (
+                      <Pedir hecho={pedida("entrevista", r.clave)} accion={solicitarEvaluacion.bind(null, "entrevista", r.clave)} texto="Pedir entrevista con el Director" />
+                    )}
+                  </div>
+                )}
                 {!certificada && e.disponible && e.proximamente.length > 0 && (
                   <div><p className="text-xs font-medium text-ink">Para certificarte, además (se habilita en las siguientes fases)</p>
                     <ul className="mt-1 list-disc pl-5 text-ink-muted">{e.proximamente.map((p) => <li key={p}>{p}</li>)}</ul></div>
@@ -142,7 +173,38 @@ export default async function Academia() {
             </Card>
           );
         })}
+        {(h.roleplays.length > 0 || h.incidencias.length > 0) && (
+          <Card>
+            <CardHeader><CardTitle>Tus evaluaciones</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              {h.roleplays.map((x) => {
+                const cumple = (x.cumple ?? {}) as Record<string, boolean>;
+                const faltaron = RUBRICA.criterios.filter((c) => !cumple[c.clave]);
+                return (
+                  <div key={x.id} className="border-b border-borde pb-3 last:border-0 last:pb-0">
+                    <p><span className="cifra font-medium text-ink">{x.roleplay}</span> · {x.total} puntos · <span className={x.aprobado ? "text-exito-texto" : "text-critico"}>{x.aprobado ? "aprobado" : "no aprobado"}</span> <span className="text-xs text-ink-muted">· {fecha(x.created_at.toISOString())}</span></p>
+                    {faltaron.length > 0 && <p className="text-xs text-ink-muted">A mejorar: {faltaron.map((c) => c.criterio + (c.eliminatorio ? " (eliminatorio)" : "")).join(" · ")}</p>}
+                    {x.comentarios && <p className="text-xs text-ink">«{x.comentarios}»</p>}
+                  </div>
+                );
+              })}
+              {h.incidencias.map((x) => (
+                <p key={x.id} className={x.severidad === "linea_roja" ? "text-critico" : "text-ink"}>Incidencia {etiquetaSeveridad(x.severidad).toLowerCase()}: {etiquetaTipo(x.tipo)} · {x.descripcion}
+                  <span className="block text-xs text-ink-muted">{fecha(x.created_at.toISOString())}{x.accion ? ` · ${x.accion}` : ""}</span></p>
+              ))}
+            </CardContent>
+          </Card>
+        )}
       </div>
     </>
+  );
+}
+
+function Pedir({ hecho, accion, texto, ayuda }: { hecho: boolean; accion: Parameters<typeof FormularioAccion>[0]["accion"]; texto: string; ayuda?: string }) {
+  if (hecho) return <span className="inline-flex h-10 items-center rounded-[var(--radius-boton)] bg-slate-100 px-3 text-xs text-ink-muted">{texto.replace("Pedir", "Pediste")} · pendiente</span>;
+  return (
+    <FormularioAccion accion={accion} boton={texto} className="grid gap-1 [&_button]:h-10 [&_button]:bg-transparent [&_button]:border [&_button]:border-brand [&_button]:text-brand [&_button]:hover:bg-brand-tint">
+      {ayuda ? <span className="text-xs text-ink-muted">{ayuda}</span> : <span className="sr-only">{texto}</span>}
+    </FormularioAccion>
   );
 }

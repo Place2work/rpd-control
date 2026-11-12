@@ -47,3 +47,8 @@ export type CasoPractico = { clave: string; ruta: ClaveRuta; titulo: string; nar
 );
 /** Lo que el navegador ve de un caso (sin la respuesta). */
 export type CasoServido = { clave: string; ruta: ClaveRuta; titulo: string; narrativa: string; tipo: "retiro" | "opcion"; captura?: CampoCaso[]; opciones?: string[] };
+
+/** Rúbrica de juego de roles (9.2) y escenarios RP-01 a RP-05. Son públicos (no traen respuestas). */
+export type CriterioRubrica = { clave: string; criterio: string; peso: number; eliminatorio: boolean };
+export type Rubrica = { version: number; minimo: number; criterios: CriterioRubrica[] };
+export type Roleplay = { clave: string; ruta: ClaveRuta; escenario: string; perfil: string; objecion: string };

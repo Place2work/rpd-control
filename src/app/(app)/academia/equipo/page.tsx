@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Award, Lock, LockOpen } from "lucide-react";
+import { ArrowLeft, Award, ClipboardCheck, Lock, LockOpen } from "lucide-react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
@@ -30,23 +30,49 @@ export default async function Equipo() {
     casos: await tx.capCasoIntento.findMany({ where: { aprobado: true }, select: { usuario_id: true, caso: true, version: true, aprobado: true } }),
     excepciones: await tx.capExcepcion.findMany({ where: { archivado_at: null, hasta: { gte: new Date(new Date().toISOString().slice(0, 10)) } }, orderBy: { hasta: "asc" },
       select: { id: true, usuario_id: true, ruta: true, hasta: true, motivo: true } }),
+    roleplays: await tx.capEvaluacionRoleplay.findMany({ where: { archivado_at: null, aprobado: true }, select: { usuario_id: true, roleplay: true, aprobado: true } }),
+    shadowing: await tx.capShadowing.findMany({ where: { archivado_at: null, cumple: true }, select: { usuario_id: true, ruta: true, cumple: true } }),
+    diagnosticos: await tx.capDiagnosticoValidado.findMany({ where: { archivado_at: null }, select: { usuario_id: true, correccion_grave: true } }),
+    entrevistas: await tx.capEntrevista.findMany({ where: { archivado_at: null, aprobada: true }, select: { usuario_id: true, ruta: true, aprobada: true } }),
+    suspendidas: await tx.capCertificacion.findMany({ where: { archivado_at: null, estado: "suspendida" }, select: { usuario_id: true, ruta: true } }),
+    solicitudes: await tx.capSolicitud.findMany({ where: { estado: "pendiente" }, orderBy: { created_at: "asc" }, select: { id: true, usuario_id: true, tipo: true, referencia: true, created_at: true } }),
+    incidencias: await tx.capIncidencia.findMany({ where: { archivado_at: null, created_at: { gte: new Date(ahora.getTime() - 90 * 864e5) } }, select: { usuario_id: true, severidad: true } }),
   }), sesion.ip);
   const encendido = await bloqueosActivos(sesion);
 
   const filas = d.usuarios.map((u) => {
     const de = <T extends { usuario_id: string }>(xs: T[]) => xs.filter((x) => x.usuario_id === u.id);
-    const a = avanceDesdeFilas({ progreso: de(d.progreso), intentos: de(d.intentos), acuses: de(d.acuses), certs: de(d.certs), casos: de(d.casos) }, ahora);
+    const a = avanceDesdeFilas({ progreso: de(d.progreso), intentos: de(d.intentos), acuses: de(d.acuses), certs: de(d.certs), casos: de(d.casos),
+      roleplays: de(d.roleplays), shadowing: de(d.shadowing), diagnosticos: de(d.diagnosticos), entrevistas: de(d.entrevistas), suspendidas: de(d.suspendidas) }, ahora);
     const estados = estadosDe(a);
     const actividad = [...de(d.progreso).map((p) => p.updated_at), ...de(d.intentos).map((i) => i.fin ?? i.inicio), ...de(d.acuses).map((x) => x.aceptado_at)].sort((x, y) => y.getTime() - x.getTime())[0];
     const fallidos = de(d.intentos).filter((i) => i.tipo === "examen_ruta" && i.fin && !i.aprobado).length;
-    return { u, a, estados, actividad, fallidos, certs: de(d.certs) };
+    const incid = de(d.incidencias);
+    return { u, a, estados, actividad, fallidos, certs: de(d.certs), incid };
   });
 
+  const nombre = (id: string) => d.usuarios.find((u) => u.id === id)?.nombre ?? "—";
+  const TIPO: Record<string, string> = { roleplay: "Juego de roles", acompanamiento: "Caso acompañado", entrevista: "Entrevista" };
   return (
     <>
       <Encabezado titulo="Avance del equipo" descripcion="Academia: avance por persona en cada ruta, certificaciones y exámenes no aprobados. Obligatoria para asesores de pensiones; para analistas es repaso.">
         <Link href="/academia" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><ArrowLeft className="size-4" aria-hidden /> Academia</Link>
       </Encabezado>
+      {d.solicitudes.length > 0 && (
+        <Card className="mb-4 border-brand/40">
+          <CardHeader><CardTitle className="flex items-center gap-2"><ClipboardCheck className="size-5 text-brand" aria-hidden /> Por evaluar</CardTitle></CardHeader>
+          <CardContent>
+            <ul className="grid gap-2 text-sm">
+              {d.solicitudes.map((x) => (
+                <li key={x.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span><span className="font-medium text-ink">{nombre(x.usuario_id)}</span> pide {TIPO[x.tipo]?.toLowerCase() ?? x.tipo} <span className="cifra">{x.referencia}</span> <span className="text-xs text-ink-muted">· {fecha(x.created_at)}</span></span>
+                  <Link href={`/academia/equipo/${x.usuario_id}`} className="text-sm text-brand underline">Evaluar</Link>
+                </li>
+              ))}
+            </ul>
+          </CardContent>
+        </Card>
+      )}
       <Card>
         <CardContent className="overflow-x-auto p-0">
           <table className="w-full min-w-[720px] text-left text-sm">
@@ -58,15 +84,18 @@ export default async function Equipo() {
             </tr></thead>
             <tbody className="divide-y divide-borde">
               {filas.length === 0 && <tr><td colSpan={RUTAS.length + 3} className="px-4 py-4 text-ink-muted">Todavía no hay asesores de pensiones ni analistas activos.</td></tr>}
-              {filas.map(({ u, a, estados, actividad, fallidos, certs }) => (
+              {filas.map(({ u, a, estados, actividad, fallidos, certs, incid }) => (
                 <tr key={u.id}>
-                  <td className="px-4 py-2.5"><span className="font-medium text-ink">{u.nombre}</span><span className="block text-xs text-ink-muted">{ETIQUETA_ROL[u.rol]}{a.acuses.size < 2 ? " · sin acuses" : ""}</span></td>
+                  <td className="px-4 py-2.5"><Link href={`/academia/equipo/${u.id}`} className="font-medium text-brand hover:underline">{u.nombre}</Link>
+                    <span className="block text-xs text-ink-muted">{ETIQUETA_ROL[u.rol]}{a.acuses.size < 2 ? " · sin acuses" : ""}</span>
+                    {a.suspendidas?.size ? <span className="block text-xs font-medium text-critico">Certificaciones suspendidas</span> : null}
+                    {incid.length ? <span className="block text-xs text-aviso">{incid.length} {incid.length === 1 ? "incidencia" : "incidencias"} en 90 días</span> : null}</td>
                   {RUTAS.map((r) => {
                     const e = estados.find((x) => x.clave === r.clave)!;
                     const c = certs.find((x) => x.ruta === r.clave);
                     return (
                       <td key={r.clave} className="px-3 py-2.5">
-                        {a.certificadas.has(r.clave)
+                        {a.suspendidas?.has(r.clave) ? <span className="text-xs font-medium text-critico">Suspendida</span> : a.certificadas.has(r.clave)
                           ? <span className="inline-flex items-center gap-1 text-exito-texto"><Award className="size-4" aria-hidden /> <span className="text-xs">{c?.vence_at ? `vence ${fecha(c.vence_at)}` : "vigente"}</span></span>
                           : e.disponible ? <span className="cifra text-xs text-ink">{e.avance}%</span> : <span className="text-xs text-ink-muted">—</span>}
                       </td>
@@ -118,7 +147,7 @@ export default async function Equipo() {
           </CardContent>
         </Card>
       </div>
-      <p className="mt-3 text-xs text-ink-muted">Juegos de roles, acompañamientos, incidencias y el tablero de desempeño llegan en la fase C.</p>
+      <p className="mt-3 text-xs text-ink-muted">Da clic en un nombre para calificar juegos de roles, registrar casos acompañados, diagnósticos, la entrevista o una incidencia. <Link href="/academia/desempeno" className="text-brand underline">Ver desempeño del equipo</Link>.</p>
     </>
   );
 }

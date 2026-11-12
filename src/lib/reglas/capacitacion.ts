@@ -1,7 +1,7 @@
 // Reglas de la Academia (docs/CAPACITACION.md secciones 3.2, 9.1, 9.3 y 9.4). Puras: reciben el contenido,
 // el avance y `ahora`; no leen la base ni el reloj. Los mínimos, intentos y esperas vienen del contenido
 // (content/academia/rutas.json y evaluacion.json), no del código.
-import type { CampoCaso, ClaveAcuse, ClaveRuta, DatosCasoRetiro, Pregunta, ReglaIntentos, Ruta } from "@/lib/academia/tipos";
+import type { CampoCaso, ClaveAcuse, ClaveRuta, CriterioRubrica, DatosCasoRetiro, Pregunta, ReglaIntentos, Ruta } from "@/lib/academia/tipos";
 import { precalificar, type ParametrosRetiro } from "./retiro";
 
 // ───────────── Selección de preguntas ─────────────
@@ -92,6 +92,11 @@ export type AvanceUsuario = {
   acuses: Set<ClaveAcuse>;
   certificadas: Set<ClaveRuta>;           // certificaciones vigentes
   casosAprobados?: Set<string>;           // casos prácticos resueltos bien en el simulador
+  roleplaysAprobados?: Set<string>;       // RP-0x aprobados con la rúbrica (9.2)
+  acompanamientos?: Partial<Record<ClaveRuta, number>>; // casos reales acompañados que «cumplen», por ruta
+  diagnosticosValidos?: number;           // diagnósticos iniciales validados sin corrección grave (P2)
+  entrevistas?: Set<ClaveRuta>;           // entrevistas aprobadas con el Director (P2)
+  suspendidas?: Set<ClaveRuta>;           // certificaciones suspendidas (línea roja): no se otorga nada mientras tanto
 };
 
 export type EstadoRuta = {
@@ -105,12 +110,18 @@ export type EstadoRuta = {
   bloqueo?: string;          // por qué no está disponible
 };
 
-const PROXIMAMENTE = (r: Ruta["requisitos"]) => [
-  r.roleplays?.length ? `Juego de roles ${r.roleplays.join(" y ")} con el Director` : null,
-  r.shadowing ? `${r.shadowing} casos acompañados` : null,
-  r.diagnosticos ? `${r.diagnosticos} diagnósticos validados` : null,
-  r.entrevista ? "Entrevista con el Director" : null,
-].filter((x): x is string => Boolean(x));
+/** Requisitos que califica el Director (fase C): juegos de roles, acompañamientos, diagnósticos y entrevista. */
+function pendientesHumanos(ruta: Ruta, a: AvanceUsuario): string[] {
+  const r = ruta.requisitos;
+  const acomp = a.acompanamientos?.[ruta.clave] ?? 0;
+  const diag = a.diagnosticosValidos ?? 0;
+  return [
+    ...(r.roleplays ?? []).filter((rp) => !a.roleplaysAprobados?.has(rp)).map((rp) => `Aprobar el juego de roles ${rp} con el Director`),
+    r.shadowing && acomp < r.shadowing ? `${r.shadowing - acomp} ${r.shadowing - acomp === 1 ? (ruta.clave === "R2" ? "caso Ley 73 acompañado" : "caso acompañado") : (ruta.clave === "R2" ? "casos Ley 73 acompañados" : "casos acompañados")} más (${acomp} de ${r.shadowing})` : null,
+    r.diagnosticos && diag < r.diagnosticos ? `${r.diagnosticos - diag} ${r.diagnosticos - diag === 1 ? "diagnóstico inicial validado" : "diagnósticos iniciales validados"} más (${diag} de ${r.diagnosticos})` : null,
+    r.entrevista && !a.entrevistas?.has(ruta.clave) ? "Entrevista con el Director" : null,
+  ].filter((x): x is string => Boolean(x));
+}
 
 /**
  * Lecturas: N0 siempre; las demás rutas con N0 certificada. Examen: todos los módulos leídos, acuses firmados
@@ -132,7 +143,8 @@ export function estadoRuta(ruta: Ruta, modulosRuta: string[], a: AvanceUsuario, 
     !prereqExamen ? `Aprobar antes el examen de ${ruta.prerrequisitos.join(", ")}` : null,
     casosFaltan > 0 ? `Resolver ${casosFaltan} ${casosFaltan === 1 ? "caso práctico" : "casos prácticos"} en el simulador (${casosHechos} de ${ruta.requisitos.casos})` : null,
   ].filter((x): x is string => Boolean(x));
-  const proximamente = PROXIMAMENTE(ruta.requisitos);
+  pendientes.push(...pendientesHumanos(ruta, a));
+  const proximamente: string[] = [];
   const prereqCert = ruta.prerrequisitos.every((p) => a.certificadas.has(p));
   return {
     clave: ruta.clave, disponible,
@@ -140,7 +152,7 @@ export function estadoRuta(ruta: Ruta, modulosRuta: string[], a: AvanceUsuario, 
     modulosLeidos: leidos, modulosTotal: modulosRuta.length,
     avance: Math.round(((leidos + (examen ? 1 : 0) + Math.min(casosHechos, ruta.requisitos.casos ?? 0)) / (modulosRuta.length + 1 + (ruta.requisitos.casos ?? 0))) * 100),
     pendientes, proximamente,
-    otorgable: disponible && pendientes.length === 0 && proximamente.length === 0 && prereqCert && !a.certificadas.has(ruta.clave),
+    otorgable: disponible && pendientes.length === 0 && prereqCert && !a.certificadas.has(ruta.clave) && !(a.suspendidas?.size),
     bloqueo: disponible ? undefined : "Primero certifícate en N0 (Inducción)",
   };
 }
@@ -183,4 +195,13 @@ export function compararCaso(campos: CampoCaso[], captura: ResultadoCaso, motor:
     return ok ? [] : [{ campo: c, esperado, capturado: dado }];
   });
   return { diferencias, aprobado: diferencias.length === 0 };
+}
+
+// ───────────── Juego de roles (9.2) ─────────────
+
+/** Rúbrica: suma los pesos de los criterios que cumplió; aprueba con el mínimo y sin fallar ningún eliminatorio. */
+export function calificarRoleplay(criterios: CriterioRubrica[], cumple: Record<string, boolean>, minimo: number) {
+  const total = criterios.reduce((t, c) => t + (cumple[c.clave] ? c.peso : 0), 0);
+  const eliminatoriosFallados = criterios.filter((c) => c.eliminatorio && !cumple[c.clave]).map((c) => c.clave);
+  return { total, eliminatoriosFallados, eliminatorioFallado: eliminatoriosFallados.length > 0, aprobado: eliminatoriosFallados.length === 0 && total >= minimo };
 }

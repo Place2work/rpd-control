@@ -25,6 +25,11 @@ type FilasAvance = {
   acuses: { documento: string; version: string }[];
   certs: { ruta: string; vence_at: Date | null }[];
   casos?: { caso: string; version: number; aprobado: boolean }[];
+  roleplays?: { roleplay: string; aprobado: boolean }[];
+  shadowing?: { ruta: string; cumple: boolean }[];
+  diagnosticos?: { correccion_grave: boolean }[];
+  entrevistas?: { ruta: string; aprobada: boolean }[];
+  suspendidas?: { ruta: string }[];
 };
 export type Avance = AvanceUsuario & { intentos: { tipo: string; objetivo: string; inicio: string; fin: string | null; aprobado: boolean | null; calificacion: number | null }[] };
 
@@ -37,6 +42,11 @@ export function avanceDesdeFilas(f: FilasAvance, ahora: Date): Avance {
     acuses: new Set(f.acuses.filter((a) => versionAcuse.get(a.documento as ClaveAcuse) === a.version).map((a) => a.documento as ClaveAcuse)),
     certificadas: new Set(f.certs.filter((c) => !c.vence_at || iso(c.vence_at).slice(0, 10) >= hoy).map((c) => c.ruta as ClaveRuta)),
     casosAprobados: new Set((f.casos ?? []).filter((c) => c.aprobado && versionCaso.get(c.caso) === c.version).map((c) => c.caso)),
+    roleplaysAprobados: new Set((f.roleplays ?? []).filter((r) => r.aprobado).map((r) => r.roleplay)),
+    acompanamientos: (f.shadowing ?? []).filter((x) => x.cumple).reduce<Partial<Record<ClaveRuta, number>>>((m, x) => ({ ...m, [x.ruta]: (m[x.ruta as ClaveRuta] ?? 0) + 1 }), {}),
+    diagnosticosValidos: (f.diagnosticos ?? []).filter((x) => !x.correccion_grave).length,
+    entrevistas: new Set((f.entrevistas ?? []).filter((x) => x.aprobada).map((x) => x.ruta as ClaveRuta)),
+    suspendidas: new Set((f.suspendidas ?? []).map((x) => x.ruta as ClaveRuta)),
     intentos: f.intentos.map((i) => ({ tipo: i.tipo, objetivo: i.objetivo, inicio: iso(i.inicio), fin: i.fin ? iso(i.fin) : null, aprobado: i.aprobado,
       calificacion: i.calificacion === null || i.calificacion === undefined ? null : Number(i.calificacion) })),
   };
@@ -44,27 +54,32 @@ export function avanceDesdeFilas(f: FilasAvance, ahora: Date): Avance {
 
 /** Avance de una persona (motor, con la sesión ya verificada). */
 export async function avanceDe(usuarioId: string, ahora = new Date()): Promise<Avance> {
-  const [progreso, intentos, acuses, certs, casos] = await Promise.all([
+  const [progreso, intentos, acuses, certs, casos, roleplays, shadowing, diagnosticos, entrevistas, suspendidas] = await Promise.all([
     prismaSistema.capProgreso.findMany({ where: { usuario_id: usuarioId, estado: "completado" }, select: { modulo: true, version: true } }),
     prismaSistema.capIntento.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, orderBy: { inicio: "asc" },
       select: { tipo: true, objetivo: true, inicio: true, fin: true, aprobado: true, calificacion: true } }),
     prismaSistema.capAcuse.findMany({ where: { usuario_id: usuarioId }, select: { documento: true, version: true } }),
     prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: { in: VIVAS } }, select: { ruta: true, vence_at: true } }),
     prismaSistema.capCasoIntento.findMany({ where: { usuario_id: usuarioId, aprobado: true }, select: { caso: true, version: true, aprobado: true } }),
+    prismaSistema.capEvaluacionRoleplay.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, select: { roleplay: true, aprobado: true } }),
+    prismaSistema.capShadowing.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, select: { ruta: true, cumple: true } }),
+    prismaSistema.capDiagnosticoValidado.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, select: { correccion_grave: true } }),
+    prismaSistema.capEntrevista.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, select: { ruta: true, aprobada: true } }),
+    prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: "suspendida" }, select: { ruta: true } }),
   ]);
-  return avanceDesdeFilas({ progreso, intentos, acuses, certs, casos }, ahora);
+  return avanceDesdeFilas({ progreso, intentos, acuses, certs, casos, roleplays, shadowing, diagnosticos, entrevistas, suspendidas }, ahora);
 }
 
 export function estadosDe(a: AvanceUsuario): EstadoRuta[] {
   return RUTAS.map((r) => estadoRuta(r, modulosDe(r.clave).map((m) => m.clave), a, casosDe(r.clave)));
 }
 
-/** Otorga las certificaciones que ya se cumplen (9.4). P2 no se otorga sola: requiere entrevista. */
-async function otorgarLasQueCumple(usuarioId: string, ahora: Date): Promise<ClaveRuta[]> {
+/** Otorga las certificaciones que ya se cumplen (9.4). P2 pide la entrevista con el Director como requisito. */
+export async function otorgarLasQueCumple(usuarioId: string, ahora: Date): Promise<ClaveRuta[]> {
   const otorgadas: ClaveRuta[] = [];
   for (let vuelta = 0; vuelta < RUTAS.length; vuelta++) {
     const a = await avanceDe(usuarioId, ahora);
-    const nueva = estadosDe(a).find((e) => e.otorgable && !RUTAS.find((r) => r.clave === e.clave)?.requisitos.entrevista);
+    const nueva = estadosDe(a).find((e) => e.otorgable);
     if (!nueva) break;
     const ruta = RUTAS.find((r) => r.clave === nueva.clave)!;
     const vence = venceEl(iso(ahora), ruta.vigencia_meses);

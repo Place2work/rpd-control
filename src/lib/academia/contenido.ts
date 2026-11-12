@@ -1,7 +1,7 @@
 // GENERADO por scripts/academia-ts.cjs desde content/academia/. No editar a mano.
 // Incluye las respuestas correctas: solo en el servidor.
 import "server-only";
-import type { Acuse, CasoPractico, Modulo, Pregunta, ReglasEvaluacion, Ruta } from "./tipos";
+import type { Acuse, CasoPractico, Modulo, Pregunta, ReglasEvaluacion, Roleplay, Rubrica, Ruta } from "./tipos";
 
 export const EVALUACION: ReglasEvaluacion = {
  "quiz_modulo": {
@@ -1927,5 +1927,98 @@ export const CASOS: CasoPractico[] = [
   "correcta": 1,
   "explicacion": "El total de descuentos no puede pasar del 30%, ni dejarla debajo del promedio de las garantizadas, ni plazo mayor a 60 meses (Transitorio Vigésimo Noveno LSS).",
   "version": 1
+ }
+];
+
+export const RUBRICA: Rubrica = {
+ "version": 1,
+ "minimo": 80,
+ "criterios": [
+  {
+   "clave": "fecha_baja_trabaja",
+   "criterio": "Preguntó la fecha de baja y si trabaja hoy (incluido gobierno) antes que nada",
+   "peso": 15,
+   "eliminatorio": true
+  },
+  {
+   "clave": "regimen",
+   "criterio": "Identificó el régimen (Ley 73 / Ley 97)",
+   "peso": 10,
+   "eliminatorio": true
+  },
+  {
+   "clave": "monto_y_semanas",
+   "criterio": "Presentó monto y semanas juntos, como estimado",
+   "peso": 20,
+   "eliminatorio": true
+  },
+  {
+   "clave": "sin_promesas",
+   "criterio": "No prometió montos ni plazos fuera de los permitidos",
+   "peso": 15,
+   "eliminatorio": true
+  },
+  {
+   "clave": "honorario",
+   "criterio": "Explicó el honorario con claridad (30% IVA incluido)",
+   "peso": 10,
+   "eliminatorio": false
+  },
+  {
+   "clave": "objecion",
+   "criterio": "Manejó la objeción planteada con la respuesta honesta",
+   "peso": 15,
+   "eliminatorio": false
+  },
+  {
+   "clave": "siguiente_paso",
+   "criterio": "Siguiente paso claro (documentos, fecha, cita con el Director)",
+   "peso": 10,
+   "eliminatorio": false
+  },
+  {
+   "clave": "tono",
+   "criterio": "Tono: claro, tuteo, sin tecnicismos frente al cliente",
+   "peso": 5,
+   "eliminatorio": false
+  }
+ ]
+};
+
+export const ROLEPLAYS: Roleplay[] = [
+ {
+  "clave": "RP-01",
+  "ruta": "R1",
+  "escenario": "Cliente Ley 97 apto que objeta el 30%",
+  "perfil": "Ley 97, baja hace 2 meses, todo en regla",
+  "objecion": "«¿Por qué 30%? Es mucho.»"
+ },
+ {
+  "clave": "RP-02",
+  "ruta": "R1",
+  "escenario": "Cliente que quiere retirar pero cotiza actualmente",
+  "perfil": "Trabaja desde hace una semana en otra empresa",
+  "objecion": "«Me dijeron que sí se puede.»"
+ },
+ {
+  "clave": "RP-03",
+  "ruta": "R2",
+  "escenario": "Cliente Ley 73 con 950 semanas y 59 años que «necesita el dinero ya»",
+  "perfil": "Ley 73, 950 semanas, 59 años",
+  "objecion": "«Necesito el dinero ya.» Debe terminar en «no te conviene» + cita con el Director"
+ },
+ {
+  "clave": "RP-04",
+  "ruta": "P1",
+  "escenario": "Viuda en unión libre cuya pareja murió hace 8 meses",
+  "perfil": "Unión libre, pareja Ley 73 fallecida hace 8 meses",
+  "objecion": "«Me dijeron que la Corte ya quitó los 5 años.»"
+ },
+ {
+  "clave": "RP-05",
+  "ruta": "P1",
+  "escenario": "Recién desempleado Ley 73 de 61 años interesado en M40 que cree que tendrá servicio médico",
+  "perfil": "Ley 73, 61 años, baja hace 2 meses",
+  "objecion": "«Con la 40 tengo IMSS, ¿verdad?»"
  }
 ];
