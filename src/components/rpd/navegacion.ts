@@ -3,6 +3,7 @@ import {
   CalendarDays,
   CircleCheckBig,
   FolderKanban,
+  GraduationCap,
   HandCoins,
   LayoutDashboard,
   type LucideIcon,
@@ -27,6 +28,7 @@ export const MODULOS: Modulo[] = [
   { href: "/dinero", titulo: "Dinero", icono: Banknote, roles: ["director", "asesor", "socio"] },
   { href: "/comisiones", titulo: "Comisiones", icono: HandCoins, roles: TODOS },
   { href: "/asesores", titulo: "Asesores y referidores", icono: Users, roles: ["director", "asesor"] },
+  { href: "/academia", titulo: "Academia", icono: GraduationCap, roles: ["director", "asesor", "socio"] },
   { href: "/reportes", titulo: "Reportes", icono: BarChart3, roles: ["director", "asesor"] },
   { href: "/configuracion", titulo: "Configuración", icono: Settings, roles: ["director"] },
 ];

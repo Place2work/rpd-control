@@ -1,0 +1,165 @@
+[
+ {
+  "clave": "N0-Q01",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Un cliente te pregunta si le garantizas que va a recibir $15,000. ¿Qué respondes?",
+  "opciones": [
+   "\"Sí, te lo garantizo.\"",
+   "\"Es un estimado; el monto final lo determina la Afore. Te enseño lo que recibirías y las semanas que pierdes.\"",
+   "\"Seguro te dan más.\"",
+   "\"Eso no te lo puedo decir.\""
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "nunca prometemos montos; todo cálculo es estimado y va con su costo en semanas.",
+  "parametros": [],
+  "modulo": "N0-02",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q02",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "El cliente te manda su usuario y contraseña de AforeWeb \"para agilizar\".",
+  "opciones": [
+   "Los guardas en las notas del CRM.",
+   "Los usas una vez y los borras.",
+   "Le pides que no los comparta y que él capture en el portal; nunca se guardan ni usan contraseñas de terceros.",
+   "Se los reenvías al Director."
+  ],
+  "correcta": 2,
+  "tolerancia": null,
+  "explicacion": "línea roja 2.",
+  "parametros": [],
+  "modulo": "N0-02",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q03",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Un prospecto te pide \"subirle el salario\" en su registro para retirar más.",
+  "opciones": [
+   "Le dices que lo consultas.",
+   "Lo rechazas: la empresa no altera salarios ni crea patrones ficticios.",
+   "Lo canalizas con un gestor.",
+   "Lo haces si paga más honorario."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "línea roja 3.",
+  "parametros": [],
+  "modulo": "N0-02",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q04",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿El trámite de retiro por desempleo ante la Afore tiene costo?",
+  "opciones": [
+   "Sí, lo cobra la Afore.",
+   "Es gratuito y personal; nosotros cobramos por asesoría, cálculo, expediente y acompañamiento.",
+   "Solo es gratuito si lo hace una firma."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "así se vende sin riesgo frente a PROFECO y CONDUSEF.",
+  "parametros": [],
+  "modulo": "N0-01",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q05",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Cuál es la primera pregunta de diagnóstico en cualquier tema de pensión?",
+  "opciones": [
+   "¿Cuánto dinero quiere?",
+   "¿Cotizó antes del 1 de julio de 1997? (Ley 73 o Ley 97)",
+   "¿En qué Afore está?"
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "si se equivoca el régimen, todo lo demás sale mal.",
+  "parametros": [],
+  "modulo": "N0-03",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q06",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "El honorario del retiro por desempleo es:",
+  "opciones": [
+   "26% más IVA.",
+   "30% de lo que paga la Afore, IVA incluido.",
+   "Una cuota fija."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [
+   "HONORARIO_RETIRO_PCT",
+   "IVA"
+  ],
+  "modulo": "N0-01",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q07",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Qué subcuenta NO entra en el cálculo del retiro?",
+  "opciones": [
+   "RCV.",
+   "Vivienda.",
+   "Ninguna, entra todo."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "N0-03",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q08",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "La Afore deposita $10,000 en un retiro tuyo. Honorario 30% = $3,000; costo administrativo del alta $500; tu porcentaje es 40%. ¿Cuál es tu comisión?",
+  "opciones": [
+   "$500.",
+   "$1,000.",
+   "$1,200."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "(honorario − costo del alta) × tu % = ($3,000 − $500) × 40% = $1,000, el total de tu factura con IVA. Se devenga cuando la Afore paga y se cobra el honorario.",
+  "parametros": [
+   "HONORARIO_RETIRO_PCT",
+   "COSTO_ADMIN_ALTA",
+   "BASE_REPARTO_SOCIO"
+  ],
+  "modulo": "N0-01",
+  "version": 1
+ },
+ {
+  "clave": "N0-Q09",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Un cliente que trabaja en una dependencia de gobierno te dice que su constancia del IMSS muestra baja en 2011. ¿Puede hacer retiro por desempleo?",
+  "opciones": [
+   "Sí, por la baja del IMSS.",
+   "No: tiene relación laboral vigente.",
+   "Sí, si espera 46 días."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "N0-03",
+  "version": 1
+ }
+]

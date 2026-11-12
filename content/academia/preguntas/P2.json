@@ -1,0 +1,67 @@
+[
+ {
+  "clave": "P2-Q01",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "El IMSS notificó una negativa. ¿Cuál es el plazo del recurso de inconformidad?",
+  "opciones": [
+   "15 días hábiles desde la notificación.",
+   "2 años.",
+   "No hay plazo."
+  ],
+  "correcta": 0,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P2-01",
+  "version": 1
+ },
+ {
+  "clave": "P2-Q02",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Quién firma y lleva la demanda contra el IMSS?",
+  "opciones": [
+   "El asesor de pensiones.",
+   "El abogado; la firma integra el expediente y canaliza."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P2-01",
+  "version": 1
+ },
+ {
+  "clave": "P2-Q03",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Pensionado desde 2013 cobra menos que el piso de 2026 y quiere que se lo \"nivelen\".",
+  "opciones": [
+   "Le prometes el retroactivo.",
+   "Le explicas que el piso aplica a pensiones otorgadas ese año y las demás suben por inflación; el Director y el abogado revisan si hay algo que reclamar, sin prometer."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P2-01",
+  "version": 1
+ },
+ {
+  "clave": "P2-Q04",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Límite legal de descuentos por préstamos sobre una pensión:",
+  "opciones": [
+   "50% y sin plazo.",
+   "30% en total, sin dejarla debajo del piso de garantizadas, y plazo máximo de 60 meses."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P2-01",
+  "version": 1
+ }
+]

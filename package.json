@@ -14,7 +14,8 @@
     "db:migrate": "prisma migrate deploy",
     "db:seed": "prisma db seed",
     "db:local": "bash scripts/db-local.sh",
-    "postinstall": "prisma generate"
+    "postinstall": "prisma generate",
+    "academia:contenido": "node scripts/academia-ts.cjs"
   },
   "dependencies": {
     "@date-fns/tz": "^1.5.0",

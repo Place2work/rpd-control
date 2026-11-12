@@ -5,6 +5,8 @@
   ese documento, manda el documento. Pregunta antes de inventar una regla de negocio.
 - Las decisiones tomadas después de la especificación están en docs/DECISIONES.md y
   prevalecen sobre ella.
+- El módulo Academia se rige por docs/CAPACITACION.md. Sus reglas de capacitación (secciones 3, 9
+  y 10) son fuente de verdad igual que ESPECIFICACION.md; DECISIONES.md también prevalece sobre él.
 
 ## Stack
 - Next.js 16 (App Router, Server Actions, Cache Components, `proxy.ts` en lugar de middleware),
@@ -24,8 +26,10 @@
 - Datos sensibles (NSS, CURP, CLABE) cifrados (src/lib/cripto) con hash HMAC para buscar;
   el dato completo solo con verDatoSensible(), que deja bitácora.
 - **Toda consulta hecha a nombre de un usuario pasa por `conUsuario()`** (src/lib/db/prisma.ts)
-  para que aplique RLS. `prismaSistema` solo para la tarea diaria, /api/leads, /api/correo/entrante (buzón de constancias del IMSS), catálogos y el motor de comisiones
-  (src/lib/dinero/motor.ts), que corre después de que el usuario registró el pago o cobro con RLS.
+  para que aplique RLS. `prismaSistema` solo para la tarea diaria, /api/leads, /api/correo/entrante (buzón de constancias del IMSS), catálogos, el motor de comisiones
+  (src/lib/dinero/motor.ts), que corre después de que el usuario registró el pago o cobro con RLS, y el motor
+  de la Academia (src/lib/academia/motor.ts), que califica intentos y otorga certificaciones con la sesión ya
+  verificada (nadie escribe sus propios intentos ni certificaciones).
 - Nunca crear campos para contraseñas de portales de terceros.
 - Nadie borra: se archiva con motivo. Las migraciones no conceden DELETE.
 - Cada regla nueva lleva pruebas en Vitest con los casos de la sección 14.

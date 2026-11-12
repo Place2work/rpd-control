@@ -1,0 +1,372 @@
+[
+ {
+  "clave": "P1-Q01",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Cliente Ley 73 de 63 años con padecimiento crónico quiere firmar cesantía hoy. ¿Qué le adviertes?",
+  "opciones": [
+   "Nada, es su derecho.",
+   "Que firmar cesantía cierra para siempre la invalidez y la vejez; antes hay que comparar las tres rutas.",
+   "Que mejor espere a los 70."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-01",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q02",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "La cesantía a los 60 paga:",
+  "opciones": [
+   "100% de la vejez.",
+   "75% de la vejez.",
+   "90% de la vejez."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-01",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q03",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Cliente Ley 73 cuya cuantía calculada queda debajo del piso. ¿A qué edad conviene pensionarse?",
+  "opciones": [
+   "A los 65, porque cobra más.",
+   "A los 60: en el piso cobra lo mismo a los 60 que a los 65 (debe quedar sin trabajo remunerado).",
+   "Da igual cuándo."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-01",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q04",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Pensionado en el piso con esposa y dos hijos menores. ¿Cobra asignaciones familiares encima del piso?",
+  "opciones": [
+   "Sí, 35% más.",
+   "No: las asignaciones quedan dentro del piso.",
+   "Solo la de la esposa."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-01",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q05",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿La Modalidad 40 da servicio médico?",
+  "opciones": [
+   "Sí.",
+   "No: solo invalidez y vida y RCV. Si necesita atención médica, la vía es M10."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-03",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q06",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Qué pasa si el cliente de M40 deja de pagar 2 meses?",
+  "opciones": [
+   "Nada.",
+   "Causa baja; tiene 12 meses para pedir el reingreso.",
+   "Pierde todas sus semanas."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-03",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q07",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Plazo para solicitar M40:",
+  "opciones": [
+   "Cuando quiera.",
+   "Dentro de 5 años desde la baja, con 52 semanas en los últimos 5 años.",
+   "Dentro de 12 meses."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-03",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q08",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿A quién le conviene M40?",
+  "opciones": [
+   "A cualquiera.",
+   "Principalmente a Ley 73, porque sube el promedio de las últimas 250 semanas.",
+   "Principalmente a Ley 97."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-03",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q09",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Ventana para entrar a M10 sin examen médico ni tiempos de espera:",
+  "opciones": [
+   "5 años desde la baja.",
+   "12 meses desde la baja, con 52 semanas previas.",
+   "No existe."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-03",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q10",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Una mujer embarazada quiere inscribirse a M10 para que le atiendan el parto.",
+  "opciones": [
+   "Le dices que sí la cubren.",
+   "Le adviertes que el parto tiene 10 meses de espera y se lo dejas por escrito.",
+   "Le recomiendas M40."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-03",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q11",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "La pensión de viudez Ley 73 es:",
+  "opciones": [
+   "50% de la pensión del finado.",
+   "90%.",
+   "100%."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q12",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Para acreditar concubinato, el IMSS pide:",
+  "opciones": [
+   "Carta del ayudante municipal.",
+   "Acta ante notario con dos testigos.",
+   "Copia certificada de la sentencia del Juzgado Familiar y del auto que la declara ejecutoriada."
+  ],
+  "correcta": 2,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q13",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Qué efecto tiene un hijo en común en la viudez?",
+  "opciones": [
+   "Ninguno.",
+   "Sustituye la prueba de 5 años de concubinato y anula las limitaciones del art. 154.",
+   "Solo sirve para la orfandad."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q14",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Pensionado Ley 73 de 62 años, sin hijos con su pareja, se casa hoy. ¿Desde cuándo queda protegida la viudez?",
+  "opciones": [
+   "Desde hoy.",
+   "Cuando cumplan 1 año de casados.",
+   "A los 6 meses."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q15",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "El esposo murió hace 3 años y la viuda nunca pidió la pensión. ¿Qué le dices?",
+  "opciones": [
+   "Que ya prescribió.",
+   "Que el derecho no prescribe pero solo se pagan los últimos 12 meses: hay que solicitar ya.",
+   "Que le pagan los 3 años completos."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q16",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "El finado no designó beneficiarios en su Afore. ¿Qué pasa con el saldo?",
+  "opciones": [
+   "Se pierde.",
+   "Se entrega según el orden del art. 501 LFT, muchas veces con juicio.",
+   "Se queda la Afore."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q17",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Devolución de vivienda: ¿qué pasa si el pensionado cumple 70 sin reclamarla?",
+  "opciones": [
+   "La pierde.",
+   "Pasa al Fondo de Pensiones para el Bienestar; no se pierde y se puede reclamar con intereses.",
+   "Se queda el Infonavit."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-05",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q18",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿La devolución de vivienda paga ISR?",
+  "opciones": [
+   "Sí, 10%.",
+   "No, está exenta."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-05",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q19",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Cuál es el filtro que más clientes descarta en la devolución de vivienda?",
+  "opciones": [
+   "La edad.",
+   "Tener crédito Infonavit activo o haber usado los fondos en un crédito.",
+   "La Afore."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-05",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q20",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Se suman los periodos en que cotizó al IMSS y al ISSSTE al mismo tiempo?",
+  "opciones": [
+   "Sí, cuentan doble.",
+   "No, el tiempo simultáneo no se suma."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-06",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q21",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Una señora te dice: \"Me dijeron que la Corte ya quitó los 5 años de concubinato.\" ¿Qué respondes?",
+  "opciones": [
+   "\"Sí, ya no los piden.\"",
+   "\"En ventanilla los siguen pidiendo; si se lo niegan por el tiempo, hay con qué pelearlo, con abogado y con plazos.\"",
+   "\"Eso es falso.\""
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-04",
+  "version": 1
+ },
+ {
+  "clave": "P1-Q22",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Qué modalidad de pensión Ley 97 deja saldo heredable?",
+  "opciones": [
+   "Renta vitalicia.",
+   "Retiro programado."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "P1-02",
+  "version": 1
+ }
+]

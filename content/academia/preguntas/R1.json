@@ -1,0 +1,343 @@
+[
+ {
+  "clave": "R1-Q01",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Fecha de baja: 1 de octubre de 2026. ¿Desde qué fecha se puede solicitar el retiro según el criterio de la casa?",
+  "opciones": [
+   "16 de noviembre de 2026",
+   "1 de noviembre de 2026",
+   "15 de noviembre de 2026"
+  ],
+  "correcta": 0,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [
+   "DIAS_ESPERA_DESEMPLEO"
+  ],
+  "modulo": "R1-01",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q02",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Requisitos de la modalidad A:",
+  "opciones": [
+   "Cuenta con 5 años.",
+   "Cuenta con 3 años de abierta y 12 bimestres de cotización.",
+   "104 semanas cotizadas."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-01",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q03",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "La modalidad B paga:",
+  "opciones": [
+   "30 días del último SBC.",
+   "Lo menor entre 90 días del SBC promedio de 250 semanas y el 11.5% del saldo RCV.",
+   "Lo mayor entre ambos."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-01",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q04",
+  "critica": false,
+  "tipo": "numerica",
+  "enunciado": "Califica solo a A. SBC último $500, saldo RCV $100,000. Monto estimado:",
+  "opciones": [],
+  "correcta": 15000.0,
+  "tolerancia": 0.0,
+  "explicacion": null,
+  "parametros": [
+   "UMA_MENSUAL"
+  ],
+  "modulo": "R1-02",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q05",
+  "critica": false,
+  "tipo": "numerica",
+  "enunciado": "Mismo cliente, 400 semanas. ¿Cuántas semanas pierde?",
+  "opciones": [],
+  "correcta": 60.0,
+  "tolerancia": 0.1,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-03",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q06",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Califica a A con SBC último de $2,000 diarios. Monto estimado en 2026:",
+  "opciones": [
+   "$60,000",
+   "$35,662.20",
+   "$30,000"
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [
+   "UMA_MENSUAL"
+  ],
+  "modulo": "R1-02",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q07",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Un cliente califica a A y B. ¿Quién elige?",
+  "opciones": [
+   "La Afore.",
+   "El trabajador; la ley le permite optar por A aunque califique a B.",
+   "Siempre se paga B."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-01",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q08",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Cómo se verifica que no haya retirado en los últimos 5 años?",
+  "opciones": [
+   "Con la constancia de semanas.",
+   "Con el estado de cuenta de la Afore.",
+   "Preguntándole al cliente."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "la constancia muestra semanas descontadas pero no la fecha.",
+  "parametros": [],
+  "modulo": "R1-04",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q09",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "La constancia muestra 41 semanas descontadas y no tienes el estado de cuenta. ¿Qué resultado corresponde si todo lo demás cumple?",
+  "opciones": [
+   "`APTO`",
+   "`APTO_BLOQUEADO` hasta verificar la fecha del último retiro.",
+   "`NO_ELEGIBLE_DEFINITIVO`"
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-05",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q10",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Constancia en ceros con NSS asignado. ¿Qué investigas?",
+  "opciones": [
+   "Nada, se archiva.",
+   "Posible NSS duplicado, cotización en ISSSTE o que nunca cotizó formalmente; preguntas si trabajó con recibo de nómina y en qué sector.",
+   "Que la Afore se equivocó."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-04",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q11",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "El portal bloquea al cliente por biometría. ¿Cómo se agenda la cita?",
+  "opciones": [
+   "Como \"Retiro parcial por desempleo\".",
+   "Como \"Expediente de Identificación (IDE)\".",
+   "No se agenda; se espera."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-06",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q12",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Qué cuenta bancaria se pide?",
+  "opciones": [
+   "Cualquiera a nombre del cliente.",
+   "Nivel 4, sin límite de depósitos, a nombre del cliente; las solo digitales suelen fallar.",
+   "La tuya, y luego le transfieres."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-06",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q13",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Antigüedad máxima del comprobante de domicilio:",
+  "opciones": [
+   "6 meses",
+   "3 meses",
+   "1 año"
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-06",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q14",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "La foto de la INE que sube el cliente pesa 120 KB. ¿Qué pasa en el sistema?",
+  "opciones": [
+   "No se puede subir.",
+   "Se sube con aviso; quien valida revisa que se lea bien antes de validarla.",
+   "Se rechaza siempre."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": "Desde el 10 de noviembre una foto ligera ya no se bloquea: se sube con aviso y se revisa antes de validarla.",
+  "parametros": [],
+  "modulo": "R1-06",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q15",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Qué plazo de ingreso le prometes al cliente?",
+  "opciones": [
+   "\"En 30 días ya tienes tu dinero.\"",
+   "Ingresamos en máximo 15 días hábiles desde que el expediente está completo; la Afore tiene 5 días hábiles para resolver.",
+   "\"Mañana mismo.\""
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [
+   "SLA_DIAS_HABILES",
+   "AFORE_DIAS_HABILES"
+  ],
+  "modulo": "R1-06",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q16",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Un colega te enseña la Circular CONSAR 31-10 que dice \"75 días y 10%\". ¿Qué haces?",
+  "opciones": [
+   "Usas esos números.",
+   "Aplicas la LSS reformada en mayo de 2009: 90 días y 11.5%.",
+   "Promedias."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-02",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q17",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "El 11.5% se calcula sobre:",
+  "opciones": [
+   "El saldo total de la cuenta.",
+   "El saldo RCV sin SAR 92.",
+   "RCV más vivienda."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-02",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q18",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "El retiro estimado es de $2,500. ¿Se toma el caso?",
+  "opciones": [
+   "No, es menor al mínimo.",
+   "Sí: no hay monto mínimo de retiro, siempre que le convenga al cliente.",
+   "Solo si paga honorario fijo."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-05",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q19",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Cómo se paga la modalidad B?",
+  "opciones": [
+   "En una exhibición.",
+   "Hasta 6 mensualidades; si se reincorpora a trabajar, se suspenden las siguientes.",
+   "En 12 meses."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-01",
+  "version": 1
+ },
+ {
+  "clave": "R1-Q20",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Las semanas descontadas por el retiro se pueden recuperar?",
+  "opciones": [
+   "No, nunca.",
+   "Sí, reintegrando el dinero, de forma proporcional.",
+   "Sí, automáticamente al volver a trabajar."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R1-03",
+  "version": 1
+ }
+]

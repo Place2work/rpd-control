@@ -286,12 +286,16 @@ model Usuario {
   created_by   String?   @db.Uuid
   archivado_at DateTime? @db.Timestamptz(6)
 
-  socio           Socio?    @relation(fields: [socio_id], references: [id])
-  personas_owner  Persona[] @relation("PersonaOwner")
-  casos_asignados Caso[]    @relation("CasoAsignado")
-  casos_vendidos  Caso[]    @relation("CasoVendedor")
-  alertas         Alerta[]
-  eventos         Evento[]
+  socio               Socio?             @relation(fields: [socio_id], references: [id])
+  personas_owner      Persona[]          @relation("PersonaOwner")
+  casos_asignados     Caso[]             @relation("CasoAsignado")
+  casos_vendidos      Caso[]             @relation("CasoVendedor")
+  alertas             Alerta[]
+  eventos             Evento[]
+  cap_progreso        CapProgreso[]      @relation("CapProgreso")
+  cap_intentos        CapIntento[]       @relation("CapIntentos")
+  cap_certificaciones CapCertificacion[] @relation("CapCertificaciones")
+  cap_acuses          CapAcuse[]         @relation("CapAcuses")
 
   @@index([socio_id])
   @@map("usuarios")
@@ -1074,6 +1078,80 @@ model CorreoEntrante {
   solicitud SolicitudConstancia? @relation(fields: [solicitud_id], references: [id])
 
   @@map("correos_entrantes")
+  @@schema("public")
+}
+
+// Academia, fase A (docs/CAPACITACION.md 11.2 y 11.3). El contenido vive en content/academia/.
+model CapProgreso {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id    String    @db.Uuid
+  modulo        String
+  version       Int
+  estado        String    @default("completado")
+  completado_at DateTime? @db.Timestamptz(6)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at    DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapProgreso", fields: [usuario_id], references: [id])
+
+  @@unique([usuario_id, modulo, version])
+  @@map("cap_progreso")
+  @@schema("public")
+}
+
+model CapIntento {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id   String    @db.Uuid
+  tipo         String // quiz_modulo | examen_ruta
+  objetivo     String
+  inicio       DateTime  @default(now()) @db.Timestamptz(6)
+  fin          DateTime? @db.Timestamptz(6)
+  preguntas    Json
+  respuestas   Json?
+  calificacion Decimal?  @db.Decimal(5, 4)
+  criticas_ok  Boolean?
+  aprobado     Boolean?
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapIntentos", fields: [usuario_id], references: [id])
+
+  @@map("cap_intentos")
+  @@schema("public")
+}
+
+model CapCertificacion {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id      String    @db.Uuid
+  ruta            String
+  otorgada_at     DateTime  @default(now()) @db.Timestamptz(6)
+  vence_at        DateTime? @db.Date
+  estado          String    @default("vigente")
+  motivo          String?
+  otorgada_por    String?   @db.Uuid
+  excepcion_hasta DateTime? @db.Date
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at      DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  archivado_at    DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapCertificaciones", fields: [usuario_id], references: [id])
+
+  @@map("cap_certificaciones")
+  @@schema("public")
+}
+
+model CapAcuse {
+  id          String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id  String   @db.Uuid
+  documento   String
+  version     String
+  aceptado_at DateTime @default(now()) @db.Timestamptz(6)
+  ip          String?
+
+  usuario Usuario @relation("CapAcuses", fields: [usuario_id], references: [id])
+
+  @@unique([usuario_id, documento, version])
+  @@map("cap_acuses")
   @@schema("public")
 }
 

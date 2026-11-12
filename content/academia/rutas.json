@@ -1,0 +1,17 @@
+[
+ {"clave": "N0", "nombre": "Inducción", "orden": 0, "prerrequisitos": [], "vigencia_meses": null,
+  "requisitos": {"examen": {"minimo": 0.8, "n": 25}, "acuses": ["codigo_conducta", "privacidad_interna"]},
+  "permisos_habilita": ["prospecto.crear", "prospecto.nota", "prospecto.seguimiento", "whatsapp.plantillas"]},
+ {"clave": "R1", "nombre": "Vendedor de retiro", "orden": 1, "prerrequisitos": ["N0"], "vigencia_meses": 12,
+  "requisitos": {"examen": {"minimo": 0.8, "n": 25}, "casos": 4, "roleplays": ["RP-01", "RP-02"], "shadowing": 3},
+  "permisos_habilita": ["precalificacion.retiro", "contrato.retiro.generar", "documentos.solicitar"]},
+ {"clave": "R2", "nombre": "Retiro avanzado", "orden": 2, "prerrequisitos": ["R1"], "vigencia_meses": 12,
+  "requisitos": {"examen": {"minimo": 0.85, "n": 25}, "casos": 3, "roleplays": ["RP-03"], "shadowing": 2},
+  "permisos_habilita": ["precalificacion.retiro.L73", "analisis_impacto.borrador", "caso.desvio.crear"]},
+ {"clave": "P1", "nombre": "Detección de pensiones", "orden": 3, "prerrequisitos": ["R2"], "vigencia_meses": 12,
+  "requisitos": {"examen": {"minimo": 0.85, "n": 25}, "casos": 4, "roleplays": ["RP-04", "RP-05"]},
+  "permisos_habilita": ["prospecto.pension.recibir", "diagnostico_inicial.capturar"]},
+ {"clave": "P2", "nombre": "Especialista en pensiones", "orden": 4, "prerrequisitos": ["P1"], "vigencia_meses": 12,
+  "requisitos": {"examen": {"minimo": 0.9, "n": 25}, "diagnosticos": 10, "entrevista": true},
+  "permisos_habilita": ["plan_pension.presentar", "fallecimiento.integrar_expediente"]}
+]

@@ -1,0 +1,104 @@
+[
+ {
+  "clave": "R2-Q01",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "Ley 97, cumple 60 en 2028 (mínimo 925), tiene 950 semanas y el retiro le quita 40. Resultado:",
+  "opciones": [
+   "`APTO`, porque tiene más de 925 hoy.",
+   "`CALIFICA_NO_CONVIENE`: quedaría con 910, debajo del mínimo; se ofrece asesoría de pensión.",
+   "`NO_TODAVIA`"
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R2-01",
+  "version": 1
+ },
+ {
+  "clave": "R2-Q02",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Ley 73 con 900 semanas; el retiro le quita 30. ¿Qué pierde?",
+  "opciones": [
+   "Nada, sigue arriba de 500.",
+   "Un incremento anual de su pensión (de 8 a 7), de por vida.",
+   "La pensión completa."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R2-01",
+  "version": 1
+ },
+ {
+  "clave": "R2-Q03",
+  "critica": true,
+  "tipo": "opcion_multiple",
+  "enunciado": "¿Cuántas semanas necesita un cliente **Ley 73** que se pensiona en 2026?",
+  "opciones": [
+   "875",
+   "500",
+   "1,000"
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R2-01",
+  "version": 1
+ },
+ {
+  "clave": "R2-Q04",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "El cliente necesita dinero pero no puede perder semanas. ¿Qué revisas primero?",
+  "opciones": [
+   "Un préstamo.",
+   "Sus aportaciones voluntarias: se retiran sin costo en semanas.",
+   "La modalidad B."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R2-02",
+  "version": 1
+ },
+ {
+  "clave": "R2-Q05",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "Cliente Ley 73 de 58 años quiere retirar. ¿Qué haces?",
+  "opciones": [
+   "Cierras el retiro.",
+   "Lo desvías a asesoría de pensión: el sistema marca `NO_ELEGIBLE_DESVIO` o pide análisis de impacto.",
+   "Le dices que espere a los 60 para retirar."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R2-02",
+  "version": 1
+ },
+ {
+  "clave": "R2-Q06",
+  "critica": false,
+  "tipo": "opcion_multiple",
+  "enunciado": "\"¿Me quedo sin seguro médico?\" (tenía 2 años cotizando seguidos)",
+  "opciones": [
+   "Sí, desde el día de la baja.",
+   "Conserva 8 semanas de atención médica, él y sus beneficiarios.",
+   "Conserva 1 año."
+  ],
+  "correcta": 1,
+  "tolerancia": null,
+  "explicacion": null,
+  "parametros": [],
+  "modulo": "R2-02",
+  "version": 1
+ }
+]

@@ -542,3 +542,44 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Los clientes que aceptaron la 2026-10 no autorizaron esta finalidad: antes de pedir su constancia con el buzón de la
   empresa, que firmen el aviso nuevo (Contrato → aviso de privacidad) o den su autorización por escrito.
 - prisma/plantillas/*.md y el seed alineados (scripts/plantillas-ts.cjs regenera plantillas-iniciales.ts).
+
+## 13-nov-2026 · Academia, fase A (docs/CAPACITACION.md)
+
+- Decisiones del Director (13-nov): la Academia es **obligatoria para los asesores de pensiones** (rol `socio`; el rol
+  «vendedor» del plan ya no existe); analistas y Director la toman como repaso, sin efecto en permisos. El contenido se
+  **ajusta a lo vigente** (DECISIONES prevalece sobre el plan). Los **bloqueos por certificación** (fase B) se
+  construirán con un **interruptor apagado** hasta que el Director lo encienda. Entrega **por fases**.
+- Vocabulario del plan → sistema: «vendedor» = asesor de pensiones; «asesor» (quien valida y planea la pensión) =
+  Director.
+- Contenido versionado en `content/academia/` (21 módulos .md con encabezado JSON, 61 preguntas en JSON en lugar de
+  YAML para no sumar dependencias, `rutas.json` con los requisitos de 3.2, `evaluacion.json` con 9.3, `acuses.json`).
+  `npm run academia:contenido` lo empaqueta en `src/lib/academia/contenido.ts` (solo servidor: trae las respuestas).
+  En fase A el contenido no va a tablas (el plan lo permite: «se carga desde archivos»); las tablas cap_modulos y
+  cap_preguntas llegan con la fase D (edición y estado «revisar»).
+- Adaptaciones al contenido del plan:
+  - N0-01: Comisión: del 5% del vendedor al esquema vigente del asesor de pensiones ((honorario − costo del alta) × su %).
+  - N0-01: Ejemplo de memoria recalculado con el esquema vigente ($1,000).
+  - N0-02: Se agregó el cuadro «qué sí / qué no» de la sección 2 del plan.
+  - R1-01: Se explican las dos fechas del sistema (día 46 legal y fecha de trámite con días administrativos).
+  - R1-02: SBC promedio: ya no se depende de la Certificación de baja (dejó de pedirse).
+  - R1-04: Certificación de baja: ya no se pide; se agregó la lectura automática de la constancia y el régimen automático.
+  - R1-06: Checklist: se quitaron la Certificación de baja y el Comprobante de registro en Afore (ya no se piden).
+  - R1-06: Fotos de menos de 256 KB: se suben con aviso. Se agregó «Pedir constancia al IMSS».
+  - R1-07 · P1-04 · P1-05: Se anexaron los guiones y la tabla de objeciones de la sección 8.
+  - N0-Q08: Comisión recalculada con el esquema vigente del asesor de pensiones.
+  - R1-Q14: La Certificación de baja ya no se pide; la pregunta pasa a fotos de menos de 256 KB.
+  - R1-Q12: Opción c: «la del vendedor» → «la tuya».
+  - R1-Q01: Se liga también a DIAS_ADMINISTRATIVOS (no cambia la respuesta).
+  - Lecciones: se quitaron nombres técnicos de tablas (cap_incidencias, cap_acuses, tipos_servicio, lib/reglas).
+- Tablas (migración 3500): cap_progreso, cap_intentos, cap_certificaciones, cap_acuses, con RLS (cada quien lo suyo;
+  el Director todo; sin DELETE). Intentos y certificaciones solo los escribe el motor (`src/lib/academia/motor.ts`,
+  `prismaSistema`, anotado en CLAUDE.md) para que nadie se autoapruebe.
+- Reglas puras en `src/lib/reglas/capacitacion.ts`: preguntas al azar reproducibles (todas las críticas en el examen),
+  aprobación con mínimo **y** 100% de críticas, intentos (quiz ilimitado con 1 h de espera tras reprobar; examen 3
+  intentos y 7 días de bloqueo), estado de ruta y vigencia.
+- Requisitos en fase A: N0 = acuses + 4 lecciones + examen N0 → certificación automática. R1–P2: lecciones y examen
+  (requiere el examen de la ruta previa); la certificación espera casos prácticos, juegos de roles y acompañamientos
+  (fases B y C). Lecciones de R/P se abren con N0 certificada. Los quizzes de módulo son práctica (no requisito).
+- Pantallas: Academia (Mi ruta, con acuses al entrar), Lección (recuadros «Lo que dices» azul / «Lo que nunca dices»
+  rojo), Evaluación (una pregunta por pantalla, sin regresar, revisión de errores con críticas resaltadas), Equipo
+  (Director). Aviso en Hoy al asesor de pensiones sin N0.
