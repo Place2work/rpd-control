@@ -296,6 +296,8 @@ model Usuario {
   cap_intentos        CapIntento[]       @relation("CapIntentos")
   cap_certificaciones CapCertificacion[] @relation("CapCertificaciones")
   cap_acuses          CapAcuse[]         @relation("CapAcuses")
+  cap_casos_intentos  CapCasoIntento[]   @relation("CapCasosIntentos")
+  cap_excepciones     CapExcepcion[]     @relation("CapExcepciones")
 
   @@index([socio_id])
   @@map("usuarios")
@@ -1152,6 +1154,39 @@ model CapAcuse {
 
   @@unique([usuario_id, documento, version])
   @@map("cap_acuses")
+  @@schema("public")
+}
+
+model CapCasoIntento {
+  id              String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id      String   @db.Uuid
+  caso            String
+  version         Int
+  captura         Json
+  resultado_motor Json?
+  diferencias     Json?
+  aprobado        Boolean
+  created_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapCasosIntentos", fields: [usuario_id], references: [id])
+
+  @@map("cap_casos_intentos")
+  @@schema("public")
+}
+
+model CapExcepcion {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id   String    @db.Uuid
+  ruta         String
+  hasta        DateTime  @db.Date
+  motivo       String
+  otorgada_por String    @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  usuario Usuario @relation("CapExcepciones", fields: [usuario_id], references: [id])
+
+  @@map("cap_excepciones")
   @@schema("public")
 }
 

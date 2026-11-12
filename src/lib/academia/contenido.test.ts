@@ -47,3 +47,17 @@ describe("contenido de la Academia", () => {
     expect(PREGUNTAS.find((p) => p.clave === "R1-Q05")).toMatchObject({ tipo: "numerica", correcta: 60, tolerancia: 0.1 });
   });
 });
+
+describe("permisos por ruta (3.2)", () => {
+  it("la tabla cap_permisos_ruta de la migración coincide con rutas.json (cada ruta incluye los de sus prerrequisitos)", () => {
+    const sql = fs.readFileSync(path.join(__dirname, "../../../prisma/migrations/20261113003600_academia_permisos/migration.sql"), "utf8");
+    const enSql = [...sql.matchAll(/\('(N0|R1|R2|P1|P2)', '([a-z0-9_.A-Z]+)'\)/g)].map((m) => `${m[1]}:${m[2]}`).sort();
+    const heredados = (c: string): string[] => { const r = RUTAS.find((x) => x.clave === c)!; return [...r.permisos_habilita, ...r.prerrequisitos.flatMap(heredados)]; };
+    const esperado = RUTAS.flatMap((r) => [...new Set(heredados(r.clave))].map((p) => `${r.clave}:${p}`)).sort();
+    expect(enSql).toEqual(esperado);
+  });
+  it("cada ruta que pide casos tiene suficientes casos en el simulador", async () => {
+    const { CASOS } = await import("./contenido");
+    for (const r of RUTAS) if (r.requisitos.casos) expect(CASOS.filter((c) => c.ruta === r.clave).length, r.clave).toBeGreaterThanOrEqual(r.requisitos.casos);
+  });
+});

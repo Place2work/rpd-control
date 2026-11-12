@@ -1,7 +1,7 @@
 // GENERADO por scripts/academia-ts.cjs desde content/academia/. No editar a mano.
 // Incluye las respuestas correctas: solo en el servidor.
 import "server-only";
-import type { Acuse, Modulo, Pregunta, ReglasEvaluacion, Ruta } from "./tipos";
+import type { Acuse, CasoPractico, Modulo, Pregunta, ReglasEvaluacion, Ruta } from "./tipos";
 
 export const EVALUACION: ReglasEvaluacion = {
  "quiz_modulo": {
@@ -1482,6 +1482,450 @@ export const PREGUNTAS: Pregunta[] = [
   "explicacion": null,
   "parametros": [],
   "modulo": "P2-01",
+  "version": 1
+ }
+];
+
+export const CASOS: CasoPractico[] = [
+ {
+  "clave": "C-R01",
+  "ruta": "R1",
+  "tipo": "retiro",
+  "titulo": "Ley 97 con todo en regla",
+  "narrativa": "Cliente Ley 97 de 36 años. Lo dieron de baja hace 60 días y no trabaja. Trae su constancia y su estado de cuenta: la cuenta tiene 4 años, 20 bimestres cotizados, último SBC de $500 diarios, saldo RCV de $100,000 y 400 semanas. Nunca ha retirado. IDE vigente y cuenta registrada.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 500,
+   "sbcPromedio250": null,
+   "saldoRcv": 100000,
+   "bimestres": 20,
+   "antiguedadAnios": 4,
+   "semanasTotales": 400,
+   "regimen": "L97",
+   "fechaNacimiento": "1990-05-10",
+   "fechaBaja": "2026-09-13",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2022-10-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado",
+   "montoA",
+   "semanasA",
+   "honorario"
+  ],
+  "explicacion": "APTO, solo modalidad A: 30 × $500 = $15,000. Pierde 15,000 ÷ (100,000 ÷ 400) = 60 semanas (le quedan 340, 15% del saldo). Honorario 30% = $4,500 (subtotal $3,879.31 + IVA $620.69). Tu comisión: ($4,500 − $500 del alta) × 40% = $1,600.",
+  "esperado": {
+   "resultado": "APTO",
+   "montoA": 15000,
+   "semanasA": 60,
+   "honorario": 4500
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R02",
+  "ruta": "R1",
+  "tipo": "retiro",
+  "titulo": "Salario alto: el tope de 10 UMA",
+  "narrativa": "Cliente Ley 97 de 36 años, baja hace 60 días. Cuenta de 4 años, 30 bimestres, último SBC de $2,000 diarios, saldo RCV de $300,000 y 600 semanas. Nunca ha retirado; IDE vigente y cuenta registrada.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 2000,
+   "sbcPromedio250": null,
+   "saldoRcv": 300000,
+   "bimestres": 30,
+   "antiguedadAnios": 4,
+   "semanasTotales": 600,
+   "regimen": "L97",
+   "fechaNacimiento": "1990-05-10",
+   "fechaBaja": "2026-09-13",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2022-10-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado",
+   "montoA",
+   "semanasA"
+  ],
+  "explicacion": "30 × $2,000 = $60,000, pero la modalidad A tiene tope de 10 UMA mensuales = $35,662.20 (2026). Pierde 35,662.20 × 600 ÷ 300,000 = 71.3 semanas.",
+  "esperado": {
+   "resultado": "APTO",
+   "montoA": 35662.2,
+   "semanasA": 71.3
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R03",
+  "ruta": "R1",
+  "tipo": "retiro",
+  "titulo": "Califica a A y a B",
+  "narrativa": "Cliente Ley 97 de 41 años, baja hace 60 días. Cuenta de 12 años con 70 bimestres, último SBC $650, SBC promedio de 250 semanas $600, saldo RCV $180,000 y 820 semanas. Nunca ha retirado; IDE vigente y cuenta registrada.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 650,
+   "sbcPromedio250": 600,
+   "saldoRcv": 180000,
+   "bimestres": 70,
+   "antiguedadAnios": 12,
+   "semanasTotales": 820,
+   "regimen": "L97",
+   "fechaNacimiento": "1985-02-20",
+   "fechaBaja": "2026-09-13",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2014-08-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado",
+   "montoA",
+   "semanasA",
+   "montoB",
+   "semanasB",
+   "modalidadMenosSemanas"
+  ],
+  "explicacion": "A = 30 × $650 = $19,500 (pierde 88.8). B = menor($54,000; 11.5% × $180,000 = $20,700) = $20,700 (pierde 94.3). La diferencia es menor al 20%, así que el sistema resalta A por costar menos semanas. Presentas ambas y explicas que la ley le permite elegir A.",
+  "esperado": {
+   "resultado": "APTO",
+   "montoA": 19500,
+   "semanasA": 88.8,
+   "montoB": 20700,
+   "semanasB": 94.3,
+   "modalidadMenosSemanas": "A"
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R04",
+  "ruta": "R1",
+  "tipo": "retiro",
+  "titulo": "Quiere retirar, pero ya trabaja",
+  "narrativa": "Joven de 24 años, Ley 97, 115 semanas. Su constancia muestra un alta vigente desde hace 5 días con una nueva empresa. Cuenta de 5 años, 14 bimestres, SBC $300, saldo RCV $30,000.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 300,
+   "sbcPromedio250": null,
+   "saldoRcv": 30000,
+   "bimestres": 14,
+   "antiguedadAnios": 5,
+   "semanasTotales": 115,
+   "regimen": "L97",
+   "fechaNacimiento": "2002-06-01",
+   "fechaBaja": null,
+   "cotizaActualmente": true,
+   "fechaAperturaCuenta": "2021-03-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado"
+  ],
+  "explicacion": "NO_TODAVIA: cotiza actualmente. Si deja el empleo, podrá pedirlo 46 días después de su baja.",
+  "esperado": {
+   "resultado": "NO_TODAVIA"
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R08",
+  "ruta": "R1",
+  "tipo": "retiro",
+  "titulo": "Trabaja en el gobierno",
+  "narrativa": "Cliente de 45 años. Su constancia del IMSS muestra baja en 2011 y 316 semanas, pero desde 2010 trabaja en una dependencia y le descuentan del ISSSTE. Cuenta Afore de 23 años, 70 bimestres, SBC $250, saldo RCV $60,000.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 250,
+   "sbcPromedio250": null,
+   "saldoRcv": 60000,
+   "bimestres": 70,
+   "antiguedadAnios": 23,
+   "semanasTotales": 316,
+   "regimen": "L97",
+   "fechaNacimiento": "1981-01-01",
+   "fechaBaja": "2011-06-30",
+   "cotizaActualmente": true,
+   "fechaAperturaCuenta": "2003-01-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado"
+  ],
+  "explicacion": "No hay retiro por desempleo: tiene relación laboral vigente (ISSSTE), así que se trata como «cotiza actualmente» → NO_TODAVIA. Detéctalo como posible caso de portabilidad (ruta P1).",
+  "esperado": {
+   "resultado": "NO_TODAVIA"
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R09",
+  "ruta": "R1",
+  "tipo": "retiro",
+  "titulo": "Ya retiró hace menos de 5 años",
+  "narrativa": "Mismo perfil que C-R01 (Ley 97, cuenta de 4 años, 20 bimestres, SBC $500, saldo $100,000, 400 semanas, baja hace 60 días), pero su estado de cuenta muestra un retiro por desempleo el 15 de marzo de 2022.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 500,
+   "sbcPromedio250": null,
+   "saldoRcv": 100000,
+   "bimestres": 20,
+   "antiguedadAnios": 4,
+   "semanasTotales": 400,
+   "regimen": "L97",
+   "fechaNacimiento": "1990-05-10",
+   "fechaBaja": "2026-09-13",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2022-10-01",
+   "estadoUltimoRetiro": "con_retiro",
+   "fechaUltimoRetiro": "2022-03-15",
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado",
+   "fechaElegibilidad"
+  ],
+  "explicacion": "NO_TODAVIA: el candado de 5 años termina el 15 de marzo de 2027. Le das la fecha y queda en espera con alerta.",
+  "esperado": {
+   "resultado": "NO_TODAVIA",
+   "fechaElegibilidad": "2027-03-15"
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R05",
+  "ruta": "R2",
+  "tipo": "retiro",
+  "titulo": "Ley 97 cerca de pensionarse",
+  "narrativa": "Cliente Ley 97 de 58 años (cumple 60 en 2028, cuando el mínimo será 925 semanas). Tiene 950 semanas, saldo RCV $285,000, último SBC $400, cuenta de 10 años con 60 bimestres, baja hace 72 días. Nunca ha retirado; IDE vigente y cuenta registrada.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 400,
+   "sbcPromedio250": null,
+   "saldoRcv": 285000,
+   "bimestres": 60,
+   "antiguedadAnios": 10,
+   "semanasTotales": 950,
+   "regimen": "L97",
+   "fechaNacimiento": "1968-03-01",
+   "fechaBaja": "2026-09-01",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2016-01-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado",
+   "semanasA"
+  ],
+  "explicacion": "CALIFICA_NO_CONVIENE: retiraría $12,000 y perdería 40 semanas; quedaría con 910, debajo de las 925 que necesita en 2028. Guion «no te conviene» y oferta de asesoría de pensión.",
+  "esperado": {
+   "resultado": "CALIFICA_NO_CONVIENE",
+   "semanasA": 40
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R06",
+  "ruta": "R2",
+  "tipo": "retiro",
+  "titulo": "Ley 73 con muchas semanas",
+  "narrativa": "Cliente Ley 73 de 56 años con 900 semanas, saldo RCV $300,000, último SBC $333.34, cuenta de 15 años con 90 bimestres, baja hace 72 días. Nunca ha retirado; IDE vigente y cuenta registrada.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 333.34,
+   "sbcPromedio250": null,
+   "saldoRcv": 300000,
+   "bimestres": 90,
+   "antiguedadAnios": 15,
+   "semanasTotales": 900,
+   "regimen": "L73",
+   "fechaNacimiento": "1970-04-01",
+   "fechaBaja": "2026-09-01",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2011-01-01",
+   "estadoUltimoRetiro": "nunca_retiro",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado",
+   "semanasA",
+   "incrementosAntes",
+   "incrementosDespues"
+  ],
+  "explicacion": "Califica (APTO), pero pierde 30 semanas: de 900 a 870, y sus incrementos del art. 167 bajan de 8 a 7, de por vida. Requiere análisis de impacto antes del contrato; el asesor R2 captura el borrador y lo explica.",
+  "esperado": {
+   "resultado": "APTO",
+   "semanasA": 30,
+   "incrementosAntes": 8,
+   "incrementosDespues": 7
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-R07",
+  "ruta": "R2",
+  "tipo": "retiro",
+  "titulo": "Semanas descontadas sin estado de cuenta",
+  "narrativa": "Todo cumple como en C-R01, pero la constancia muestra semanas descontadas por un retiro anterior y el cliente todavía no trae su estado de cuenta de la Afore.",
+  "hoy": "2026-11-12",
+  "datos": {
+   "sbcUltimo": 500,
+   "sbcPromedio250": null,
+   "saldoRcv": 100000,
+   "bimestres": 20,
+   "antiguedadAnios": 4,
+   "semanasTotales": 400,
+   "regimen": "L97",
+   "fechaNacimiento": "1990-05-10",
+   "fechaBaja": "2026-09-13",
+   "cotizaActualmente": false,
+   "fechaAperturaCuenta": "2022-10-01",
+   "estadoUltimoRetiro": "por_verificar",
+   "fechaUltimoRetiro": null,
+   "ideVigente": true,
+   "tipoCuenta": "registrada",
+   "saldoVoluntarias": 0
+  },
+  "captura": [
+   "resultado"
+  ],
+  "explicacion": "APTO_BLOQUEADO: la constancia no dice la fecha del retiro. Tarea: verificar el último retiro en el estado de cuenta de la Afore.",
+  "esperado": {
+   "resultado": "APTO_BLOQUEADO"
+  },
+  "version": 1
+ },
+ {
+  "clave": "C-P01",
+  "ruta": "P1",
+  "tipo": "opcion",
+  "titulo": "Ley 73 en el piso",
+  "narrativa": "Cliente Ley 73 de 59 años con 654 semanas y salario promedio bajo: su cuantía calculada es de unos $3,249 al mes, debajo del piso.",
+  "opciones": [
+   "Esperar a los 65 para cobrar el 100%.",
+   "Planear la pensión a los 60 (cumpliendo «sin trabajo remunerado»): en el piso cobra lo mismo que a los 65; las asignaciones no suman. Preguntar ya su estado civil.",
+   "Hacer Modalidad 40 para subir la pensión al doble."
+  ],
+  "correcta": 1,
+  "explicacion": "Debajo del piso, a los 60 cobra lo mismo que a los 65 → conviene planear a los 60. Las asignaciones familiares quedan dentro del piso. La viudez se calcula sobre el piso: el estado civil es pregunta urgente.",
+  "version": 1
+ },
+ {
+  "clave": "C-P02",
+  "ruta": "P1",
+  "tipo": "opcion",
+  "titulo": "Sin cotizar desde hace 14 años",
+  "narrativa": "Cliente Ley 73 de 56 años, 1,093 semanas, sin cotizar desde hace casi 14 años; hoy trabaja como independiente.",
+  "opciones": [
+   "Puede pensionarse a los 60 sin hacer nada.",
+   "Su conservación de derechos (¼ del tiempo cotizado ≈ 5 años) ya venció: debe volver a cotizar para recuperarla; M40 ya cerró (más de 5 años de la baja) → evaluar M10/PTI; revisar qué firmó al «traspasar» su crédito Infonavit; pasarlo al Director.",
+   "Le ofreces Modalidad 40 de inmediato."
+  ],
+  "correcta": 1,
+  "explicacion": "Conservación vencida → recuperar derechos cotizando (52 semanas tras más de 6 años fuera). M40 exige pedirla dentro de 5 años de la baja: ya no. M10/PTI es la vía. Caso para el Director.",
+  "version": 1
+ },
+ {
+  "clave": "C-P03",
+  "ruta": "P1",
+  "tipo": "opcion",
+  "titulo": "Recién desempleado, 61 años",
+  "narrativa": "Cliente Ley 73 de 61 años, lo dieron de baja hace 3 meses y tiene más de 52 semanas en los últimos 5 años.",
+  "opciones": [
+   "Candidato a Modalidad 40 (está dentro de 5 años de la baja). Advertir por escrito: no da servicio médico y causa baja con 2 meses sin pagar. Si necesita médico, M10 dentro de la ventana de 12 meses.",
+   "Le dices que M40 incluye servicio médico.",
+   "Le recomiendas retirar su Afore primero."
+  ],
+  "correcta": 0,
+  "explicacion": "M40: dentro de 5 años de la baja y 52 semanas en los últimos 5 años. Sin servicio médico y baja con 2 meses sin pago (va firmado). Para atención médica, M10 en los 12 meses.",
+  "version": 1
+ },
+ {
+  "clave": "C-P04",
+  "ruta": "P1",
+  "tipo": "opcion",
+  "titulo": "Viudez que probablemente no procede",
+  "narrativa": "Murió un asegurado Ley 73 con 834 semanas; dejó de cotizar a los 48 años y murió a los 73 sin pensionarse. El acta de defunción dice «soltero» pero tenía esposa.",
+  "opciones": [
+   "La viudez procede seguro: tenía más de 150 semanas.",
+   "La viudez probablemente no procede (su conservación de derechos venció antes de los 60) y lo confirma el abogado; sí se recupera Afore (quizá ya en el Fondo Bienestar por haber cumplido 70) y vivienda; hay que corregir el estado civil del acta.",
+   "No hay nada que recuperar."
+  ],
+  "correcta": 1,
+  "explicacion": "Además de las 150 semanas, al morir debía seguir cotizando o estar dentro de su conservación de derechos. Sí se recuperan Afore y vivienda (no prescriben). El acta se corrige; si hace falta, juicio de designación de beneficiarios.",
+  "version": 1
+ },
+ {
+  "clave": "C-P05",
+  "ruta": "P1",
+  "tipo": "opcion",
+  "titulo": "Unión libre y enfermo grave",
+  "narrativa": "Pareja en unión libre desde hace 12 años, sin hijos. Él es pensionado Ley 73, tiene 66 años y está enfermo grave.",
+  "opciones": [
+   "Que se casen hoy y listo.",
+   "Urge la declaración judicial de concubinato estando él vivo (casarse hoy abre el plazo de 1 año del art. 154); designar beneficiarios en la Afore; canalizar al abogado.",
+   "No hace falta nada: el IMSS acepta una carta del ayudante municipal."
+  ],
+  "correcta": 1,
+  "explicacion": "Casado ya pensionado: la viudez exige 1 año de matrimonio (sin hijos). La sentencia de concubinato con él vivo es más rápida y barata. El IMSS no acepta cartas ni actas notariales.",
+  "version": 1
+ },
+ {
+  "clave": "C-P06",
+  "ruta": "P1",
+  "tipo": "opcion",
+  "titulo": "Pensionado sin crédito Infonavit",
+  "narrativa": "Pensionado de 68 años que nunca usó su crédito Infonavit.",
+  "opciones": [
+   "Ya no tiene derecho a nada.",
+   "Devolución de vivienda: pedir las tres bolsas (Fondo 72-92, Vivienda 92 y 97), revisar que NSS, CURP y RFC coincidan, estado de cuenta bancario de menos de 2 meses; está exenta de ISR; mejor antes de los 70.",
+   "Le cobras un porcentaje de lo que reciba de pensión."
+  ],
+  "correcta": 1,
+  "explicacion": "Imprescriptible y exenta. El 90% de los rechazos son por datos que no coinciden o estado de cuenta bancario viejo. A los 70 pasa al Fondo Bienestar, pero no se pierde.",
+  "version": 1
+ },
+ {
+  "clave": "C-P07",
+  "ruta": "P2",
+  "tipo": "opcion",
+  "titulo": "Préstamos que se comen la pensión",
+  "narrativa": "Un pensionado recibe $900 de una pensión de $6,000 porque le descuentan tres préstamos.",
+  "opciones": [
+   "Es normal, firmó los préstamos.",
+   "Los descuentos pasan del 30% y lo dejan debajo del piso legal: es caso de reclamación al IMSS y queja en CONDUSEF (lo arma el Director).",
+   "Le recomiendas otro préstamo para pagar los anteriores."
+  ],
+  "correcta": 1,
+  "explicacion": "El total de descuentos no puede pasar del 30%, ni dejarla debajo del promedio de las garantizadas, ni plazo mayor a 60 meses (Transitorio Vigésimo Noveno LSS).",
   "version": 1
  }
 ];

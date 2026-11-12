@@ -31,3 +31,19 @@ export type PreguntaServida = { clave: string; tipo: Pregunta["tipo"]; enunciado
 /** Reglas de intentos (sección 9.3), en content/academia/evaluacion.json. */
 export type ReglaIntentos = { n: number; minimo?: number; intentos_max: number | null; espera_horas: number; bloqueo_dias: number };
 export type ReglasEvaluacion = { quiz_modulo: ReglaIntentos; examen_ruta: ReglaIntentos };
+
+/** Casos prácticos (sección 7). Los de retiro se resuelven con el mismo motor de la calculadora. */
+export type CampoCaso = "resultado" | "montoA" | "semanasA" | "montoB" | "semanasB" | "honorario" | "fechaElegibilidad"
+  | "incrementosAntes" | "incrementosDespues" | "modalidadMenosSemanas";
+export type DatosCasoRetiro = {
+  sbcUltimo: number | null; sbcPromedio250: number | null; saldoRcv: number; bimestres: number; antiguedadAnios: number; semanasTotales: number;
+  regimen: "L73" | "L97" | "por_definir"; fechaNacimiento: string | null; fechaBaja: string | null; cotizaActualmente: boolean;
+  fechaAperturaCuenta: string | null; estadoUltimoRetiro: "por_verificar" | "nunca_retiro" | "con_retiro"; fechaUltimoRetiro: string | null;
+  ideVigente: boolean; tipoCuenta: "registrada" | "asignada" | null; saldoVoluntarias: number;
+};
+export type CasoPractico = { clave: string; ruta: ClaveRuta; titulo: string; narrativa: string; explicacion: string; version: number } & (
+  | { tipo: "retiro"; hoy: string; datos: DatosCasoRetiro; captura: CampoCaso[]; esperado: Partial<Record<CampoCaso, string | number>> }
+  | { tipo: "opcion"; opciones: string[]; correcta: number }
+);
+/** Lo que el navegador ve de un caso (sin la respuesta). */
+export type CasoServido = { clave: string; ruta: ClaveRuta; titulo: string; narrativa: string; tipo: "retiro" | "opcion"; captura?: CampoCaso[]; opciones?: string[] };

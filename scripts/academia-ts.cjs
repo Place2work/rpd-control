@@ -7,6 +7,7 @@ const leerJson = (f) => JSON.parse(fs.readFileSync(path.join(base, f), 'utf8'));
 const rutas = leerJson('rutas.json');
 const acuses = leerJson('acuses.json');
 const evaluacion = leerJson('evaluacion.json');
+const casos = leerJson('casos.json');
 const modulos = [];
 for (const r of rutas) {
   const dir = path.join(base, r.clave);
@@ -22,7 +23,7 @@ fs.writeFileSync(path.join(__dirname, '..', 'src', 'lib', 'academia', 'contenido
 `// GENERADO por scripts/academia-ts.cjs desde content/academia/. No editar a mano.
 // Incluye las respuestas correctas: solo en el servidor.
 import "server-only";
-import type { Acuse, Modulo, Pregunta, ReglasEvaluacion, Ruta } from "./tipos";
+import type { Acuse, CasoPractico, Modulo, Pregunta, ReglasEvaluacion, Ruta } from "./tipos";
 
 export const EVALUACION: ReglasEvaluacion = ${JSON.stringify(evaluacion, null, 1)};
 
@@ -33,5 +34,7 @@ export const ACUSES: Acuse[] = ${JSON.stringify(acuses, null, 1)};
 export const MODULOS: Modulo[] = ${JSON.stringify(modulos, null, 1)};
 
 export const PREGUNTAS: Pregunta[] = ${JSON.stringify(preguntas, null, 1)};
+
+export const CASOS: CasoPractico[] = ${JSON.stringify(casos, null, 1)};
 `);
 console.log(`ok: ${rutas.length} rutas, ${modulos.length} módulos, ${preguntas.length} preguntas`);

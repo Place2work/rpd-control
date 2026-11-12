@@ -86,8 +86,8 @@ describe("estado de una ruta (3.2, 9.4)", () => {
     expect(estadoRuta(R1, r1, vacio())).toMatchObject({ disponible: false, bloqueo: expect.stringMatching(/N0/) });
     const a = vacio(); a.certificadas.add("N0"); a.examenesAprobados.add("N0"); r1.forEach((m) => a.leidos.add(m)); a.examenesAprobados.add("R1");
     const e = estadoRuta(R1, r1, a);
-    expect(e).toMatchObject({ disponible: true, otorgable: false, pendientes: [] });
-    expect(e.proximamente).toEqual(["4 casos prácticos en el simulador", "Juego de roles RP-01 y RP-02 con el Director", "3 casos acompañados"]);
+    expect(e).toMatchObject({ disponible: true, otorgable: false, pendientes: ["Resolver 4 casos prácticos en el simulador (0 de 4)"] });
+    expect(e.proximamente).toEqual(["Juego de roles RP-01 y RP-02 con el Director", "3 casos acompañados"]);
   });
 });
 
@@ -96,5 +96,39 @@ describe("vigencia", () => {
     expect(venceEl("2026-11-12", 12)).toBe("2027-11-12");
     expect(venceEl("2028-02-29", 12)).toBe("2029-02-28");
     expect(venceEl("2026-11-12", null)).toBeNull();
+  });
+});
+
+describe("casos prácticos contra el motor (sección 7, 14.1)", () => {
+  it("cada caso C-R tiene el resultado esperado que da el motor de la calculadora (montos al centavo, semanas a 0.1)", async () => {
+    const fs = await import("node:fs");
+    const { resultadoCasoRetiro } = await import("./capacitacion");
+    const P = { UMA_MENSUAL: 3566.22, MODALIDAD_A_ANIOS: 3, MODALIDAD_A_BIMESTRES: 12, MODALIDAD_A_DIAS_SBC: 30, MODALIDAD_A_TOPE_UMAS: 10,
+      MODALIDAD_B_ANIOS: 5, MODALIDAD_B_DIAS_SBC: 90, MODALIDAD_B_PCT_RCV: 0.115, UMBRAL_DIFERENCIA_MODALIDAD: 0.2, HONORARIO_RETIRO_PCT: 0.3, IVA: 0.16,
+      L97_SEMANAS_2021: 750, L97_INCREMENTO_ANUAL: 25, L97_SEMANAS_TOPE: 1000, L73_SEMANAS_MINIMAS: 500, L73_SEMANAS_CRITICAS: 550, DIAS_ESPERA_DESEMPLEO: 46, ANIOS_CANDADO_RETIRO: 5 };
+    const casos = JSON.parse(fs.readFileSync(`${__dirname}/../../../content/academia/casos.json`, "utf8"));
+    const retiro = casos.filter((c: { tipo: string }) => c.tipo === "retiro");
+    expect(retiro.map((c: { clave: string }) => c.clave).sort()).toEqual(["C-R01", "C-R02", "C-R03", "C-R04", "C-R05", "C-R06", "C-R07", "C-R08", "C-R09"]);
+    for (const c of retiro) {
+      const motor = resultadoCasoRetiro(c.datos, c.hoy, P);
+      for (const [campo, valor] of Object.entries(c.esperado)) expect(motor[campo as keyof typeof motor], `${c.clave} · ${campo}`).toEqual(valor);
+    }
+  });
+  it("compara con tolerancia de $1 y 0.1 semanas; el resultado y las fechas, exactos", async () => {
+    const { compararCaso } = await import("./capacitacion");
+    const motor = { resultado: "APTO", montoA: 15000, semanasA: 60, fechaElegibilidad: "2027-03-15" };
+    expect(compararCaso(["resultado", "montoA", "semanasA"], { resultado: "apto", montoA: 15000.9, semanasA: 60.05 }, motor)).toEqual({ diferencias: [], aprobado: true });
+    const r = compararCaso(["resultado", "montoA", "fechaElegibilidad"], { resultado: "APTO_BLOQUEADO", montoA: 15002, fechaElegibilidad: "2027-03-16" }, motor);
+    expect(r.aprobado).toBe(false);
+    expect(r.diferencias.map((d) => d.campo)).toEqual(["resultado", "montoA", "fechaElegibilidad"]);
+  });
+  it("los casos cuentan para la ruta: R1 pide 4", () => {
+    const R1: Ruta = { clave: "R1", nombre: "Retiro", orden: 1, prerrequisitos: ["N0"], vigencia_meses: 12, permisos_habilita: [],
+      requisitos: { examen: { minimo: 0.8, n: 25 }, casos: 4, roleplays: ["RP-01"], shadowing: 3 } };
+    const a = { leidos: new Set(["R1-01"]), examenesAprobados: new Set<"N0" | "R1">(["N0", "R1"]), acuses: new Set<"codigo_conducta">(), certificadas: new Set<"N0">(["N0"]), casosAprobados: new Set(["C-R01", "C-R02"]) };
+    const e = estadoRuta(R1, ["R1-01"], a, ["C-R01", "C-R02", "C-R03", "C-R04", "C-R08", "C-R09"]);
+    expect(e.pendientes).toEqual(["Resolver 2 casos prácticos en el simulador (2 de 4)"]);
+    a.casosAprobados.add("C-R03"); a.casosAprobados.add("C-R09");
+    expect(estadoRuta(R1, ["R1-01"], a, ["C-R01", "C-R02", "C-R03", "C-R04", "C-R08", "C-R09"]).pendientes).toEqual([]);
   });
 });

@@ -7,6 +7,7 @@ import { randomUUID } from "node:crypto";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
 import { obtenerSesion } from "@/lib/auth/sesion";
+import { permisoDeOtro } from "@/lib/academia/permisos";
 import { conUsuario, type Tx } from "@/lib/db/prisma";
 import { prepararSubida, urlLectura, type Subida } from "@/lib/documentos/almacen";
 import { rutaDocumento, validarComprobante } from "@/lib/documentos/reglas";
@@ -311,6 +312,8 @@ export async function guardarCanal(casoId: string, _p: Resultado, form: FormData
   // Esquemas vigentes: referidor y asesor de pensiones (ya no hay vendedor).
   const referidor_id = uuid("referidor_id");
   const socio_id = uuid("socio_id");
+  const sinP1 = await asesorSinP1(await obtenerSesion(), casoId, socio_id);
+  if (sinP1) return { error: sinP1 };
   const res = await conUsuario(claims, async (tx): Promise<Resultado> => {
     const n = await tx.caso.updateMany({ where: { id: casoId }, data: { referidor_id, socio_id } });
     if (!n.count) return { error: "No encontramos el caso." };
@@ -418,4 +421,17 @@ export async function regresarAPagoEsperado(casoId: string, pagoId: string): Pro
   }, ip);
   if (res.ok) await despues(casoId);
   return res;
+}
+
+/** Academia (3.2): un caso de pensión solo se asigna a un asesor de pensiones con P1 (si tiene cuenta y el interruptor está encendido). */
+async function asesorSinP1(s: Awaited<ReturnType<typeof obtenerSesion>>, casoId: string, socioId: string | null): Promise<string | null> {
+  if (!socioId) return null;
+  const datos = await conUsuario(s.claims, async (tx) => ({
+    caso: await tx.caso.findUnique({ where: { id: casoId }, select: { socio_id: true, servicio: { select: { embudo: true } } } }),
+    cuenta: await tx.usuario.findFirst({ where: { socio_id: socioId, activo: true, archivado_at: null }, select: { id: true, nombre: true } }),
+  }), s.ip);
+  if (!datos.caso || datos.caso.socio_id === socioId || datos.caso.servicio.embudo !== "pension" || !datos.cuenta) return null;
+  return (await permisoDeOtro(s, datos.cuenta.id, "prospecto.pension.recibir")) === false
+    ? `${datos.cuenta.nombre} todavía no tiene la certificación P1 (Detección de pensiones) para recibir casos de pensión. Puedes darle una excepción temporal en Academia → Avance del equipo.`
+    : null;
 }

@@ -1,11 +1,11 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, CheckCircle2, Circle, Lock, Users } from "lucide-react";
+import { Award, CheckCircle2, Circle, FlaskConical, Lock, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { exigirRol } from "@/lib/auth/sesion";
-import { ACUSES, EVALUACION, MODULOS, PREGUNTAS, RUTAS } from "@/lib/academia/contenido";
+import { ACUSES, CASOS, EVALUACION, MODULOS, PREGUNTAS, RUTAS } from "@/lib/academia/contenido";
 import { avanceDe, estadosDe } from "@/lib/academia/motor";
 import { puedeIntentar } from "@/lib/reglas/capacitacion";
 import { Casilla } from "../casos/[id]/campos";
@@ -102,6 +102,23 @@ export default async function Academia() {
                       </li>
                     ))}
                   </ul>
+                )}
+                {e.disponible && CASOS.some((c) => c.ruta === r.clave) && (
+                  <div>
+                    <p className="flex items-center gap-1.5 text-xs font-medium text-ink"><FlaskConical className="size-4 text-brand" aria-hidden /> Casos prácticos en el simulador
+                      {r.requisitos.casos ? <span className="font-normal text-ink-muted">· necesitas {r.requisitos.casos}</span> : <span className="font-normal text-ink-muted">· práctica</span>}</p>
+                    <ul className="mt-1 grid gap-1">
+                      {CASOS.filter((c) => c.ruta === r.clave).map((c) => (
+                        <li key={c.clave}>
+                          <Link href={`/academia/casos/${c.clave}`} className="flex items-center gap-2 rounded-md py-1.5 hover:text-brand">
+                            {a.casosAprobados?.has(c.clave) ? <CheckCircle2 className="size-4 shrink-0 text-exito" aria-label="Resuelto" /> : <Circle className="size-4 shrink-0 text-ink-muted" aria-label="Pendiente" />}
+                            <span className="cifra text-xs text-ink-muted">{c.clave}</span>
+                            <span className="min-w-0 flex-1 text-ink">{c.titulo}</span>
+                          </Link>
+                        </li>
+                      ))}
+                    </ul>
+                  </div>
                 )}
                 {!certificada && e.disponible && e.pendientes.length > 0 && (
                   <div><p className="text-xs font-medium text-ink">Te falta</p><ul className="mt-1 list-disc pl-5 text-ink-muted">{e.pendientes.map((p) => <li key={p}>{p}</li>)}</ul></div>

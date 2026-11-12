@@ -4,6 +4,7 @@
 // pertenece el caso (asesor de pensiones o referidor). Con RLS; cada cambio queda en Seguimiento.
 import { revalidatePath } from "next/cache";
 import { obtenerSesion } from "@/lib/auth/sesion";
+import { permisoDeOtro } from "@/lib/academia/permisos";
 import { conUsuario } from "@/lib/db/prisma";
 import { recalcularComisiones } from "@/lib/dinero/motor";
 import { normalizarWhatsapp } from "@/lib/prospectos/validacion";
@@ -35,6 +36,8 @@ export async function editarProspecto(casoId: string, _p: Resultado, form: FormD
   const referidor_id = uuid(form, "referidor_id");
 
   let res: Resultado & { canal?: boolean };
+  const sinP1 = await asesorSinP1(await obtenerSesion(), casoId, socio_id);
+  if (sinP1) return { errores: { socio_id: sinP1 } };
   try { res = await conUsuario(claims, async (tx): Promise<Resultado & { canal?: boolean }> => {
     const caso = await tx.caso.findUnique({ where: { id: casoId }, select: {
       persona_id: true, socio_id: true, referidor_id: true,
@@ -74,4 +77,17 @@ export async function editarProspecto(casoId: string, _p: Resultado, form: FormD
   }
   if (res.ok) { revalidatePath("/asesores"); revalidatePath(`/casos/${casoId}`); }
   return { ok: res.ok, error: res.error, errores: res.errores };
+}
+
+/** Academia (3.2): un caso de pensión solo se asigna a un asesor de pensiones con P1 (si tiene cuenta y el interruptor está encendido). */
+async function asesorSinP1(s: Awaited<ReturnType<typeof obtenerSesion>>, casoId: string, socioId: string | null): Promise<string | null> {
+  if (!socioId) return null;
+  const datos = await conUsuario(s.claims, async (tx) => ({
+    caso: await tx.caso.findUnique({ where: { id: casoId }, select: { socio_id: true, servicio: { select: { embudo: true } } } }),
+    cuenta: await tx.usuario.findFirst({ where: { socio_id: socioId, activo: true, archivado_at: null }, select: { id: true, nombre: true } }),
+  }), s.ip);
+  if (!datos.caso || datos.caso.socio_id === socioId || datos.caso.servicio.embudo !== "pension" || !datos.cuenta) return null;
+  return (await permisoDeOtro(s, datos.cuenta.id, "prospecto.pension.recibir")) === false
+    ? `${datos.cuenta.nombre} todavía no tiene la certificación P1 (Detección de pensiones) para recibir casos de pensión. Puedes darle una excepción temporal en Academia → Avance del equipo.`
+    : null;
 }

@@ -9,6 +9,7 @@ import { parametrosRetiro } from "@/lib/parametros";
 import { pctHonorarioRetiro } from "@/lib/reglas/comisiones";
 import { precalificar, type Resultado } from "@/lib/reglas/retiro";
 import { hoyCDMX } from "@/lib/tiempo";
+import { mensajeBloqueo } from "@/lib/academia/permisos";
 
 const ETIQUETA: Record<Resultado, string> = {
   APTO: "Apto", APTO_BLOQUEADO: "Apto con pendientes", NO_TODAVIA: "Todavía no", CALIFICA_NO_CONVIENE: "Califica pero no conviene",
@@ -31,10 +32,20 @@ export async function calcularPrecalificacion(casoId: string, modalidad: "A" | "
     });
     if (!caso) return { error: "No encontramos el caso." };
     if (caso.tipo_servicio !== "RETIRO_DESEMPLEO") return { error: "La calculadora es para el retiro por desempleo." };
+    // Academia (CAPACITACION.md 3.2): con el interruptor encendido, el asesor de pensiones precalifica con R1; un cliente
+    // Ley 73 requiere R2: sin ella no ve el resultado y se crea la tarea «Revisión Ley 73» para el Director.
+    const [perm] = await tx.$queryRaw<{ retiro: boolean; l73: boolean }[]>`SELECT app.tiene_permiso('precalificacion.retiro') AS retiro, app.tiene_permiso('precalificacion.retiro.L73') AS l73`;
+    if (!perm?.retiro) return { error: mensajeBloqueo("precalificacion.retiro") };
     const faltantes = faltantesParaCalcular(caso);
     if (faltantes.length) return { faltantes };
 
     const entrada = entradaDesdeCaso(caso, hoy, modalidad);
+    if (entrada.regimen === "L73" && !perm.l73) {
+      await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: usuario.id,
+        texto: "Cliente Ley 73: el asesor de pensiones todavía no tiene R2, así que no se muestra el resultado comercial. Pasa a revisión del Director." } });
+      return { revisionL73: true as const, caso };
+    }
+
     // El estimado usa el % pactado con el cliente, si lo hay.
     const pc = { ...p, HONORARIO_RETIRO_PCT: pctHonorarioRetiro(caso.contrato_pct === null ? null : Number(caso.contrato_pct), p) };
     const s = precalificar(entrada, pc);
@@ -76,6 +87,20 @@ export async function calcularPrecalificacion(casoId: string, modalidad: "A" | "
     return { ok: true, critica: s.impacto?.severidad === "critica", caso };
   }, ip);
 
+  // Tarea «Revisión Ley 73» (CAPACITACION.md 3.2): la crea el sistema para el Director y quien tiene asignado el caso.
+  if ("revisionL73" in r && r.revisionL73 && r.caso) {
+    const directores = await prismaSistema.usuario.findMany({ where: { rol: "director", activo: true }, select: { id: true } });
+    const para = new Set([...(r.caso.asignado_a ? [r.caso.asignado_a] : []), ...directores.map((d) => d.id)]);
+    const nombre = [r.caso.persona.nombre, r.caso.persona.apellido_paterno].filter(Boolean).join(" ");
+    await prismaSistema.alerta.createMany({
+      data: [...para].map((u) => ({ regla: "REVISION_L73", caso_id: casoId, severidad: "aviso" as const, asignado_a: u,
+        mensaje: `${nombre} (${r.caso.folio}): revisión del Director — cliente Ley 73 precalificado por un asesor sin R2`, fecha_disparo: new Date(`${hoy}T00:00:00Z`),
+        clave_dedup: `REVISION_L73:${casoId}:${hoy}` })),
+      skipDuplicates: true,
+    });
+    revalidatePath(`/casos/${casoId}`);
+    return { error: `Este cliente es Ley 73. ${mensajeBloqueo("precalificacion.retiro.L73")} Le pasé el caso al Director para su revisión.` };
+  }
   // Alerta RIESGO_SEMANAS (8.1): la crea el sistema porque los usuarios no insertan alertas.
   if ("critica" in r && r.critica && r.caso) {
     const directores = await prismaSistema.usuario.findMany({ where: { rol: "director", activo: true }, select: { id: true } });

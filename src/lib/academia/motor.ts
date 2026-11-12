@@ -3,9 +3,11 @@
 // comisiones): las personas no escriben intentos ni certificaciones, así nadie se autoaprueba (CLAUDE.md).
 import "server-only";
 import { prismaSistema } from "@/lib/db/prisma";
-import { calificar, estadoRuta, puedeIntentar, seleccionarPreguntas, venceEl, type AvanceUsuario, type EstadoRuta } from "@/lib/reglas/capacitacion";
-import { ACUSES, EVALUACION, MODULOS, PREGUNTAS, RUTAS } from "./contenido";
-import type { ClaveAcuse, ClaveRuta, PreguntaServida } from "./tipos";
+import { calificar, compararCaso, estadoRuta, puedeIntentar, resultadoCasoRetiro, seleccionarPreguntas, venceEl, type AvanceUsuario, type EstadoRuta, type ResultadoCaso } from "@/lib/reglas/capacitacion";
+import { parametrosRetiro } from "@/lib/parametros";
+import { hoyCDMX } from "@/lib/tiempo";
+import { ACUSES, CASOS, EVALUACION, MODULOS, PREGUNTAS, RUTAS } from "./contenido";
+import type { CampoCaso, ClaveAcuse, ClaveRuta, PreguntaServida } from "./tipos";
 
 export type TipoEvaluacion = "quiz_modulo" | "examen_ruta";
 
@@ -14,12 +16,15 @@ const iso = (d: Date) => d.toISOString();
 const modulosDe = (ruta: ClaveRuta) => MODULOS.filter((m) => m.ruta === ruta).sort((a, b) => a.orden - b.orden);
 const versionModulo = new Map(MODULOS.map((m) => [m.clave, m.version]));
 const versionAcuse = new Map(ACUSES.map((a) => [a.clave, a.version]));
+const versionCaso = new Map(CASOS.map((c) => [c.clave, c.version]));
+export const casosDe = (ruta: ClaveRuta) => CASOS.filter((c) => c.ruta === ruta).map((c) => c.clave);
 
 type FilasAvance = {
   progreso: { modulo: string; version: number }[];
   intentos: { tipo: string; objetivo: string; inicio: Date; fin: Date | null; aprobado: boolean | null; calificacion: unknown }[];
   acuses: { documento: string; version: string }[];
   certs: { ruta: string; vence_at: Date | null }[];
+  casos?: { caso: string; version: number; aprobado: boolean }[];
 };
 export type Avance = AvanceUsuario & { intentos: { tipo: string; objetivo: string; inicio: string; fin: string | null; aprobado: boolean | null; calificacion: number | null }[] };
 
@@ -31,6 +36,7 @@ export function avanceDesdeFilas(f: FilasAvance, ahora: Date): Avance {
     examenesAprobados: new Set(f.intentos.filter((i) => i.tipo === "examen_ruta" && i.aprobado).map((i) => i.objetivo as ClaveRuta)),
     acuses: new Set(f.acuses.filter((a) => versionAcuse.get(a.documento as ClaveAcuse) === a.version).map((a) => a.documento as ClaveAcuse)),
     certificadas: new Set(f.certs.filter((c) => !c.vence_at || iso(c.vence_at).slice(0, 10) >= hoy).map((c) => c.ruta as ClaveRuta)),
+    casosAprobados: new Set((f.casos ?? []).filter((c) => c.aprobado && versionCaso.get(c.caso) === c.version).map((c) => c.caso)),
     intentos: f.intentos.map((i) => ({ tipo: i.tipo, objetivo: i.objetivo, inicio: iso(i.inicio), fin: i.fin ? iso(i.fin) : null, aprobado: i.aprobado,
       calificacion: i.calificacion === null || i.calificacion === undefined ? null : Number(i.calificacion) })),
   };
@@ -38,18 +44,19 @@ export function avanceDesdeFilas(f: FilasAvance, ahora: Date): Avance {
 
 /** Avance de una persona (motor, con la sesión ya verificada). */
 export async function avanceDe(usuarioId: string, ahora = new Date()): Promise<Avance> {
-  const [progreso, intentos, acuses, certs] = await Promise.all([
+  const [progreso, intentos, acuses, certs, casos] = await Promise.all([
     prismaSistema.capProgreso.findMany({ where: { usuario_id: usuarioId, estado: "completado" }, select: { modulo: true, version: true } }),
     prismaSistema.capIntento.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, orderBy: { inicio: "asc" },
       select: { tipo: true, objetivo: true, inicio: true, fin: true, aprobado: true, calificacion: true } }),
     prismaSistema.capAcuse.findMany({ where: { usuario_id: usuarioId }, select: { documento: true, version: true } }),
     prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: { in: VIVAS } }, select: { ruta: true, vence_at: true } }),
+    prismaSistema.capCasoIntento.findMany({ where: { usuario_id: usuarioId, aprobado: true }, select: { caso: true, version: true, aprobado: true } }),
   ]);
-  return avanceDesdeFilas({ progreso, intentos, acuses, certs }, ahora);
+  return avanceDesdeFilas({ progreso, intentos, acuses, certs, casos }, ahora);
 }
 
 export function estadosDe(a: AvanceUsuario): EstadoRuta[] {
-  return RUTAS.map((r) => estadoRuta(r, modulosDe(r.clave).map((m) => m.clave), a));
+  return RUTAS.map((r) => estadoRuta(r, modulosDe(r.clave).map((m) => m.clave), a, casosDe(r.clave)));
 }
 
 /** Otorga las certificaciones que ya se cumplen (9.4). P2 no se otorga sola: requiere entrevista. */
@@ -130,4 +137,36 @@ export async function terminarEvaluacion(usuarioId: string, intentoId: string, r
     revision: servidas.map((p, i) => ({ clave: p.clave, enunciado: p.enunciado, critica: p.critica, correcta: r.detalle[i].correcta,
       tuRespuesta: texto(p, limpias[p.clave]), respuestaCorrecta: texto(p, p.correcta), explicacion: p.explicacion })),
   };
+}
+
+export type ResultadoSimulador = {
+  error?: string; aprobado?: boolean; explicacion?: string; certificaciones?: ClaveRuta[];
+  diferencias?: { campo: CampoCaso | "opcion"; esperado: unknown; capturado: unknown }[];
+};
+
+/** Simulador (9.1): compara la captura con el motor de la calculadora (o con la opción correcta) y guarda el intento. */
+export async function resolverCaso(usuarioId: string, clave: string, captura: ResultadoCaso & { opcion?: number | null }, ahora = new Date()): Promise<ResultadoSimulador> {
+  const caso = CASOS.find((c) => c.clave === clave);
+  if (!caso) return { error: "Caso desconocido." };
+  const a = await avanceDe(usuarioId, ahora);
+  const ruta = RUTAS.find((r) => r.clave === caso.ruta)!;
+  if (!estadoRuta(ruta, modulosDe(ruta.clave).map((m) => m.clave), a, casosDe(ruta.clave)).disponible) return { error: "Primero certifícate en N0 (Inducción)." };
+  let r: { aprobado: boolean; diferencias: ResultadoSimulador["diferencias"] }; let motor: unknown = null;
+  if (caso.tipo === "retiro") {
+    const p = await parametrosRetiro(hoyCDMX(ahora));
+    const m = resultadoCasoRetiro(caso.datos, caso.hoy, p);
+    motor = m;
+    const limpia = Object.fromEntries(caso.captura.map((c) => [c, captura[c] ?? null]));
+    const cmp = compararCaso(caso.captura, limpia, m);
+    r = { aprobado: cmp.aprobado, diferencias: cmp.diferencias };
+  } else {
+    const ok = captura.opcion === caso.correcta;
+    r = { aprobado: ok, diferencias: ok ? [] : [{ campo: "opcion", esperado: caso.opciones[caso.correcta], capturado: captura.opcion == null ? null : caso.opciones[captura.opcion] ?? null }] };
+  }
+  await prismaSistema.capCasoIntento.create({ select: { id: true }, data: {
+    usuario_id: usuarioId, caso: caso.clave, version: caso.version, captura: captura as object, resultado_motor: (motor ?? undefined) as object | undefined,
+    diferencias: r.diferencias as object, aprobado: r.aprobado,
+  } });
+  const certificaciones = r.aprobado ? await otorgarLasQueCumple(usuarioId, ahora) : [];
+  return { aprobado: r.aprobado, diferencias: r.diferencias, explicacion: caso.explicacion, certificaciones };
 }

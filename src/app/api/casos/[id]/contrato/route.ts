@@ -2,6 +2,7 @@
 // Imprime CURP y NSS completos: cada uno se abre con verDatoSensible() y deja renglón en la bitácora.
 import { NextResponse, type NextRequest } from "next/server";
 import { obtenerSesion } from "@/lib/auth/sesion";
+import { mensajeBloqueo, tienePermiso } from "@/lib/academia/permisos";
 import { datosContrato, plantillaVigente, sensiblesDe, type Clase } from "@/lib/contratos/datos";
 import { bloques, llenar } from "@/lib/contratos/plantilla";
 import { conUsuario } from "@/lib/db/prisma";
@@ -21,6 +22,10 @@ export async function GET(req: NextRequest, { params }: { params: Promise<{ id: 
 
   const previo = await conUsuario(s.claims, (tx) => tx.caso.findUnique({ where: { id }, select: { tipo_servicio: true, fecha_contrato: true } }), s.ip);
   if (!previo) return new NextResponse("No encontrado", { status: 404 });
+  // Academia (3.2): con el interruptor encendido, el contrato de retiro lo genera un asesor de pensiones con R1.
+  if (clase === "contrato" && previo.tipo_servicio === "RETIRO_DESEMPLEO" && !(await tienePermiso(s, "contrato.retiro.generar"))) {
+    return new NextResponse(mensajeBloqueo("contrato.retiro.generar"), { status: 403 });
+  }
   const fechaPlantilla = previo.fecha_contrato?.toISOString().slice(0, 10) ?? new Date().toISOString().slice(0, 10);
   const plantilla = await plantillaVigente(previo.tipo_servicio, clase, fechaPlantilla);
   if (!plantilla) return new NextResponse("Este servicio todavía no tiene plantilla de ese documento.", { status: 404 });

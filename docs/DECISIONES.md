@@ -583,3 +583,34 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Pantallas: Academia (Mi ruta, con acuses al entrar), Lección (recuadros «Lo que dices» azul / «Lo que nunca dices»
   rojo), Evaluación (una pregunta por pantalla, sin regresar, revisión de errores con críticas resaltadas), Equipo
   (Director). Aviso en Hoy al asesor de pensiones sin N0.
+
+## 13-nov-2026 · Academia, fase B: simulador, permisos por certificación (interruptor apagado) y excepciones
+
+- **Casos prácticos** en `content/academia/casos.json`. C-R01 a C-R09 traen los datos de entrada del motor y su
+  resultado esperado; una prueba (`capacitacion.test.ts`) verifica que **coinciden con `precalificar()`** (montos al
+  centavo, semanas a 0.1): el contenido no puede contradecir al sistema. C-P01 a C-P07 (pensión) son de opción múltiple,
+  porque el motor no calcula pensiones; sus opciones salen del «qué debe contestar» del plan (sección 7).
+  - Asignación: R1 = C-R01, 02, 03, 04, 08, 09 (pide 4); R2 = C-R05, 06, 07 (pide 3); P1 = C-P01 a 06 (pide 4); P2 = C-P07.
+  - C-R01: la comisión de la explicación usa el esquema vigente ($1,600, no el 5% del plan).
+- **Simulador** (`/academia/casos/[clave]`): en lugar de repetir los 4 pasos del asistente, el asesor lee el caso
+  ficticio y captura resultado, montos A/B, semanas, honorario, fecha, incrementos o la modalidad que resalta el
+  sistema; el servidor lo compara con el motor (montos ±$1, semanas ±0.1) con los parámetros vigentes. No crea
+  personas ni casos. Los intentos (`cap_casos_intentos`) los escribe el motor.
+- **Permisos (3.2)** en la base: `cap_permisos_ruta` (cada ruta incluye los permisos de sus prerrequisitos; una prueba
+  la compara con rutas.json), `app.tiene_permiso`, `app.permiso_de_otro` (Director y analista), vista
+  `v_permisos_usuario`. Solo aplican al asesor de pensiones (rol socio). **Interruptor `ACADEMIA_BLOQUEOS`**
+  (parámetro con vigencia): **apagado** al entregar; el Director lo enciende o apaga en Academia → Avance del equipo.
+  - Encendido: alta de prospectos con N0; precalificar retiros con R1 (además, candado RESTRICTIVO en `calculos`);
+    cliente Ley 73 sin R2 → no se muestra el resultado y se crea la alerta REVISION_L73 al Director y a quien tiene el
+    caso; contrato de retiro con R1; recibir prospectos de pensión con P1 (al darlos de alta y cuando se le asigna un
+    caso de pensión a un asesor con cuenta).
+  - Pendiente para fases siguientes: `documentos.solicitar`, `analisis_impacto.borrador`, `caso.desvio.crear`,
+    `diagnostico_inicial.capturar` y los permisos de P2 están en la tabla pero todavía no bloquean nada.
+- **Excepción temporal** (`cap_excepciones`): solo el Director, con motivo, máximo 30 días; se revoca (archiva), nunca se
+  borra.
+- **Certificación automática** con casos: R1 y R2 siguen esperando juegos de roles y acompañamientos (fase C).
+- **Ayuda contextual**: en la precalificación del caso, el resultado enlaza a su lección (APTO → R1-05,
+  CALIFICA_NO_CONVIENE → R2-01, NO_TODAVIA → R1-01, APTO_BLOQUEADO → R1-04, desvío → R2-02), más «cómo se calcula» y
+  «semanas que se pierden».
+- La prueba con Playwright del plan (sin R1 / R1 / R1+L73 / R2) se cubrió con pruebas de base de datos y un recorrido
+  en local (el conjunto e2e actual no tiene sesión con base de datos).

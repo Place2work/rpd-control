@@ -1,4 +1,4 @@
-import { CircleAlert, FileDown, Leaf } from "lucide-react";
+import { CircleAlert, FileDown, GraduationCap, Leaf } from "lucide-react";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -14,6 +14,9 @@ import { AsistenteCalculo, type Valores } from "../asistente-calculo";
 import { BotonCalcular } from "../boton-calcular";
 import { BotonDesvio } from "../boton-desvio";
 
+const LECCION_RESULTADO: Record<string, string> = {
+  APTO: "R1-05", APTO_BLOQUEADO: "R1-04", NO_TODAVIA: "R1-01", CALIFICA_NO_CONVIENE: "R2-01", NO_ELEGIBLE_DESVIO: "R2-02", NO_ELEGIBLE_DEFINITIVO: "R1-05",
+};
 const RESULTADO: Record<Resultado, { texto: string; tono: "pagado" | "espera" | "critico" | "tramite" | "prospecto" }> = {
   APTO: { texto: "Apto", tono: "pagado" },
   APTO_BLOQUEADO: { texto: "Apto con pendientes", tono: "tramite" },
@@ -95,6 +98,13 @@ export async function PestanaCalculo({ caso, sesion }: { caso: CasoDetalle; sesi
           ) : (
             <>
               <p className="rounded-md bg-brand-tint p-4 text-[15px] leading-relaxed text-ink">{ultimo.explicacion}</p>
+              {/* Ayuda contextual (CAPACITACION.md 12.2): cada resultado enlaza a la lección que lo explica. */}
+              <p className="flex flex-wrap items-center gap-x-3 gap-y-1 text-xs text-ink-muted">
+                <GraduationCap className="size-4 text-brand" aria-hidden /> Academia:
+                <Link href={`/academia/${LECCION_RESULTADO[ultimo.resultado] ?? "R1-05"}`} className="text-brand underline">¿Qué significa «{RESULTADO[ultimo.resultado].texto}» y qué le dices?</Link>
+                <Link href="/academia/R1-02" className="text-brand underline">Cómo se calcula</Link>
+                <Link href="/academia/R1-03" className="text-brand underline">Semanas que se pierden</Link>
+              </p>
               {ultimo.dictamen_manual && ultimo.resultado !== ultimo.resultado_automatico && (
                 <p className="text-xs text-ink-muted">El motor dio «{RESULTADO[ultimo.resultado_automatico].texto}»; prevalece el dictamen manual «{ultimo.dictamen_manual === "APTO" ? "Apto" : "No apto"}».</p>
               )}

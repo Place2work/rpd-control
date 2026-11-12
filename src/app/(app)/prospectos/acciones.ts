@@ -13,6 +13,7 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { limpiarNombre } from "@/lib/reglas/nombres";
 import { leerCostoAlta } from "@/lib/reglas/costo-alta";
 import { mxn } from "@/lib/formato";
+import { mensajeBloqueo } from "@/lib/academia/permisos";
 
 export type Duplicado = { campo: "telefono" | "curp" | "nss"; persona_id: string | null; visible: boolean };
 
@@ -51,6 +52,14 @@ export async function crearProspecto(_previo: EstadoAlta, form: FormData): Promi
     if ("error" in leido) return { errores: { costo_admin_alta: leido.error }, valores };
     costoAlta = leido.costo;
   }
+  // Academia (3.2): con el interruptor encendido, el asesor de pensiones da de alta con N0 y recibe pensiones con P1.
+  const bloqueo = await conUsuario(claims, async (tx) => {
+    const [perm] = await tx.$queryRaw<{ alta: boolean; pension: boolean }[]>`SELECT app.tiene_permiso('prospecto.crear') AS alta, app.tiene_permiso('prospecto.pension.recibir') AS pension`;
+    if (!perm?.alta) return mensajeBloqueo("prospecto.crear");
+    const pensiones = await tx.tipoServicio.count({ where: { clave: { in: servicios }, embudo: "pension" } });
+    return pensiones && !perm.pension ? mensajeBloqueo("prospecto.pension.recibir") : null;
+  }, ip);
+  if (bloqueo) return { valores, mensaje: bloqueo };
   const d = { ...r.data, ...limpiarNombre({ nombre: r.data.nombre, apellido_paterno: r.data.apellido_paterno ?? null, apellido_materno: r.data.apellido_materno ?? null }) };
   const curpHash = d.curp ? hashIdentificador("curp", d.curp) : null;
   const nssHash = d.nss ? hashIdentificador("nss", d.nss) : null;

@@ -1,7 +1,8 @@
 // Reglas de la Academia (docs/CAPACITACION.md secciones 3.2, 9.1, 9.3 y 9.4). Puras: reciben el contenido,
 // el avance y `ahora`; no leen la base ni el reloj. Los mínimos, intentos y esperas vienen del contenido
 // (content/academia/rutas.json y evaluacion.json), no del código.
-import type { ClaveAcuse, ClaveRuta, Pregunta, ReglaIntentos, Ruta } from "@/lib/academia/tipos";
+import type { CampoCaso, ClaveAcuse, ClaveRuta, DatosCasoRetiro, Pregunta, ReglaIntentos, Ruta } from "@/lib/academia/tipos";
+import { precalificar, type ParametrosRetiro } from "./retiro";
 
 // ───────────── Selección de preguntas ─────────────
 
@@ -90,6 +91,7 @@ export type AvanceUsuario = {
   examenesAprobados: Set<ClaveRuta>;
   acuses: Set<ClaveAcuse>;
   certificadas: Set<ClaveRuta>;           // certificaciones vigentes
+  casosAprobados?: Set<string>;           // casos prácticos resueltos bien en el simulador
 };
 
 export type EstadoRuta = {
@@ -104,7 +106,6 @@ export type EstadoRuta = {
 };
 
 const PROXIMAMENTE = (r: Ruta["requisitos"]) => [
-  r.casos ? `${r.casos} casos prácticos en el simulador` : null,
   r.roleplays?.length ? `Juego de roles ${r.roleplays.join(" y ")} con el Director` : null,
   r.shadowing ? `${r.shadowing} casos acompañados` : null,
   r.diagnosticos ? `${r.diagnosticos} diagnósticos validados` : null,
@@ -116,17 +117,20 @@ const PROXIMAMENTE = (r: Ruta["requisitos"]) => [
  * (N0) y el examen de la ruta previa aprobado. Certificación: además, la ruta previa certificada y los
  * requisitos de práctica (casos, juegos de roles, acompañamientos), que llegan en las fases B y C.
  */
-export function estadoRuta(ruta: Ruta, modulosRuta: string[], a: AvanceUsuario): EstadoRuta {
+export function estadoRuta(ruta: Ruta, modulosRuta: string[], a: AvanceUsuario, casosRuta: string[] = []): EstadoRuta {
   const leidos = modulosRuta.filter((m) => a.leidos.has(m)).length;
   const acusesFaltan = (ruta.requisitos.acuses ?? []).filter((x) => !a.acuses.has(x));
   const disponible = ruta.clave === "N0" || a.certificadas.has("N0");
   const prereqExamen = ruta.prerrequisitos.every((p) => a.examenesAprobados.has(p));
   const examen = a.examenesAprobados.has(ruta.clave);
+  const casosHechos = casosRuta.filter((c) => a.casosAprobados?.has(c)).length;
+  const casosFaltan = Math.max(0, Math.min(ruta.requisitos.casos ?? 0, casosRuta.length || (ruta.requisitos.casos ?? 0)) - casosHechos);
   const pendientes = [
     acusesFaltan.length ? "Firmar el Código de conducta y el aviso de privacidad interno" : null,
     leidos < modulosRuta.length ? `Leer ${modulosRuta.length - leidos} ${modulosRuta.length - leidos === 1 ? "módulo" : "módulos"}` : null,
     !examen ? `Aprobar el examen de ruta (${Math.round(ruta.requisitos.examen.minimo * 100)}% y todas las críticas)` : null,
     !prereqExamen ? `Aprobar antes el examen de ${ruta.prerrequisitos.join(", ")}` : null,
+    casosFaltan > 0 ? `Resolver ${casosFaltan} ${casosFaltan === 1 ? "caso práctico" : "casos prácticos"} en el simulador (${casosHechos} de ${ruta.requisitos.casos})` : null,
   ].filter((x): x is string => Boolean(x));
   const proximamente = PROXIMAMENTE(ruta.requisitos);
   const prereqCert = ruta.prerrequisitos.every((p) => a.certificadas.has(p));
@@ -134,7 +138,7 @@ export function estadoRuta(ruta: Ruta, modulosRuta: string[], a: AvanceUsuario):
     clave: ruta.clave, disponible,
     puedeExamen: disponible && leidos === modulosRuta.length && acusesFaltan.length === 0 && prereqExamen && !examen,
     modulosLeidos: leidos, modulosTotal: modulosRuta.length,
-    avance: Math.round(((leidos + (examen ? 1 : 0)) / (modulosRuta.length + 1)) * 100),
+    avance: Math.round(((leidos + (examen ? 1 : 0) + Math.min(casosHechos, ruta.requisitos.casos ?? 0)) / (modulosRuta.length + 1 + (ruta.requisitos.casos ?? 0))) * 100),
     pendientes, proximamente,
     otorgable: disponible && pendientes.length === 0 && proximamente.length === 0 && prereqCert && !a.certificadas.has(ruta.clave),
     bloqueo: disponible ? undefined : "Primero certifícate en N0 (Inducción)",
@@ -149,4 +153,34 @@ export function venceEl(otorgadaIso: string, meses: number | null): string | nul
   const anio = y + Math.floor(total / 12), mes = (total % 12) + 1;
   const ultimo = new Date(Date.UTC(anio, mes, 0)).getUTCDate();
   return `${anio}-${String(mes).padStart(2, "0")}-${String(Math.min(d, ultimo)).padStart(2, "0")}`;
+}
+
+// ───────────── Casos prácticos (sección 7 y 9.1) ─────────────
+
+export type ResultadoCaso = Partial<Record<CampoCaso, string | number | null>>;
+
+/** Lo que dice el motor de la calculadora para un caso de retiro (el mismo `precalificar` del CRM). */
+export function resultadoCasoRetiro(datos: DatosCasoRetiro, hoy: string, p: ParametrosRetiro): ResultadoCaso {
+  const s = precalificar({ ...datos, hoy }, p);
+  const a = s.modalidades.opciones.find((o) => o.modalidad === "A");
+  const b = s.modalidades.opciones.find((o) => o.modalidad === "B");
+  return {
+    resultado: s.resultado, montoA: a?.monto ?? null, semanasA: a?.semanasPerdidas ?? null, montoB: b?.monto ?? null, semanasB: b?.semanasPerdidas ?? null,
+    honorario: s.elegida?.honorario ?? null, fechaElegibilidad: s.fechaElegibilidad, incrementosAntes: s.impacto?.incrementosAntes ?? null,
+    incrementosDespues: s.impacto?.incrementosDespues ?? null, modalidadMenosSemanas: s.modalidades.cuestaMenos,
+  };
+}
+
+const TOLERANCIA: Partial<Record<CampoCaso, number>> = { montoA: 1, montoB: 1, honorario: 1, semanasA: 0.1, semanasB: 0.1 };
+
+/** Compara la captura con el motor: montos ±$1, semanas ±0.1, lo demás exacto (9.1). */
+export function compararCaso(campos: CampoCaso[], captura: ResultadoCaso, motor: ResultadoCaso) {
+  const diferencias = campos.flatMap((c) => {
+    const esperado = motor[c] ?? null, dado = captura[c] ?? null;
+    const ok = typeof esperado === "number"
+      ? typeof dado === "number" && Number.isFinite(dado) && Math.abs(dado - esperado) <= (TOLERANCIA[c] ?? 0) + 1e-9
+      : String(dado ?? "").trim().toUpperCase() === String(esperado ?? "").trim().toUpperCase();
+    return ok ? [] : [{ campo: c, esperado, capturado: dado }];
+  });
+  return { diferencias, aprobado: diferencias.length === 0 };
 }
