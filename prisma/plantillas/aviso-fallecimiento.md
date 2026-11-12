@@ -47,6 +47,9 @@ línea u otros servicios.
 recursos de la AFORE y de vivienda de la persona fallecida.
 • Integrar y revisar el expediente, detectar inconsistencias entre los documentos (por ejemplo,
 el estado civil asentado en el acta de defunción) y orientar para corregirlas.
+• Con su autorización, solicitar en su nombre ante el IMSS la Constancia de Semanas Cotizadas que corresponda,
+utilizando un correo electrónico de la empresa para recibirla, con el único fin de integrar el expediente y realizar
+el trámite contratado.
 • Redactar las solicitudes y escritos que la beneficiaria firma, acompañarla en su presentación
 ante el IMSS, la AFORE, el INFONAVIT y el Registro Civil, y dar seguimiento hasta su resolución.
 • Preparar y, en su caso, llevar el juicio por medio del abogado designado, cuando el IMSS
@@ -76,7 +79,8 @@ Para el juicio, sus datos y los de la persona fallecida se compartirán con el a
 profesional designado para llevarlo, únicamente para ese fin y por ser necesario para cumplir el
 contrato que usted celebró (artículo 37, fracciones IV y VII, de la Ley Federal de Protección de
 Datos Personales en Posesión de los Particulares). La beneficiaria firma y presenta personalmente
-las solicitudes ante el IMSS, la AFORE y el INFONAVIT.
+las solicitudes ante el IMSS, la AFORE y el INFONAVIT. La única excepción es la Constancia de Semanas Cotizadas, que
+con su autorización podemos solicitar en su nombre ante el IMSS (sección 3).
 
 #### 5. Plazo de conservación
 Conservamos sus datos mientras dure la relación de servicio y hasta 12 meses después de

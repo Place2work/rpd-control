@@ -36,6 +36,8 @@ correspondiente. Nunca solicitamos ni conservamos contraseñas de AforeMóvil, b
 • Evaluar si usted cumple los requisitos legales para el retiro parcial de AFORE por desempleo (precalificación).
 • Estimar el monto retirable y las semanas cotizadas que se descontarían.
 • Integrar y revisar su expediente, detectar inconsistencias entre sus documentos y orientarle para corregirlas.
+• Con su autorización, solicitar en su nombre ante el IMSS su Constancia de Semanas Cotizadas, utilizando un correo
+electrónico de la empresa para recibirla, con el único fin de integrar su expediente y realizar el trámite contratado.
 • Acompañarle en el trámite que usted realiza personalmente ante su AFORE y dar seguimiento hasta su resolución.
 • Celebrar y cumplir el contrato de prestación de servicios, emitir comprobantes fiscales y atender quejas y
 aclaraciones.
@@ -56,8 +58,9 @@ utilizamos proveedores de servicios (hospedaje web, correo electrónico, mensaje
 nube) que tratan datos por cuenta nuestra bajo instrucciones y obligaciones de confidencialidad; esto no constituye
 una transferencia.
 
-Usted realiza personalmente los trámites ante su AFORE y el IMSS; nosotros no enviamos su información a dichas
-instituciones en su nombre.
+Usted realiza personalmente los trámites ante su AFORE y el IMSS. La única excepción es la Constancia de Semanas
+Cotizadas, que con su autorización podemos solicitar en su nombre ante el IMSS (sección 3); fuera de ello, no enviamos
+su información a dichas instituciones en su nombre.
 
 #### 5. Plazo de conservación
 Conservamos sus datos mientras dure la relación de servicio y hasta 12 meses después de concluida, para atender

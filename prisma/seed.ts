@@ -54,7 +54,7 @@ const PARAMETROS: { clave: string; valor: string; tipo?: string; descripcion: st
   { clave: "FALLEC_COMISION_MENSUALIDAD", valor: "3000", descripcion: "Comisión vendedor fallecimiento: primera mensualidad" },
   { clave: "ARCO_DIAS_RESPUESTA", valor: "20", tipo: "entero", descripcion: "Días para responder una solicitud ARCO" },
   { clave: "RETENCION_EXPEDIENTES_ANIOS", valor: "5", tipo: "entero", descripcion: "Conservación de expedientes de casos cerrados" },
-  { clave: "PRIVACIDAD_VERSION", valor: "2026-10", tipo: "texto", descripcion: "Versión vigente del aviso de privacidad" },
+  { clave: "PRIVACIDAD_VERSION", valor: "2026-11", tipo: "texto", descripcion: "Versión vigente del aviso de privacidad" },
   // Ligas oficiales de consulta. Son parámetros porque el gobierno cambia las direcciones.
   { clave: "LIGA_CONSULTA_CURP", valor: "https://www.gob.mx/curp/", tipo: "texto", descripcion: "Consulta de CURP (RENAPO)" },
   { clave: "LIGA_CONSULTA_NSS", valor: "https://serviciosdigitales.imss.gob.mx/gestionAsegurados-web-externo/asignacionNSS", tipo: "texto", descripcion: "Asignación o localización del NSS (IMSS)" },

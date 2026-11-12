@@ -529,3 +529,16 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - Pendiente del Director: recepción en Resend para `recibe.retiropordesempleo.com` (registro MX), webhook a
   `https://admin.retiropordesempleo.com/api/correo/entrante`, RESEND_API_KEY y RESEND_WEBHOOK_SECRET en Vercel, y un
   renglón en el aviso de privacidad sobre la solicitud de la constancia con autorización del cliente.
+
+## 12-nov-2026 · Aviso de privacidad versión 2 (2026-11): solicitud de la constancia ante el IMSS
+
+- Retiro y fallecimiento: nueva finalidad primaria «Con su autorización, solicitar en su nombre ante el IMSS su (la)
+  Constancia de Semanas Cotizadas, utilizando un correo electrónico de la empresa para recibirla, con el único fin de
+  integrar su expediente y realizar el trámite contratado». En «usted», como el resto del aviso.
+- Sección 4 ajustada para no contradecirse: la constancia es la única excepción a «usted realiza personalmente los
+  trámites ante el IMSS» (retiro) y a «la beneficiaria presenta personalmente las solicitudes» (fallecimiento).
+- Producción: versión 2 de ambos avisos vigente desde el 11-nov-2026 (hora CDMX); la versión 1 queda cerrada, no se
+  borra. PRIVACIDAD_VERSION = 2026-11 desde la misma fecha (quien acepte desde hoy queda con 2026-11).
+- Los clientes que aceptaron la 2026-10 no autorizaron esta finalidad: antes de pedir su constancia con el buzón de la
+  empresa, que firmen el aviso nuevo (Contrato → aviso de privacidad) o den su autorización por escrito.
+- prisma/plantillas/*.md y el seed alineados (scripts/plantillas-ts.cjs regenera plantillas-iniciales.ts).
