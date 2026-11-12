@@ -10,6 +10,7 @@ const evaluacion = leerJson('evaluacion.json');
 const casos = leerJson('casos.json');
 const rubrica = leerJson('rubrica.json');
 const roleplays = leerJson('roleplays.json');
+const microlecciones = leerJson('microlecciones.json');
 const modulos = [];
 for (const r of rutas) {
   const dir = path.join(base, r.clave);
@@ -25,7 +26,7 @@ fs.writeFileSync(path.join(__dirname, '..', 'src', 'lib', 'academia', 'contenido
 `// GENERADO por scripts/academia-ts.cjs desde content/academia/. No editar a mano.
 // Incluye las respuestas correctas: solo en el servidor.
 import "server-only";
-import type { Acuse, CasoPractico, Modulo, Pregunta, ReglasEvaluacion, Roleplay, Rubrica, Ruta } from "./tipos";
+import type { Acuse, CasoPractico, Microleccion, Modulo, Pregunta, ReglasEvaluacion, Roleplay, Rubrica, Ruta } from "./tipos";
 
 export const EVALUACION: ReglasEvaluacion = ${JSON.stringify(evaluacion, null, 1)};
 
@@ -42,5 +43,7 @@ export const CASOS: CasoPractico[] = ${JSON.stringify(casos, null, 1)};
 export const RUBRICA: Rubrica = ${JSON.stringify(rubrica, null, 1)};
 
 export const ROLEPLAYS: Roleplay[] = ${JSON.stringify(roleplays, null, 1)};
+
+export const MICROLECCIONES: Microleccion[] = ${JSON.stringify(microlecciones, null, 1)};
 `);
 console.log(`ok: ${rutas.length} rutas, ${modulos.length} módulos, ${preguntas.length} preguntas`);

@@ -4,12 +4,14 @@
 import "server-only";
 import { prismaSistema } from "@/lib/db/prisma";
 import { calificar, compararCaso, estadoRuta, puedeIntentar, resultadoCasoRetiro, seleccionarPreguntas, venceEl, type AvanceUsuario, type EstadoRuta, type ResultadoCaso } from "@/lib/reglas/capacitacion";
-import { parametrosRetiro } from "@/lib/parametros";
+import { parametrosRetiro, parametrosVigentes } from "@/lib/parametros";
+import { estadoVigencia, venceAlRecertificar } from "@/lib/reglas/actualizaciones";
 import { hoyCDMX } from "@/lib/tiempo";
 import { ACUSES, CASOS, EVALUACION, MODULOS, PREGUNTAS, RUTAS } from "./contenido";
-import type { CampoCaso, ClaveAcuse, ClaveRuta, PreguntaServida } from "./tipos";
+import type { CampoCaso, ClaveAcuse, ClaveRuta, Pregunta, PreguntaServida } from "./tipos";
 
-export type TipoEvaluacion = "quiz_modulo" | "examen_ruta";
+export type TipoEvaluacion = "quiz_modulo" | "examen_ruta" | "recertificacion" | "actualizacion";
+export const TIPOS_EVALUACION: TipoEvaluacion[] = ["quiz_modulo", "examen_ruta", "recertificacion", "actualizacion"];
 
 export const VIVAS = ["vigente", "por_vencer"];
 const iso = (d: Date) => d.toISOString();
@@ -30,6 +32,8 @@ type FilasAvance = {
   diagnosticos?: { correccion_grave: boolean }[];
   entrevistas?: { ruta: string; aprobada: boolean }[];
   suspendidas?: { ruta: string }[];
+  vencidas?: { ruta: string }[];
+  revocadas?: { ruta: string }[];
 };
 export type Avance = AvanceUsuario & { intentos: { tipo: string; objetivo: string; inicio: string; fin: string | null; aprobado: boolean | null; calificacion: number | null }[] };
 
@@ -47,6 +51,8 @@ export function avanceDesdeFilas(f: FilasAvance, ahora: Date): Avance {
     diagnosticosValidos: (f.diagnosticos ?? []).filter((x) => !x.correccion_grave).length,
     entrevistas: new Set((f.entrevistas ?? []).filter((x) => x.aprobada).map((x) => x.ruta as ClaveRuta)),
     suspendidas: new Set((f.suspendidas ?? []).map((x) => x.ruta as ClaveRuta)),
+    vencidas: new Set((f.vencidas ?? []).map((x) => x.ruta as ClaveRuta)),
+    revocadas: new Set((f.revocadas ?? []).map((x) => x.ruta as ClaveRuta)),
     intentos: f.intentos.map((i) => ({ tipo: i.tipo, objetivo: i.objetivo, inicio: iso(i.inicio), fin: i.fin ? iso(i.fin) : null, aprobado: i.aprobado,
       calificacion: i.calificacion === null || i.calificacion === undefined ? null : Number(i.calificacion) })),
   };
@@ -54,7 +60,7 @@ export function avanceDesdeFilas(f: FilasAvance, ahora: Date): Avance {
 
 /** Avance de una persona (motor, con la sesión ya verificada). */
 export async function avanceDe(usuarioId: string, ahora = new Date()): Promise<Avance> {
-  const [progreso, intentos, acuses, certs, casos, roleplays, shadowing, diagnosticos, entrevistas, suspendidas] = await Promise.all([
+  const [progreso, intentos, acuses, certs, casos, roleplays, shadowing, diagnosticos, entrevistas, suspendidas, vencidas, revocadas] = await Promise.all([
     prismaSistema.capProgreso.findMany({ where: { usuario_id: usuarioId, estado: "completado" }, select: { modulo: true, version: true } }),
     prismaSistema.capIntento.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, orderBy: { inicio: "asc" },
       select: { tipo: true, objetivo: true, inicio: true, fin: true, aprobado: true, calificacion: true } }),
@@ -66,8 +72,10 @@ export async function avanceDe(usuarioId: string, ahora = new Date()): Promise<A
     prismaSistema.capDiagnosticoValidado.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, select: { correccion_grave: true } }),
     prismaSistema.capEntrevista.findMany({ where: { usuario_id: usuarioId, archivado_at: null }, select: { ruta: true, aprobada: true } }),
     prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: "suspendida" }, select: { ruta: true } }),
+    prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: "vencida" }, select: { ruta: true } }),
+    prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: "revocada" }, select: { ruta: true } }),
   ]);
-  return avanceDesdeFilas({ progreso, intentos, acuses, certs, casos, roleplays, shadowing, diagnosticos, entrevistas, suspendidas }, ahora);
+  return avanceDesdeFilas({ progreso, intentos, acuses, certs, casos, roleplays, shadowing, diagnosticos, entrevistas, suspendidas, vencidas, revocadas }, ahora);
 }
 
 export function estadosDe(a: AvanceUsuario): EstadoRuta[] {
@@ -92,29 +100,65 @@ export async function otorgarLasQueCumple(usuarioId: string, ahora: Date): Promi
 }
 
 export type InicioEvaluacion = { error?: string; intentoId?: string; preguntas?: PreguntaServida[]; minimo?: number };
+type PreguntaMotor = Pick<Pregunta, "clave" | "tipo" | "enunciado" | "opciones" | "correcta" | "tolerancia" | "explicacion" | "critica"> & { version?: number };
+
+/** Preguntas en revisión por un cambio de parámetro (9.6): no se sirven hasta que el Director las confirma. */
+async function enRevision(): Promise<Set<string>> {
+  const filas = await prismaSistema.capPreguntaRevision.findMany({ where: { estado: "revisar" }, select: { pregunta: true, version: true } });
+  return new Set(filas.map((f) => `${f.pregunta}:${f.version}`));
+}
+
+/** Certificación que se puede recertificar: por vencer o vencida (la más reciente de la ruta). */
+async function certificacionPorRenovar(usuarioId: string, ruta: string) {
+  return prismaSistema.capCertificacion.findFirst({ where: { usuario_id: usuarioId, ruta, archivado_at: null, estado: { in: ["por_vencer", "vencida"] } },
+    orderBy: { otorgada_at: "desc" }, select: { id: true, otorgada_at: true, vence_at: true } });
+}
+
+/** Microlección publicada que la persona todavía no aprueba. */
+async function actualizacionVigente(id: string) {
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return null;
+  return prismaSistema.capActualizacion.findFirst({ where: { id, estado: "publicada", archivado_at: null }, select: { id: true, titulo: true, preguntas: true, publicada_at: true } });
+}
 
 /** Abre un intento con preguntas al azar (sin respuestas) si las reglas de intentos y requisitos lo permiten. */
 export async function iniciarEvaluacion(usuarioId: string, tipo: TipoEvaluacion, objetivo: string, ahora = new Date()): Promise<InicioEvaluacion> {
   const a = await avanceDe(usuarioId, ahora);
-  let banco = PREGUNTAS.filter((p) => (tipo === "quiz_modulo" ? p.modulo === objetivo : p.clave.startsWith(`${objetivo}-`)));
+  const revisar = await enRevision();
+  const servible = (p: (typeof PREGUNTAS)[number]) => !revisar.has(`${p.clave}:${p.version}`);
+  let banco: PreguntaMotor[] = [];
   let minimo: number;
-  if (tipo === "examen_ruta") {
+  let desde: string | null = null; // los intentos anteriores a esta fecha no cuentan (otro ciclo de recertificación)
+  if (tipo === "examen_ruta" || tipo === "recertificacion") {
     const ruta = RUTAS.find((r) => r.clave === objetivo);
     if (!ruta) return { error: "Ruta desconocida." };
-    const estado = estadosDe(a).find((e) => e.clave === ruta.clave)!;
-    if (a.examenesAprobados.has(ruta.clave)) return { error: "Ya aprobaste este examen." };
-    if (!estado.puedeExamen) return { error: `Antes de presentar el examen: ${estado.pendientes.join(" · ") || estado.bloqueo}.` };
+    banco = PREGUNTAS.filter((p) => p.clave.startsWith(`${objetivo}-`) && servible(p));
     minimo = ruta.requisitos.examen.minimo;
+    if (tipo === "examen_ruta") {
+      const estado = estadosDe(a).find((e) => e.clave === ruta.clave)!;
+      if (a.examenesAprobados.has(ruta.clave)) return { error: "Ya aprobaste este examen." };
+      if (!estado.puedeExamen) return { error: `Antes de presentar el examen: ${estado.pendientes.join(" · ") || estado.bloqueo}.` };
+    } else {
+      const cert = await certificacionPorRenovar(usuarioId, ruta.clave);
+      if (!cert) return { error: "Tu certificación de esta ruta no está por vencer ni vencida." };
+      desde = iso(cert.otorgada_at);
+    }
+  } else if (tipo === "actualizacion") {
+    const act = await actualizacionVigente(objetivo);
+    if (!act) return { error: "No encontramos esa microlección." };
+    if (await prismaSistema.capActualizacionUsuario.findFirst({ where: { actualizacion_id: act.id, usuario_id: usuarioId }, select: { id: true } })) return { error: "Ya aprobaste esta microlección." };
+    banco = act.preguntas as PreguntaMotor[];
+    minimo = EVALUACION.actualizacion.minimo ?? 0.8;
   } else {
     const modulo = MODULOS.find((m) => m.clave === objetivo);
     if (!modulo) return { error: "Módulo desconocido." };
     const ruta = RUTAS.find((r) => r.clave === modulo.ruta)!;
     if (!estadoRuta(ruta, modulosDe(ruta.clave).map((m) => m.clave), a).disponible) return { error: "Primero certifícate en N0 (Inducción)." };
+    banco = PREGUNTAS.filter((p) => p.modulo === objetivo && servible(p));
     minimo = EVALUACION.quiz_modulo.minimo ?? 0.8;
   }
-  if (!banco.length) return { error: "Este módulo no tiene quiz." };
+  if (!banco.length) return { error: tipo === "quiz_modulo" ? "Este módulo no tiene quiz." : "No hay preguntas disponibles por ahora." };
   const regla = EVALUACION[tipo];
-  const previos = a.intentos.filter((i) => i.tipo === tipo && i.objetivo === objetivo);
+  const previos = a.intentos.filter((i) => i.tipo === tipo && i.objetivo === objetivo && (!desde || i.inicio >= desde));
   const puede = puedeIntentar(previos, regla, iso(ahora));
   if (!puede.ok) {
     const cuando = puede.desde ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(puede.desde)) : "";
@@ -123,35 +167,73 @@ export async function iniciarEvaluacion(usuarioId: string, tipo: TipoEvaluacion,
       : `Espera para el siguiente intento: desde el ${cuando}.` };
   }
   const intento = await prismaSistema.capIntento.create({ select: { id: true }, data: { usuario_id: usuarioId, tipo, objetivo, inicio: ahora, preguntas: [] } });
-  banco = seleccionarPreguntas(banco, regla.n, tipo === "examen_ruta", intento.id);
-  await prismaSistema.capIntento.update({ where: { id: intento.id }, select: { id: true }, data: { preguntas: banco.map((p) => ({ clave: p.clave, version: p.version })) } });
-  return { intentoId: intento.id, minimo, preguntas: banco.map((p) => ({ clave: p.clave, tipo: p.tipo, enunciado: p.enunciado, opciones: p.opciones, critica: p.critica })) };
+  const elegidas = seleccionarPreguntas(banco as Pregunta[], regla.n, tipo === "examen_ruta" || tipo === "recertificacion", intento.id);
+  await prismaSistema.capIntento.update({ where: { id: intento.id }, select: { id: true }, data: { preguntas: elegidas.map((p) => ({ clave: p.clave, version: p.version ?? 1 })) } });
+  return { intentoId: intento.id, minimo, preguntas: elegidas.map((p) => ({ clave: p.clave, tipo: p.tipo, enunciado: p.enunciado, opciones: p.opciones, critica: p.critica })) };
 }
 
 export type ResultadoEvaluacion = {
   error?: string; aprobado?: boolean; calificacion?: number; aciertos?: number; total?: number; criticasOk?: boolean; minimo?: number;
   revision?: { clave: string; enunciado: string; critica: boolean; correcta: boolean; tuRespuesta: string; respuestaCorrecta: string; explicacion: string | null }[];
-  certificaciones?: ClaveRuta[];
+  certificaciones?: ClaveRuta[]; mensaje?: string;
 };
 
-/** Califica el intento con la versión de las preguntas servidas y otorga certificaciones si corresponde. */
+/** Califica el intento con la versión de las preguntas servidas y aplica lo que sigue según el tipo. */
 export async function terminarEvaluacion(usuarioId: string, intentoId: string, respuestas: Record<string, number | null>, ahora = new Date()): Promise<ResultadoEvaluacion> {
   const intento = await prismaSistema.capIntento.findFirst({ where: { id: intentoId, usuario_id: usuarioId, archivado_at: null } });
   if (!intento) return { error: "No encontramos el intento." };
   if (intento.fin) return { error: "Este intento ya se calificó." };
-  const servidas = (intento.preguntas as { clave: string }[]).map((s) => PREGUNTAS.find((p) => p.clave === s.clave)).filter((p): p is (typeof PREGUNTAS)[number] => Boolean(p));
-  const minimo = intento.tipo === "examen_ruta" ? RUTAS.find((r) => r.clave === intento.objetivo)!.requisitos.examen.minimo : EVALUACION.quiz_modulo.minimo ?? 0.8;
+  const tipo = intento.tipo as TipoEvaluacion;
+  const fuente: PreguntaMotor[] = tipo === "actualizacion"
+    ? ((await prismaSistema.capActualizacion.findUnique({ where: { id: intento.objetivo }, select: { preguntas: true } }))?.preguntas as PreguntaMotor[] | undefined) ?? []
+    : PREGUNTAS;
+  const servidas = (intento.preguntas as { clave: string }[]).map((s) => fuente.find((p) => p.clave === s.clave)).filter((p): p is PreguntaMotor => Boolean(p));
+  const minimo = tipo === "examen_ruta" || tipo === "recertificacion" ? RUTAS.find((r) => r.clave === intento.objetivo)!.requisitos.examen.minimo
+    : (tipo === "actualizacion" ? EVALUACION.actualizacion.minimo : EVALUACION.quiz_modulo.minimo) ?? 0.8;
   const limpias = Object.fromEntries(servidas.map((p) => [p.clave, typeof respuestas[p.clave] === "number" ? respuestas[p.clave] : null]));
-  const r = calificar(servidas, limpias, minimo);
+  const r = calificar(servidas as Pregunta[], limpias, minimo);
   await prismaSistema.capIntento.update({ where: { id: intento.id }, select: { id: true },
     data: { fin: ahora, respuestas: limpias, calificacion: r.calificacion, criticas_ok: r.criticasOk, aprobado: r.aprobado } });
-  const certificaciones = intento.tipo === "examen_ruta" && r.aprobado ? await otorgarLasQueCumple(usuarioId, ahora) : [];
-  const texto = (p: (typeof servidas)[number], v: number | null) => v === null ? "Sin respuesta" : p.tipo === "numerica" ? v.toLocaleString("es-MX") : p.opciones[v] ?? "—";
+  let certificaciones: ClaveRuta[] = [];
+  let mensaje: string | undefined;
+  if (r.aprobado && tipo === "examen_ruta") certificaciones = await otorgarLasQueCumple(usuarioId, ahora);
+  if (r.aprobado && tipo === "recertificacion") { await renovarCertificacion(usuarioId, intento.objetivo as ClaveRuta, ahora); mensaje = `Certificación ${intento.objetivo} renovada.`; }
+  if (r.aprobado && tipo === "actualizacion") mensaje = await aprobarActualizacion(usuarioId, intento.objetivo, ahora);
+  if (r.aprobado && tipo === "quiz_modulo") {
+    const n = await prismaSistema.capRepaso.updateMany({ where: { usuario_id: usuarioId, modulo: intento.objetivo, completado_at: null, archivado_at: null, created_at: { lte: intento.inicio } }, data: { completado_at: ahora } });
+    if (n.count) mensaje = "Repaso obligatorio completado.";
+  }
+  const texto = (p: PreguntaMotor, v: number | null) => v === null ? "Sin respuesta" : p.tipo === "numerica" ? v.toLocaleString("es-MX") : p.opciones[v] ?? "—";
   return {
-    aprobado: r.aprobado, calificacion: r.calificacion, aciertos: r.aciertos, total: r.total, criticasOk: r.criticasOk, minimo, certificaciones,
+    aprobado: r.aprobado, calificacion: r.calificacion, aciertos: r.aciertos, total: r.total, criticasOk: r.criticasOk, minimo, certificaciones, mensaje,
     revision: servidas.map((p, i) => ({ clave: p.clave, enunciado: p.enunciado, critica: p.critica, correcta: r.detalle[i].correcta,
       tuRespuesta: texto(p, limpias[p.clave]), respuestaCorrecta: texto(p, p.correcta), explicacion: p.explicacion })),
   };
+}
+
+/** Recertificación aprobada (9.5): la certificación anterior se archiva y nace una nueva con el vencimiento corrido. */
+async function renovarCertificacion(usuarioId: string, ruta: ClaveRuta, ahora: Date) {
+  const cert = await certificacionPorRenovar(usuarioId, ruta);
+  if (!cert) return;
+  const hoy = hoyCDMX(ahora);
+  const vence = venceAlRecertificar(cert.vence_at ? iso(cert.vence_at).slice(0, 10) : null, hoy, RUTAS.find((r) => r.clave === ruta)!.vigencia_meses);
+  await prismaSistema.$transaction([
+    prismaSistema.capCertificacion.update({ where: { id: cert.id }, select: { id: true }, data: { archivado_at: ahora, motivo: "Renovada por recertificación" } }),
+    prismaSistema.capCertificacion.create({ select: { id: true }, data: { usuario_id: usuarioId, ruta, otorgada_at: ahora, vence_at: vence ? new Date(`${vence}T00:00:00Z`) : null, motivo: "Recertificación aprobada" } }),
+  ]);
+}
+
+/** Microlección aprobada: queda registrada y se reactivan las certificaciones que se suspendieron por no tomarla. */
+async function aprobarActualizacion(usuarioId: string, actualizacionId: string, ahora: Date): Promise<string> {
+  await prismaSistema.capActualizacionUsuario.createMany({ data: [{ actualizacion_id: actualizacionId, usuario_id: usuarioId, aprobada_at: ahora }], skipDuplicates: true });
+  const suspendidas = await prismaSistema.capCertificacion.findMany({ where: { usuario_id: usuarioId, archivado_at: null, estado: "suspendida", suspendida_por: `actualizacion:${actualizacionId}` }, select: { id: true, vence_at: true } });
+  if (!suspendidas.length) return "Microlección aprobada.";
+  const dias = Number((await parametrosVigentes(["CAP_POR_VENCER_DIAS"], hoyCDMX(ahora))).CAP_POR_VENCER_DIAS ?? 30);
+  for (const c of suspendidas) {
+    const estado = estadoVigencia(c.vence_at ? iso(c.vence_at).slice(0, 10) : null, hoyCDMX(ahora), dias);
+    await prismaSistema.capCertificacion.update({ where: { id: c.id }, select: { id: true }, data: { estado, suspendida_por: null, motivo: "Reactivada al aprobar la microlección de actualización" } });
+  }
+  return "Microlección aprobada: tus certificaciones se reactivaron.";
 }
 
 export type ResultadoSimulador = {

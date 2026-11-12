@@ -17,6 +17,8 @@ import { cambiarCertificacion, evaluarRoleplay, registrarAcompanamiento, registr
 
 export const metadata: Metadata = { title: "Persona · Academia" };
 const fecha = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "America/Mexico_City" }).format(d);
+// Fechas sin hora (DATE): se guardan a medianoche UTC; en hora de CDMX se verían un día antes.
+const fechaDia = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "UTC" }).format(d);
 const ESTADO_CERT: Record<string, string> = { vigente: "Vigente", por_vencer: "Por vencer", vencida: "Vencida", suspendida: "Suspendida", revocada: "Revocada" };
 const TIPO_SOLICITUD: Record<string, string> = { roleplay: "Juego de roles", acompanamiento: "Caso acompañado", entrevista: "Entrevista" };
 
@@ -32,8 +34,9 @@ export default async function Persona({ params }: { params: Promise<{ id: string
     const u = await tx.usuario.findUnique({ where: { id }, select: { id: true, nombre: true, rol: true } });
     if (!u) return null;
     const w = { usuario_id: id, archivado_at: null };
+    const repasos = await tx.capRepaso.findMany({ where: w, orderBy: { created_at: "desc" }, select: { id: true, modulo: true, motivo: true, fecha_limite: true, completado_at: true, created_at: true } });
     return {
-      u,
+      u, repasos,
       certs: await tx.capCertificacion.findMany({ where: w, orderBy: { otorgada_at: "asc" }, select: { id: true, ruta: true, estado: true, vence_at: true, otorgada_at: true, motivo: true } }),
       roleplays: await tx.capEvaluacionRoleplay.findMany({ where: w, orderBy: { created_at: "desc" }, select: { id: true, roleplay: true, total: true, aprobado: true, eliminatorio_fallado: true, comentarios: true, created_at: true } }),
       shadowing: await tx.capShadowing.findMany({ where: w, orderBy: { created_at: "desc" }, select: { id: true, ruta: true, modo: true, cumple: true, notas: true, created_at: true, caso: { select: { id: true, folio: true } } } }),
@@ -67,20 +70,20 @@ export default async function Persona({ params }: { params: Promise<{ id: string
                     {c ? <Badge tono={c.estado === "vigente" || c.estado === "por_vencer" ? "pagado" : "critico"}>{ESTADO_CERT[c.estado] ?? c.estado}</Badge>
                       : <span className="cifra text-xs text-ink-muted">{e.disponible ? `${e.avance}%` : "Bloqueada"}</span>}
                   </div>
-                  {c && <p className="text-xs text-ink-muted">Otorgada {fecha(c.otorgada_at)}{c.vence_at ? ` · vence ${fecha(c.vence_at)}` : ""}{c.motivo ? ` · ${c.motivo}` : ""}</p>}
+                  {c && <p className="text-xs text-ink-muted">Otorgada {fecha(c.otorgada_at)}{c.vence_at ? ` · vence ${fechaDia(c.vence_at)}` : ""}{c.motivo ? ` · ${c.motivo}` : ""}</p>}
                   {!c && e.disponible && e.pendientes.length > 0 && <p className="text-xs text-ink-muted">Le falta: {e.pendientes.join(" · ")}</p>}
-                  {c && (c.estado === "suspendida" || c.estado === "vigente" || c.estado === "por_vencer") && (
+                  {c && c.estado !== "vencida" && (
                     <details className="text-xs">
-                      <summary className="cursor-pointer text-brand">{c.estado === "suspendida" ? "Reactivar o revocar" : "Revocar"}</summary>
+                      <summary className="cursor-pointer text-brand">{c.estado === "suspendida" || c.estado === "revocada" ? "Reactivar o revocar" : "Revocar"}</summary>
                       <div className="mt-2 grid gap-2">
-                        {c.estado === "suspendida" && (
+                        {(c.estado === "suspendida" || c.estado === "revocada") && (
                           <FormularioAccion accion={cambiarCertificacion.bind(null, c.id, "vigente")} boton="Reactivar" etiquetas={{ motivo: "Motivo" }}>
                             <CampoTexto id="motivo" etiqueta="Motivo" placeholder="Revisé el caso con la persona y corrigió" />
                           </FormularioAccion>
                         )}
-                        <FormularioAccion accion={cambiarCertificacion.bind(null, c.id, "revocada")} boton="Revocar" etiquetas={{ motivo: "Motivo" }} confirmar="¿Revocar esta certificación? Tendrá que volver a certificarse.">
+                        {c.estado !== "revocada" && <FormularioAccion accion={cambiarCertificacion.bind(null, c.id, "revocada")} boton="Revocar" etiquetas={{ motivo: "Motivo" }} confirmar="¿Revocar esta certificación? Tendrá que volver a certificarse.">
                           <CampoTexto id="motivo" etiqueta="Motivo" placeholder="Reincidencia en una línea roja" />
-                        </FormularioAccion>
+                        </FormularioAccion>}
                       </div>
                     </details>
                   )}
@@ -194,6 +197,8 @@ export default async function Persona({ params }: { params: Promise<{ id: string
           <Historial titulo="Entrevistas" vacio="Sin entrevista." items={d.entrevistas.map((x) => ({ id: x.id, fecha: x.created_at, texto: x.aprobada ? "Aprobada" : "No aprobada", nota: x.notas }))} />
           <Historial titulo="Incidencias" vacio="Sin incidencias." items={d.incidencias.map((x) => ({ id: x.id, fecha: x.created_at, casoId: x.caso?.id, folio: x.caso?.folio,
             texto: `${etiquetaSeveridad(x.severidad)} · ${etiquetaTipo(x.tipo)} · ${x.descripcion}`, nota: x.accion, critico: x.severidad === "linea_roja" }))} />
+          <Historial titulo="Repasos obligatorios" vacio="Sin repasos obligatorios." items={d.repasos.map((x) => ({ id: x.id, fecha: x.created_at,
+            texto: `${x.modulo} · ${x.completado_at ? "completado" : `pendiente, límite ${fechaDia(x.fecha_limite)}`}`, nota: x.motivo }))} />
         </CardContent>
       </Card>
     </>

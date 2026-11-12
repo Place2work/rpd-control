@@ -6,7 +6,8 @@ import { obtenerSesion } from "@/lib/auth/sesion";
 import { ACUSES, MODULOS, ROLEPLAYS, RUBRICA } from "@/lib/academia/contenido";
 import { calificarRoleplay } from "@/lib/reglas/capacitacion";
 import { TIPOS_INCIDENCIA } from "@/lib/academia/incidencias";
-import { iniciarEvaluacion, otorgarLasQueCumple, resolverCaso, terminarEvaluacion, type InicioEvaluacion, type ResultadoEvaluacion, type ResultadoSimulador, type TipoEvaluacion } from "@/lib/academia/motor";
+import { procesarCambiosParametro, publicarActualizacion, revisarRepasos } from "@/lib/academia/vigencia";
+import { iniciarEvaluacion, otorgarLasQueCumple, resolverCaso, TIPOS_EVALUACION, terminarEvaluacion, type InicioEvaluacion, type ResultadoEvaluacion, type ResultadoSimulador, type TipoEvaluacion } from "@/lib/academia/motor";
 import { conUsuario } from "@/lib/db/prisma";
 import { sumarDias } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
@@ -47,7 +48,7 @@ export async function marcarLeido(clave: string): Promise<Resultado> {
 export async function comenzarEvaluacion(tipo: TipoEvaluacion, objetivo: string): Promise<InicioEvaluacion> {
   const { usuario } = await obtenerSesion();
   if (!ROLES.has(usuario.rol)) return { error: "Tu rol no usa la Academia." };
-  if (tipo !== "quiz_modulo" && tipo !== "examen_ruta") return { error: "Evaluación desconocida." };
+  if (!TIPOS_EVALUACION.includes(tipo)) return { error: "Evaluación desconocida." };
   return iniciarEvaluacion(usuario.id, tipo, objetivo);
 }
 
@@ -216,9 +217,11 @@ export async function registrarIncidencia(casoId: string | null, _p: Resultado, 
     if (casoId) await tx.evento.create({ data: { caso_id: casoId, tipo: "sistema", usuario_id: s.usuario.id,
       texto: `Se registró una incidencia de capacitación (${severidad === "linea_roja" ? "línea roja" : severidad}) del asesor de pensiones.` } });
   }, s.ip);
+  const repasos = severidad === "grave" ? await revisarRepasos(usuarioId).catch((e) => { console.error("[academia] repasos", e); return 0; }) : 0;
   revalidatePath("/academia/equipo");
   revalidatePath(`/academia/equipo/${usuarioId}`);
   if (casoId) revalidatePath(`/casos/${casoId}`);
+  if (repasos) return { ok: true, mensaje: "Con esta suma las incidencias graves que obligan a un repaso: ya le aparece en su Academia." };
   return severidad === "linea_roja" ? { ok: true, mensaje: "Línea roja: sus certificaciones quedaron suspendidas hasta que el Director las reactive." } : { ok: true };
 }
 
@@ -230,7 +233,7 @@ export async function cambiarCertificacion(certId: string, estado: "vigente" | "
   if (motivo.length < 5) return { errores: { motivo: "Escribe el motivo" } };
   const cert = await conUsuario(s.claims, (tx) => tx.capCertificacion.findUnique({ where: { id: certId }, select: { usuario_id: true } }), s.ip);
   if (!cert) return { error: "No encontramos la certificación." };
-  await conUsuario(s.claims, (tx) => tx.capCertificacion.update({ where: { id: certId }, data: { estado, motivo }, select: { id: true } }), s.ip);
+  await conUsuario(s.claims, (tx) => tx.capCertificacion.update({ where: { id: certId }, data: { estado, motivo, suspendida_por: null }, select: { id: true } }), s.ip);
   revalidatePath(`/academia/equipo/${cert.usuario_id}`);
   revalidatePath("/academia/equipo");
   return { ok: true };
@@ -274,4 +277,35 @@ export async function guardarMetas(_p: Resultado, form: FormData): Promise<Resul
   revalidatePath("/academia/desempeno");
   revalidatePath("/academia/equipo");
   return { ok: true };
+}
+
+// ───────────── Fase D: contenido (9.6) ─────────────
+
+/** El Director confirma que una pregunta sigue correcta con el parámetro nuevo; vuelve a servirse en exámenes. */
+export async function confirmarPregunta(pregunta: string, version: number, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await soloDirector();
+  if (!s) return { error: "Solo el Director revisa preguntas." };
+  const n = await conUsuario(s.claims, (tx) => tx.capPreguntaRevision.updateMany({ where: { pregunta, version, estado: "revisar" },
+    data: { estado: "vigente", revisada_por: s.usuario.id, revisada_at: new Date(), nota: txt(form, "nota") || null } }), s.ip);
+  revalidatePath("/academia/contenido");
+  return n.count ? { ok: true } : { error: "Esa pregunta ya no está en revisión." };
+}
+
+/** Publica ya una microlección preparada (si no, se publica sola el día que entra en vigor el parámetro). */
+export async function publicarMicroleccion(id: string): Promise<Resultado> {
+  const s = await soloDirector();
+  if (!s) return { error: "Solo el Director publica microlecciones." };
+  const r = await publicarActualizacion(id, hoyCDMX(), s.usuario.id);
+  revalidatePath("/academia/contenido");
+  revalidatePath("/academia");
+  return r.count ? { ok: true, mensaje: "Publicada: ya les aparece a los asesores de pensiones." } : { error: "Ya estaba publicada." };
+}
+
+/** Revisa en este momento si hay cambios de parámetros pendientes de procesar. */
+export async function procesarCambiosAhora(): Promise<Resultado> {
+  const s = await soloDirector();
+  if (!s) return { error: "Solo el Director." };
+  const r = await procesarCambiosParametro();
+  revalidatePath("/academia/contenido");
+  return { ok: true, mensaje: r.cambios ? `${r.cambios} cambios procesados: ${r.preguntas_en_revision} preguntas en revisión, ${r.microlecciones_preparadas} microlecciones preparadas.` : "No hay cambios pendientes." };
 }

@@ -11,6 +11,7 @@ import { conUsuario, type Tx } from "@/lib/db/prisma";
 import { sumarDias as sumar } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { dominioApp } from "@/lib/url";
+import { procesarCambiosParametro } from "@/lib/academia/vigencia";
 
 // `unaVez`: dato que se muestra una sola vez y no se guarda (la contraseña temporal).
 export type Resultado = { ok?: boolean; error?: string; errores?: Record<string, string>; unaVez?: { titulo: string; valor: string; nota?: string } };
@@ -56,7 +57,12 @@ export async function programarParametro(clave: string, _p: Resultado, form: For
     }
     return { ok: true };
   }, s.ip);
-  if (res.ok) revalidatePath("/configuracion");
+  if (res.ok) {
+    revalidatePath("/configuracion");
+    // Academia (9.6): las preguntas que dependen del parámetro pasan a revisión y se prepara la microlección.
+    await procesarCambiosParametro().catch((e) => console.error("[configuracion] academia", e));
+    revalidatePath("/academia/contenido");
+  }
   return res;
 }
 

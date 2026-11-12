@@ -643,3 +643,39 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
     descartadas no cuentan.
   - Coaching: si dos o más métricas quedan debajo de la meta la semana pasada y la anterior, se sugieren sus módulos.
   - Metas en `cap_metas` con vigencia; el Director las cambia desde el tablero (en porcentaje; línea roja en número).
+
+## 15-nov-2026 · Academia, fase D: vigencia, microlecciones de actualización y alertas
+
+- **Vencimiento (9.5)**: R1, R2, P1 y P2 vencen a los 12 meses (`vigencia_meses` en rutas.json; N0 no vence). La
+  tarea diaria las pasa a «por vencer» `CAP_POR_VENCER_DIAS` (30) antes y a «vencida» al día siguiente del
+  vencimiento; vencida, se pierden los permisos de esa ruta (la base ya solo cuenta vigentes y por vencer).
+  - **Recertificación**: examen corto de 15 preguntas de la ruta (mismo mínimo y críticas, 3 intentos, 7 días de
+    espera; los intentos de un ciclo anterior no cuentan). Al aprobarla, la certificación anterior se archiva y nace
+    una nueva: si aún no vencía, los 12 meses corren desde el vencimiento anterior; si ya venció, desde hoy.
+  - Una ruta vencida o **revocada** ya no se vuelve a otorgar sola por cumplir requisitos (antes podía pasar con una
+    revocada). La revocada solo la reactiva el Director desde la ficha.
+- **Cambios de parámetros (9.6)**: un disparador en `parametros` registra cada cambio de valor de un parámetro que ya
+  existía (`cap_cambios_parametro`), venga de Configuración o de una migración. Al procesarlo (al guardar en
+  Configuración y en la tarea diaria):
+  - Las preguntas que declaran ese parámetro quedan **en revisión** y no se sirven en quizzes, exámenes ni
+    recertificaciones hasta que el Director confirma en Academia → Contenido que siguen correctas. Si la pregunta
+    se corrige en el contenido (sube de versión), la revisión vieja deja de aplicar.
+  - Si hay plantilla, se prepara la **microlección** con los valores nuevos y anteriores
+    (`content/academia/microlecciones.json`: UMA, honorario, costo administrativo por alta, días de espera y plazos de
+    ingreso/resolución). IVA y la base de reparto solo ponen preguntas en revisión (sin microlección).
+  - La microlección se publica sola el día que entra en vigor el parámetro (el Director puede publicarla antes). Desde
+    ahí hay `CAP_ACTUALIZACION_DIAS` (30) para aprobar su quiz de 5 preguntas (80%, intentos ilimitados con 1 h de
+    espera). La deben tomar los asesores de pensiones que tenían alguna certificación al publicarse.
+  - Sin aprobarla a tiempo, sus certificaciones vivas quedan **suspendidas** con origen «actualización»; al aprobarla
+    se reactivan solas. La suspensión por línea roja tiene su propio origen y solo la levanta el Director.
+  - Las preguntas de la microlección (con respuesta) no se conceden a ningún rol en la base; las lee el motor.
+- **Repasos obligatorios (9.5)**: `CAP_GRAVES_UMBRAL` (2) incidencias graves en `CAP_GRAVES_DIAS` (90) crean un repaso
+  del módulo ligado a cada tipo (promesa de monto, dato sensible, contraseñas → N0-02; documento rechazado y plazo
+  prometido → R1-06; alerta ignorada → N0-04; queja → R1-07) con `CAP_REPASO_DIAS` (14). Se completa al aprobar el
+  quiz de ese módulo. El plan no dice qué pasa si no se completa: por ahora solo se ve pendiente en la Academia y en
+  la ficha del Director.
+- **Alertas 12.3** en la tarea diaria (sin caso; en Hoy enlazan a la Academia): CAP_CERT_POR_VENCER y CAP_CERT_VENCIDA
+  (persona y Director, una vez por certificación), CAP_SIN_AVANCE (`CAP_SIN_AVANCE_DIAS`, 7), CAP_ROLEPLAY_POR_EVALUAR
+  (cualquier solicitud con más de `CAP_SOLICITUD_DIAS`, 3), CAP_ACTUALIZACION_PENDIENTE (días de
+  `CAP_ACTUALIZACION_RECORDATORIOS`, 7,21,28; crítica el último), CAP_PREGUNTAS_REVISAR (Director) y CAP_METRICA_BAJA
+  (una vez por semana). Si la parte de la Academia falla, las alertas de casos corren igual.

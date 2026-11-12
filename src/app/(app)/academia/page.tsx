@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { Award, CheckCircle2, Circle, FlaskConical, Lock, TrendingUp, Users } from "lucide-react";
+import { Award, CheckCircle2, Circle, FlaskConical, Lock, RefreshCw, TrendingUp, Users } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
@@ -14,6 +14,7 @@ import { firmarAcuses, solicitarEvaluacion } from "./acciones";
 import { conUsuario } from "@/lib/db/prisma";
 import { ROLEPLAYS, RUBRICA } from "@/lib/academia/contenido";
 import { etiquetaSeveridad, etiquetaTipo } from "@/lib/academia/incidencias";
+import { obligadosDe } from "@/lib/academia/vigencia";
 
 export const metadata: Metadata = { title: "Academia" };
 const fecha = (iso: string) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(iso));
@@ -30,7 +31,16 @@ export default async function Academia() {
     solicitudes: await tx.capSolicitud.findMany({ where: { ...yo, estado: "pendiente" }, select: { tipo: true, referencia: true } }),
     roleplays: await tx.capEvaluacionRoleplay.findMany({ where: { ...yo, archivado_at: null }, orderBy: { created_at: "desc" }, select: { id: true, roleplay: true, total: true, aprobado: true, cumple: true, comentarios: true, created_at: true } }),
     incidencias: await tx.capIncidencia.findMany({ where: { ...yo, archivado_at: null }, orderBy: { created_at: "desc" }, take: 10, select: { id: true, tipo: true, severidad: true, descripcion: true, accion: true, created_at: true } }),
+    certs: await tx.capCertificacion.findMany({ where: { ...yo, archivado_at: null }, orderBy: { otorgada_at: "asc" }, select: { ruta: true, estado: true, vence_at: true, suspendida_por: true } }),
+    repasos: await tx.capRepaso.findMany({ where: { ...yo, completado_at: null, archivado_at: null }, orderBy: { fecha_limite: "asc" }, select: { id: true, modulo: true, motivo: true, fecha_limite: true } }),
+    acts: await tx.capActualizacion.findMany({ where: { estado: "publicada", archivado_at: null, aprobadas: { none: { usuario_id: sesion.usuario.id } } }, orderBy: { publicada_at: "asc" },
+      select: { id: true, titulo: true, fecha_limite: true, publicada_at: true } }),
   }), sesion.ip);
+  // Microlecciones que te tocan: si tenías una certificación cuando se publicó.
+  const misActs = obligatoria ? (await Promise.all(h.acts.map(async (x) => ((await obligadosDe(x.publicada_at!)).includes(sesion.usuario.id) ? [x] : [])))).flat() : [];
+  const ultimaCert = new Map(h.certs.map((c) => [c.ruta, c]));
+  const porRenovar = [...ultimaCert.values()].filter((c) => c.estado === "por_vencer" || c.estado === "vencida");
+  const dia = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "UTC" }).format(d);
   const pedida = (tipo: string, ref: string) => h.solicitudes.some((x) => x.tipo === tipo && x.referencia === ref);
 
   return (
@@ -69,14 +79,44 @@ export default async function Academia() {
           <div className="flex flex-wrap gap-2">
             {RUTAS.filter((r) => a.certificadas.has(r.clave)).map((r) => (
               <span key={r.clave} className="inline-flex items-center gap-1.5 rounded-full bg-exito-tint px-3 py-1 text-sm font-medium text-exito-texto">
-                <Award className="size-4" aria-hidden /> {r.clave} · {r.nombre}
+                <Award className="size-4" aria-hidden /> {r.clave} · {r.nombre}{ultimaCert.get(r.clave)?.vence_at ? <span className="font-normal"> · vence {dia(ultimaCert.get(r.clave)!.vence_at!)}</span> : null}
               </span>
             ))}
           </div>
         )}
 
+        {(misActs.length > 0 || porRenovar.length > 0 || h.repasos.length > 0) && (
+          <Card className="border-aviso/40">
+            <CardHeader><CardTitle className="flex items-center gap-2"><RefreshCw className="size-5 text-aviso" aria-hidden /> Pendientes para mantener tus certificaciones</CardTitle></CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              {misActs.map((x) => (
+                <div key={x.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span><span className="font-medium text-ink">{x.titulo}</span><span className="block text-xs text-ink-muted">Microlección · apruébala a más tardar el {dia(x.fecha_limite!)}</span></span>
+                  <Link href={`/academia/actualizacion/${x.id}`} className="text-brand underline">Leer y presentar</Link>
+                </div>
+              ))}
+              {porRenovar.map((c) => (
+                <div key={c.ruta} className="flex flex-wrap items-center justify-between gap-2">
+                  <span><span className="font-medium text-ink">Recertificación {c.ruta}</span><span className={`block text-xs ${c.estado === "vencida" ? "text-critico" : "text-ink-muted"}`}>
+                    {c.estado === "vencida" ? `Venció el ${dia(c.vence_at!)}: perdiste los permisos de esta ruta hasta aprobarla.` : `Vence el ${dia(c.vence_at!)}.`} Examen corto de {EVALUACION.recertificacion.n} preguntas.</span></span>
+                  <Link href={`/academia/evaluar?tipo=recertificacion&objetivo=${c.ruta}`} className="text-brand underline">Presentar</Link>
+                </div>
+              ))}
+              {h.repasos.map((x) => (
+                <div key={x.id} className="flex flex-wrap items-center justify-between gap-2">
+                  <span><span className="font-medium text-ink">Repaso obligatorio de <span className="cifra">{x.modulo}</span> · {MODULOS.find((m) => m.clave === x.modulo)?.titulo}</span>
+                    <span className="block text-xs text-ink-muted">{x.motivo}. Relee la lección y aprueba su quiz a más tardar el {dia(x.fecha_limite)}.</span></span>
+                  <Link href={`/academia/${x.modulo}`} className="text-brand underline">Ir a la lección</Link>
+                </div>
+              ))}
+            </CardContent>
+          </Card>
+        )}
+
         {a.suspendidas?.size ? (
-          <Card className="border-critico/40"><CardContent className="pt-5 text-sm text-critico">Tus certificaciones están suspendidas por una incidencia de línea roja. Habla con el Director para revisarla.</CardContent></Card>
+          <Card className="border-critico/40"><CardContent className="pt-5 text-sm text-critico">{h.certs.some((c) => c.estado === "suspendida" && c.suspendida_por === "linea_roja")
+            ? "Tus certificaciones están suspendidas por una incidencia de línea roja. Habla con el Director para revisarla."
+            : "Tus certificaciones están suspendidas porque no aprobaste a tiempo una microlección de actualización. Apruébala y se reactivan solas."}</CardContent></Card>
         ) : null}
 
         {RUTAS.map((r) => {

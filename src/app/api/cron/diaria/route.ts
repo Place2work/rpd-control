@@ -6,6 +6,12 @@ import { enviarResumenes } from "@/lib/alertas/correo";
 import { generarAlertas } from "@/lib/alertas/generar";
 import { tareaDinero } from "@/lib/dinero/diaria";
 import { tareaPension } from "@/lib/pension/diaria";
+import { tareaAcademia } from "@/lib/academia/vigencia";
+
+// Un error en la Academia no debe impedir que corran las alertas de los casos: se registra y se informa.
+async function tareaAcademiaSegura(fecha: string) {
+  try { return await tareaAcademia(fecha); } catch (e) { console.error("[cron/diaria] academia", e); return { academia_error: (e as Error).message?.slice(0, 200) }; }
+}
 import { prismaSistema } from "@/lib/db/prisma";
 import { hoyCDMX } from "@/lib/tiempo";
 
@@ -49,7 +55,7 @@ async function ejecutar(tarea: (typeof TAREAS)[number]) {
   });
 
   const resultado = tarea === "ALERTAS_DIARIAS"
-    ? { ...(await generarAlertas(fecha)), ...(await tareaDinero(fecha)), ...(await tareaPension(fecha)) }
+    ? { ...(await generarAlertas(fecha)), ...(await tareaDinero(fecha)), ...(await tareaPension(fecha)), ...(await tareaAcademiaSegura(fecha)) }
     : await enviarResumenes(fecha);
 
   await prismaSistema.ejecucionTarea.update({

@@ -10,7 +10,7 @@ import type { ResultadoEvaluacion } from "@/lib/academia/motor";
 import { cn } from "@/lib/utils";
 import { comenzarEvaluacion, enviarEvaluacion } from "../acciones";
 
-type Props = { tipo: "quiz_modulo" | "examen_ruta"; objetivo: string; titulo: string; volver: string };
+type Props = { tipo: "quiz_modulo" | "examen_ruta" | "recertificacion" | "actualizacion"; objetivo: string; titulo: string; volver: string };
 
 export function Evaluacion({ tipo, objetivo, titulo, volver }: Props) {
   const [intento, setIntento] = useState<{ id: string; preguntas: PreguntaServida[]; minimo: number } | null>(null);
@@ -37,7 +37,7 @@ export function Evaluacion({ tipo, objetivo, titulo, volver }: Props) {
         <ul className="list-disc pl-5 text-ink-muted">
           <li>Una pregunta por pantalla; no se puede regresar.</li>
           <li>Las preguntas marcadas como <strong className="text-critico">críticas</strong> deben ir todas bien para aprobar.</li>
-          {tipo === "examen_ruta" ? <li>Tienes 3 intentos; después del tercero sin aprobar, esperas 7 días y repasas con el Director.</li>
+          {tipo === "examen_ruta" || tipo === "recertificacion" ? <li>Tienes 3 intentos; después del tercero sin aprobar, esperas 7 días y repasas con el Director.</li>
             : <li>Puedes repetirlo cuantas veces quieras (con una hora entre intentos si no apruebas).</li>}
         </ul>
         {error && <p role="alert" className="text-critico">{error}</p>}
@@ -114,6 +114,7 @@ function Resultado({ r, volver }: { r: ResultadoEvaluacion; volver: string }) {
         </p>
         <p className="text-sm text-ink">{r.aciertos} de {r.total} correctas · mínimo {Math.round((r.minimo ?? 0) * 100)}%{r.criticasOk ? " · todas las críticas bien" : ""}.</p>
         {!r.criticasOk && <p className="flex items-center gap-1.5 text-sm font-medium text-critico"><AlertTriangle className="size-4" aria-hidden /> Fallaste al menos una pregunta crítica: no se aprueba aunque el total pase del mínimo.</p>}
+        {r.mensaje && <p className="font-medium text-exito-texto">{r.mensaje}</p>}
         {r.certificaciones?.map((c) => (
           <p key={c} className="flex items-center gap-1.5 text-sm font-semibold text-exito-texto"><Award className="size-5" aria-hidden /> ¡Certificación {c} otorgada!</p>
         ))}

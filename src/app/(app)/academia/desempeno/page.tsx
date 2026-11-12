@@ -6,7 +6,7 @@ import { Encabezado } from "@/components/rpd/encabezado";
 import { exigirRol } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { MODULOS } from "@/lib/academia/contenido";
-import { DIAS_TABLERO, desempenoDe, metasVigentes, type FilaDesempeno } from "@/lib/academia/desempeno";
+import { DIAS_TABLERO, desempenoDe, lectorDe, metasVigentes, type FilaDesempeno } from "@/lib/academia/desempeno";
 import type { Metrica } from "@/lib/reglas/desempeno";
 import { CampoTexto } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
@@ -28,8 +28,8 @@ export default async function Desempeno() {
     ? (await conUsuario(sesion.claims, (tx) => tx.usuario.findMany({ where: { rol: "socio", activo: true, archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, socio_id: true } }), sesion.ip))
         .map((u) => ({ usuarioId: u.id, socioId: u.socio_id, nombre: u.nombre }))
     : [{ usuarioId: sesion.usuario.id, socioId: sesion.usuario.socio_id ?? null, nombre: sesion.usuario.nombre }];
-  const filas = await desempenoDe(sesion, personas, ahora);
-  const metas = director ? await metasVigentes(sesion) : {};
+  const filas = await desempenoDe(lectorDe(sesion), personas, ahora);
+  const metas = director ? await metasVigentes(lectorDe(sesion)) : {};
 
   return (
     <>

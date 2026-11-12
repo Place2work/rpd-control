@@ -3,6 +3,7 @@
 import { revalidatePath } from "next/cache";
 import type { Prisma } from "@/generated/prisma/client";
 import { generarAlertas } from "@/lib/alertas/generar";
+import { tareaAcademia } from "@/lib/academia/vigencia";
 import { obtenerSesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { sumarDias } from "@/lib/reglas/fechas";
@@ -43,6 +44,7 @@ export async function revisarAlertasAhora(): Promise<R & { nuevas?: number }> {
   const { usuario } = await obtenerSesion();
   if (usuario.rol !== "director") return { error: "Solo el Director puede correr la revisión." };
   const r = await generarAlertas();
+  const academia = await tareaAcademia().catch((e) => { console.error("[hoy] academia", e); return { academia_alertas: 0 }; });
   revalidatePath("/hoy");
-  return { ok: true, nuevas: r.alertas_nuevas };
+  return { ok: true, nuevas: r.alertas_nuevas + academia.academia_alertas };
 }

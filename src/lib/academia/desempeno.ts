@@ -2,7 +2,7 @@
 // solo ve sus casos y alertas; el Director, los de todos.
 import "server-only";
 import type { Sesion } from "@/lib/auth/sesion";
-import { conUsuario } from "@/lib/db/prisma";
+import { conUsuario, prismaSistema, type Tx } from "@/lib/db/prisma";
 import { parametrosVigentes } from "@/lib/parametros";
 import { hoyCDMX } from "@/lib/tiempo";
 import { calcularDesempeno, sugerirRepaso, type AlertaDesempeno, type CasoDesempeno, type ClaveMetrica, type Metrica, type ParametrosDesempeno } from "@/lib/reglas/desempeno";
@@ -10,11 +10,16 @@ import { calcularDesempeno, sugerirRepaso, type AlertaDesempeno, type CasoDesemp
 const CONTACTO = ["llamada", "whatsapp", "correo", "nota"] as const;
 export const DIAS_TABLERO = 90;
 
+/** Quién lee: la sesión (con RLS) o el sistema (tarea diaria de la Academia). */
+export type Lector = <T>(fn: (tx: Tx) => Promise<T>) => Promise<T>;
+export const lectorDe = (sesion: Sesion): Lector => (fn) => conUsuario(sesion.claims, fn, sesion.ip);
+export const lectorSistema: Lector = (fn) => fn(prismaSistema as unknown as Tx);
+
 export type Persona = { usuarioId: string; socioId: string | null; nombre: string };
 export type FilaDesempeno = Persona & { metricas: Metrica[]; repaso: { metricas: ClaveMetrica[]; modulos: string[] } };
 
-export async function metasVigentes(sesion: Sesion, hoy = hoyCDMX()): Promise<Partial<Record<ClaveMetrica, number>>> {
-  const filas = await conUsuario(sesion.claims, (tx) => tx.capMeta.findMany({ where: { vigente_desde: { lte: new Date(`${hoy}T00:00:00Z`) } }, orderBy: { vigente_desde: "desc" }, select: { metrica: true, valor: true } }), sesion.ip);
+export async function metasVigentes(leer: Lector, hoy = hoyCDMX()): Promise<Partial<Record<ClaveMetrica, number>>> {
+  const filas = await leer((tx) => tx.capMeta.findMany({ where: { vigente_desde: { lte: new Date(`${hoy}T00:00:00Z`) } }, orderBy: { vigente_desde: "desc" }, select: { metrica: true, valor: true } }));
   const r: Partial<Record<ClaveMetrica, number>> = {};
   for (const f of filas) r[f.metrica as ClaveMetrica] ??= Number(f.valor);
   return r;
@@ -27,12 +32,12 @@ export async function parametrosDesempeno(): Promise<ParametrosDesempeno> {
 }
 
 /** Métricas de cada persona: últimos 90 días y, para el coaching, la semana pasada contra la anterior. */
-export async function desempenoDe(sesion: Sesion, personas: Persona[], ahora: Date): Promise<FilaDesempeno[]> {
+export async function desempenoDe(leer: Lector, personas: Persona[], ahora: Date): Promise<FilaDesempeno[]> {
   const desde = new Date(ahora.getTime() - DIAS_TABLERO * 864e5);
   const socios = personas.map((p) => p.socioId).filter((x): x is string => Boolean(x));
   const usuarios = personas.map((p) => p.usuarioId);
   const [d, metas, params] = await Promise.all([
-    conUsuario(sesion.claims, async (tx) => ({
+    leer(async (tx) => ({
       casos: await tx.caso.findMany({
         where: { archivado_at: null, socio_id: { in: socios }, created_at: { gte: desde } },
         select: {
@@ -46,8 +51,8 @@ export async function desempenoDe(sesion: Sesion, personas: Persona[], ahora: Da
       }),
       alertas: await tx.alerta.findMany({ where: { asignado_a: { in: usuarios }, fecha_disparo: { gte: desde }, estado: { not: "descartada" } }, select: { asignado_a: true, fecha_disparo: true, atendida_at: true } }),
       lineaRoja: await tx.capIncidencia.findMany({ where: { usuario_id: { in: usuarios }, severidad: "linea_roja", archivado_at: null, created_at: { gte: desde } }, select: { usuario_id: true, created_at: true } }),
-    }), sesion.ip),
-    metasVigentes(sesion, hoyCDMX(ahora)),
+    })),
+    metasVigentes(leer, hoyCDMX(ahora)),
     parametrosDesempeno(),
   ]);
   const iso = ahora.toISOString();

@@ -30,7 +30,7 @@ export type PreguntaServida = { clave: string; tipo: Pregunta["tipo"]; enunciado
 
 /** Reglas de intentos (sección 9.3), en content/academia/evaluacion.json. */
 export type ReglaIntentos = { n: number; minimo?: number; intentos_max: number | null; espera_horas: number; bloqueo_dias: number };
-export type ReglasEvaluacion = { quiz_modulo: ReglaIntentos; examen_ruta: ReglaIntentos };
+export type ReglasEvaluacion = { quiz_modulo: ReglaIntentos; examen_ruta: ReglaIntentos; recertificacion: ReglaIntentos; actualizacion: ReglaIntentos };
 
 /** Casos prácticos (sección 7). Los de retiro se resuelven con el mismo motor de la calculadora. */
 export type CampoCaso = "resultado" | "montoA" | "semanasA" | "montoB" | "semanasB" | "honorario" | "fechaElegibilidad"
@@ -52,3 +52,8 @@ export type CasoServido = { clave: string; ruta: ClaveRuta; titulo: string; narr
 export type CriterioRubrica = { clave: string; criterio: string; peso: number; eliminatorio: boolean };
 export type Rubrica = { version: number; minimo: number; criterios: CriterioRubrica[] };
 export type Roleplay = { clave: string; ruta: ClaveRuta; escenario: string; perfil: string; objecion: string };
+
+/** Plantilla de microlección de actualización (9.5). {{desde}}, {{P:CLAVE}} (valor vigente), {{A:CLAVE}} (anterior),
+ *  expresiones con + − × ÷ y paréntesis, formatos |pesos |pct |entero y {{fecha:AAAA-MM-DD+expr}}. */
+export type PreguntaPlantilla = { clave: string; tipo: Pregunta["tipo"]; enunciado: string; opciones: string[]; correcta: number | string; tolerancia?: number; explicacion?: string };
+export type Microleccion = { clave: string; parametros: string[]; modulos: string[]; titulo: string; contenido: string; preguntas: PreguntaPlantilla[] };

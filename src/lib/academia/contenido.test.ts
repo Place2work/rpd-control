@@ -8,7 +8,7 @@ const { ACUSES, EVALUACION, MODULOS, PREGUNTAS, RUTAS } = await import("./conten
 const base = path.join(__dirname, "../../../content/academia");
 
 describe("contenido de la Academia", () => {
-  it("el módulo generado coincide con content/academia (corre npm run academia:contenido si falla)", () => {
+  it("el módulo generado coincide con content/academia (corre npm run academia:contenido si falla)", async () => {
     expect(RUTAS).toEqual(JSON.parse(fs.readFileSync(path.join(base, "rutas.json"), "utf8")));
     expect(ACUSES).toEqual(JSON.parse(fs.readFileSync(path.join(base, "acuses.json"), "utf8")));
     expect(EVALUACION).toEqual(JSON.parse(fs.readFileSync(path.join(base, "evaluacion.json"), "utf8")));
@@ -17,6 +17,8 @@ describe("contenido de la Academia", () => {
     }
     const enDisco = RUTAS.flatMap((r) => JSON.parse(fs.readFileSync(path.join(base, "preguntas", `${r.clave}.json`), "utf8")));
     expect(PREGUNTAS).toEqual(enDisco);
+    const { MICROLECCIONES } = await import("./contenido");
+    expect(MICROLECCIONES).toEqual(JSON.parse(fs.readFileSync(path.join(base, "microlecciones.json"), "utf8")));
   });
   it("las 5 rutas con sus módulos (sección 5) y requisitos de la sección 3.2", () => {
     expect(RUTAS.map((r) => r.clave)).toEqual(["N0", "R1", "R2", "P1", "P2"]);
@@ -59,5 +61,17 @@ describe("permisos por ruta (3.2)", () => {
   it("cada ruta que pide casos tiene suficientes casos en el simulador", async () => {
     const { CASOS } = await import("./contenido");
     for (const r of RUTAS) if (r.requisitos.casos) expect(CASOS.filter((c) => c.ruta === r.clave).length, r.clave).toBeGreaterThanOrEqual(r.requisitos.casos);
+  });
+});
+
+describe("microlecciones (9.5)", () => {
+  it("cada plantilla usa parámetros que existen en la semilla y enlaza lecciones existentes", async () => {
+    const { MICROLECCIONES } = await import("./contenido");
+    const semilla = fs.readFileSync(path.join(__dirname, "../../../prisma/seed.ts"), "utf8");
+    const claves = new Set(MODULOS.map((m) => m.clave));
+    for (const m of MICROLECCIONES) {
+      for (const k of new Set([...JSON.stringify(m).matchAll(/[PA]:([A-Z0-9_]+)/g)].map((x) => x[1]))) expect(semilla, `${m.clave}: ${k}`).toContain(`clave: "${k}"`);
+      for (const mod of m.modulos) expect(claves.has(mod), `${m.clave}: ${mod}`).toBe(true);
+    }
   });
 });

@@ -97,6 +97,8 @@ export type AvanceUsuario = {
   diagnosticosValidos?: number;           // diagnósticos iniciales validados sin corrección grave (P2)
   entrevistas?: Set<ClaveRuta>;           // entrevistas aprobadas con el Director (P2)
   suspendidas?: Set<ClaveRuta>;           // certificaciones suspendidas (línea roja): no se otorga nada mientras tanto
+  vencidas?: Set<ClaveRuta>;              // vencidas (9.5): se recupera con el examen de recertificación, no se reotorga sola
+  revocadas?: Set<ClaveRuta>;             // revocadas por el Director: solo él la reactiva
 };
 
 export type EstadoRuta = {
@@ -144,6 +146,8 @@ export function estadoRuta(ruta: Ruta, modulosRuta: string[], a: AvanceUsuario, 
     casosFaltan > 0 ? `Resolver ${casosFaltan} ${casosFaltan === 1 ? "caso práctico" : "casos prácticos"} en el simulador (${casosHechos} de ${ruta.requisitos.casos})` : null,
   ].filter((x): x is string => Boolean(x));
   pendientes.push(...pendientesHumanos(ruta, a));
+  if (a.vencidas?.has(ruta.clave) && !a.certificadas.has(ruta.clave)) pendientes.unshift("Tu certificación venció: aprueba el examen de recertificación");
+  if (a.revocadas?.has(ruta.clave) && !a.certificadas.has(ruta.clave)) pendientes.unshift("Tu certificación fue revocada: habla con el Director");
   const proximamente: string[] = [];
   const prereqCert = ruta.prerrequisitos.every((p) => a.certificadas.has(p));
   return {

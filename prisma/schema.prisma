@@ -1143,6 +1143,7 @@ model CapCertificacion {
   motivo          String?
   otorgada_por    String?   @db.Uuid
   excepcion_hasta DateTime? @db.Date
+  suspendida_por  String? // linea_roja | actualizacion:<id>
   created_at      DateTime  @default(now()) @db.Timestamptz(6)
   updated_at      DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
   archivado_at    DateTime? @db.Timestamptz(6)
@@ -1317,6 +1318,93 @@ model CapMeta {
 
   @@unique([metrica, vigente_desde])
   @@map("cap_metas")
+  @@schema("public")
+}
+
+// Academia fase D (9.5, 9.6): cambios de parámetros, preguntas en revisión, microlecciones y repasos.
+model CapCambioParametro {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  parametro_clave String
+  valor           String
+  anterior        String
+  vigente_desde   DateTime  @db.Date
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  procesado_at    DateTime? @db.Timestamptz(6)
+
+  revisiones      CapPreguntaRevision[]
+  actualizaciones CapActualizacion[]
+
+  @@unique([parametro_clave, vigente_desde, valor])
+  @@map("cap_cambios_parametro")
+  @@schema("public")
+}
+
+model CapPreguntaRevision {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  pregunta     String
+  version      Int
+  cambio_id    String    @db.Uuid
+  estado       String    @default("revisar") // revisar | vigente
+  nota         String?
+  revisada_por String?   @db.Uuid
+  revisada_at  DateTime? @db.Timestamptz(6)
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+
+  cambio CapCambioParametro @relation(fields: [cambio_id], references: [id])
+
+  @@unique([pregunta, version, cambio_id])
+  @@map("cap_preguntas_revision")
+  @@schema("public")
+}
+
+model CapActualizacion {
+  id              String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  plantilla       String
+  cambio_id       String    @db.Uuid
+  parametro_clave String
+  vigente_desde   DateTime  @db.Date
+  titulo          String
+  contenido       String
+  preguntas       Json
+  estado          String    @default("borrador") // borrador | publicada
+  publicada_at    DateTime? @db.Timestamptz(6)
+  publicada_por   String?   @db.Uuid
+  fecha_limite    DateTime? @db.Date
+  created_at      DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at    DateTime? @db.Timestamptz(6)
+
+  cambio    CapCambioParametro        @relation(fields: [cambio_id], references: [id])
+  aprobadas CapActualizacionUsuario[]
+
+  @@unique([plantilla, vigente_desde])
+  @@map("cap_actualizaciones")
+  @@schema("public")
+}
+
+model CapActualizacionUsuario {
+  id               String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  actualizacion_id String   @db.Uuid
+  usuario_id       String   @db.Uuid
+  aprobada_at      DateTime @default(now()) @db.Timestamptz(6)
+
+  actualizacion CapActualizacion @relation(fields: [actualizacion_id], references: [id])
+
+  @@unique([actualizacion_id, usuario_id])
+  @@map("cap_actualizaciones_usuario")
+  @@schema("public")
+}
+
+model CapRepaso {
+  id            String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  usuario_id    String    @db.Uuid
+  modulo        String
+  motivo        String
+  fecha_limite  DateTime  @db.Date
+  completado_at DateTime? @db.Timestamptz(6)
+  created_at    DateTime  @default(now()) @db.Timestamptz(6)
+  archivado_at  DateTime? @db.Timestamptz(6)
+
+  @@map("cap_repasos")
   @@schema("public")
 }
 

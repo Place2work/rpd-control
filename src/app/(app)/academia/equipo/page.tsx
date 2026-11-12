@@ -15,6 +15,8 @@ import { cambiarInterruptor, otorgarExcepcion, revocarExcepcion } from "../accio
 
 export const metadata: Metadata = { title: "Equipo · Academia" };
 const fecha = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "America/Mexico_City" }).format(d);
+// Fechas sin hora (DATE): se guardan a medianoche UTC; en hora de CDMX se verían un día antes.
+const fechaDia = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "UTC" }).format(d);
 
 // Panel del Director (CAPACITACION.md 12.1): avance por persona, certificaciones, vencimientos e intentos fallidos.
 // Con RLS: el Director ve el avance de todos.
@@ -26,7 +28,10 @@ export default async function Equipo() {
     progreso: await tx.capProgreso.findMany({ where: { estado: "completado" }, select: { usuario_id: true, modulo: true, version: true, updated_at: true } }),
     intentos: await tx.capIntento.findMany({ where: { archivado_at: null }, orderBy: { inicio: "asc" }, select: { usuario_id: true, tipo: true, objetivo: true, inicio: true, fin: true, aprobado: true, calificacion: true } }),
     acuses: await tx.capAcuse.findMany({ select: { usuario_id: true, documento: true, version: true, aceptado_at: true } }),
-    certs: await tx.capCertificacion.findMany({ where: { archivado_at: null, estado: { in: VIVAS } }, select: { usuario_id: true, ruta: true, vence_at: true, otorgada_at: true } }),
+    certs: await tx.capCertificacion.findMany({ where: { archivado_at: null, estado: { in: VIVAS } }, select: { usuario_id: true, ruta: true, vence_at: true, otorgada_at: true, estado: true } }),
+    vencidas: await tx.capCertificacion.findMany({ where: { archivado_at: null, estado: { in: ["vencida", "revocada"] } }, select: { usuario_id: true, ruta: true, estado: true } }),
+    enRevision: await tx.capPreguntaRevision.count({ where: { estado: "revisar" } }),
+    borradores: await tx.capActualizacion.count({ where: { estado: "borrador", archivado_at: null } }),
     casos: await tx.capCasoIntento.findMany({ where: { aprobado: true }, select: { usuario_id: true, caso: true, version: true, aprobado: true } }),
     excepciones: await tx.capExcepcion.findMany({ where: { archivado_at: null, hasta: { gte: new Date(new Date().toISOString().slice(0, 10)) } }, orderBy: { hasta: "asc" },
       select: { id: true, usuario_id: true, ruta: true, hasta: true, motivo: true } }),
@@ -43,7 +48,8 @@ export default async function Equipo() {
   const filas = d.usuarios.map((u) => {
     const de = <T extends { usuario_id: string }>(xs: T[]) => xs.filter((x) => x.usuario_id === u.id);
     const a = avanceDesdeFilas({ progreso: de(d.progreso), intentos: de(d.intentos), acuses: de(d.acuses), certs: de(d.certs), casos: de(d.casos),
-      roleplays: de(d.roleplays), shadowing: de(d.shadowing), diagnosticos: de(d.diagnosticos), entrevistas: de(d.entrevistas), suspendidas: de(d.suspendidas) }, ahora);
+      roleplays: de(d.roleplays), shadowing: de(d.shadowing), diagnosticos: de(d.diagnosticos), entrevistas: de(d.entrevistas), suspendidas: de(d.suspendidas),
+      vencidas: de(d.vencidas).filter((x) => x.estado === "vencida"), revocadas: de(d.vencidas).filter((x) => x.estado === "revocada") }, ahora);
     const estados = estadosDe(a);
     const actividad = [...de(d.progreso).map((p) => p.updated_at), ...de(d.intentos).map((i) => i.fin ?? i.inicio), ...de(d.acuses).map((x) => x.aceptado_at)].sort((x, y) => y.getTime() - x.getTime())[0];
     const fallidos = de(d.intentos).filter((i) => i.tipo === "examen_ruta" && i.fin && !i.aprobado).length;
@@ -57,6 +63,7 @@ export default async function Equipo() {
     <>
       <Encabezado titulo="Avance del equipo" descripcion="Academia: avance por persona en cada ruta, certificaciones y exámenes no aprobados. Obligatoria para asesores de pensiones; para analistas es repaso.">
         <Link href="/academia" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><ArrowLeft className="size-4" aria-hidden /> Academia</Link>
+        <Link href="/academia/contenido" className="inline-flex items-center gap-1.5 text-sm text-brand underline">Contenido{d.enRevision + d.borradores > 0 ? ` (${d.enRevision} en revisión, ${d.borradores} por publicar)` : ""}</Link>
       </Encabezado>
       {d.solicitudes.length > 0 && (
         <Card className="mb-4 border-brand/40">
@@ -95,8 +102,11 @@ export default async function Equipo() {
                     const c = certs.find((x) => x.ruta === r.clave);
                     return (
                       <td key={r.clave} className="px-3 py-2.5">
-                        {a.suspendidas?.has(r.clave) ? <span className="text-xs font-medium text-critico">Suspendida</span> : a.certificadas.has(r.clave)
-                          ? <span className="inline-flex items-center gap-1 text-exito-texto"><Award className="size-4" aria-hidden /> <span className="text-xs">{c?.vence_at ? `vence ${fecha(c.vence_at)}` : "vigente"}</span></span>
+                        {a.suspendidas?.has(r.clave) ? <span className="text-xs font-medium text-critico">Suspendida</span>
+                          : !a.certificadas.has(r.clave) && a.vencidas?.has(r.clave) ? <span className="text-xs font-medium text-critico">Vencida</span>
+                          : !a.certificadas.has(r.clave) && a.revocadas?.has(r.clave) ? <span className="text-xs font-medium text-critico">Revocada</span>
+                          : a.certificadas.has(r.clave)
+                          ? <span className="inline-flex items-center gap-1 text-exito-texto"><Award className="size-4" aria-hidden /> <span className={`text-xs ${c?.estado === "por_vencer" ? "font-medium text-aviso" : ""}`}>{c?.vence_at ? `${c.estado === "por_vencer" ? "por vencer · " : "vence "}${fechaDia(c.vence_at)}` : "vigente"}</span></span>
                           : e.disponible ? <span className="cifra text-xs text-ink">{e.avance}%</span> : <span className="text-xs text-ink-muted">—</span>}
                       </td>
                     );
@@ -137,7 +147,7 @@ export default async function Equipo() {
               <ul className="grid gap-2 border-t border-borde pt-3">
                 {d.excepciones.map((x) => (
                   <li key={x.id} className="flex flex-wrap items-center justify-between gap-2">
-                    <span><span className="font-medium text-ink">{d.usuarios.find((u) => u.id === x.usuario_id)?.nombre ?? "—"}</span> · {x.ruta} hasta {fecha(x.hasta)}<span className="block text-xs text-ink-muted">{x.motivo}</span></span>
+                    <span><span className="font-medium text-ink">{d.usuarios.find((u) => u.id === x.usuario_id)?.nombre ?? "—"}</span> · {x.ruta} hasta {fechaDia(x.hasta)}<span className="block text-xs text-ink-muted">{x.motivo}</span></span>
                     <FormularioAccion accion={revocarExcepcion.bind(null, x.id)} boton="Revocar" confirmar="¿Revocar esta excepción?"
                       className="[&_button]:bg-transparent [&_button]:px-0 [&_button]:text-critico [&_button]:hover:underline"><span className="sr-only">Revocar</span></FormularioAccion>
                   </li>

@@ -1,7 +1,7 @@
 // GENERADO por scripts/academia-ts.cjs desde content/academia/. No editar a mano.
 // Incluye las respuestas correctas: solo en el servidor.
 import "server-only";
-import type { Acuse, CasoPractico, Modulo, Pregunta, ReglasEvaluacion, Roleplay, Rubrica, Ruta } from "./tipos";
+import type { Acuse, CasoPractico, Microleccion, Modulo, Pregunta, ReglasEvaluacion, Roleplay, Rubrica, Ruta } from "./tipos";
 
 export const EVALUACION: ReglasEvaluacion = {
  "quiz_modulo": {
@@ -16,6 +16,19 @@ export const EVALUACION: ReglasEvaluacion = {
   "intentos_max": 3,
   "espera_horas": 0,
   "bloqueo_dias": 7
+ },
+ "recertificacion": {
+  "n": 15,
+  "intentos_max": 3,
+  "espera_horas": 0,
+  "bloqueo_dias": 7
+ },
+ "actualizacion": {
+  "n": 5,
+  "minimo": 0.8,
+  "intentos_max": null,
+  "espera_horas": 1,
+  "bloqueo_dias": 0
  }
 };
 
@@ -2020,5 +2033,322 @@ export const ROLEPLAYS: Roleplay[] = [
   "escenario": "Recién desempleado Ley 73 de 61 años interesado en M40 que cree que tendrá servicio médico",
   "perfil": "Ley 73, 61 años, baja hace 2 meses",
   "objecion": "«Con la 40 tengo IMSS, ¿verdad?»"
+ }
+];
+
+export const MICROLECCIONES: Microleccion[] = [
+ {
+  "clave": "UMA",
+  "parametros": [
+   "UMA_MENSUAL",
+   "UMA_DIARIA"
+  ],
+  "modulos": [
+   "R1-02"
+  ],
+  "titulo": "Nueva UMA desde el {{desde}}",
+  "contenido": "## La UMA cambió\n\nDesde el **{{desde}}** la UMA mensual es **{{P:UMA_MENSUAL|pesos}}** (antes {{A:UMA_MENSUAL|pesos}}) y la diaria **{{P:UMA_DIARIA|pesos}}**.\n\n### Qué cambia para ti\n\n- El tope de la modalidad A del retiro es de **{{P:MODALIDAD_A_TOPE_UMAS|entero}} UMA mensuales**: ahora **{{P:UMA_MENSUAL*P:MODALIDAD_A_TOPE_UMAS|pesos}}** (antes {{A:UMA_MENSUAL*A:MODALIDAD_A_TOPE_UMAS|pesos}}).\n- La modalidad A sigue siendo lo menor entre 30 días del último salario base de cotización, ese tope y el saldo de la subcuenta de retiro, cesantía y vejez.\n- Si el cliente gana poco, sus 30 días de salario quedan debajo del tope y su monto no cambia.\n- El sistema toma la UMA de los parámetros vigentes en la fecha del cálculo. Nunca la captures a mano ni uses la de una tabla vieja.\n\n> **Lo que dices:** «Es un estimado con los valores vigentes; el monto final lo determina la Afore.»",
+  "preguntas": [
+   {
+    "clave": "Q1",
+    "tipo": "numerica",
+    "enunciado": "¿Cuánto es la UMA mensual vigente desde el {{desde}}?",
+    "opciones": [],
+    "correcta": "{{P:UMA_MENSUAL}}",
+    "tolerancia": 0.01
+   },
+   {
+    "clave": "Q2",
+    "tipo": "numerica",
+    "enunciado": "Califica solo a la modalidad A. Último salario base de cotización: $3,000 diarios; saldo de retiro, cesantía y vejez: $500,000. ¿Cuál es el monto estimado con la UMA nueva?",
+    "opciones": [],
+    "correcta": "{{P:UMA_MENSUAL*P:MODALIDAD_A_TOPE_UMAS}}",
+    "tolerancia": 1,
+    "explicacion": "30 × $3,000 = $90,000 pasa del tope: se paga el tope de {{P:MODALIDAD_A_TOPE_UMAS|entero}} UMA mensuales = {{P:UMA_MENSUAL*P:MODALIDAD_A_TOPE_UMAS|pesos}}."
+   },
+   {
+    "clave": "Q3",
+    "tipo": "opcion_multiple",
+    "enunciado": "Modalidad A, último salario base de cotización de $300 diarios y saldo de $200,000. ¿Le cambia el monto estimado con la UMA nueva?",
+    "opciones": [
+     "No: 30 × $300 = $9,000 queda debajo del tope.",
+     "Sí: siempre se paga el tope de {{P:MODALIDAD_A_TOPE_UMAS|entero}} UMA mensuales.",
+     "Sí: sube en la misma proporción que la UMA."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q4",
+    "tipo": "opcion_multiple",
+    "enunciado": "¿De dónde sale la UMA que usa el sistema en la precalificación?",
+    "opciones": [
+     "De los parámetros vigentes en la fecha del cálculo.",
+     "La capturas tú en cada caso.",
+     "De la tabla impresa del año anterior."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q5",
+    "tipo": "opcion_multiple",
+    "enunciado": "El tope de la modalidad A desde el {{desde}} es:",
+    "opciones": [
+     "{{P:UMA_MENSUAL*P:MODALIDAD_A_TOPE_UMAS|pesos}}",
+     "{{A:UMA_MENSUAL*A:MODALIDAD_A_TOPE_UMAS|pesos}}",
+     "{{P:UMA_DIARIA*P:MODALIDAD_A_TOPE_UMAS|pesos}}"
+    ],
+    "correcta": 0
+   }
+  ]
+ },
+ {
+  "clave": "HONORARIO",
+  "parametros": [
+   "HONORARIO_RETIRO_PCT"
+  ],
+  "modulos": [
+   "N0-01",
+   "R1-07"
+  ],
+  "titulo": "Nuevo honorario del retiro desde el {{desde}}",
+  "contenido": "## El honorario del retiro cambió\n\nDesde el **{{desde}}** el honorario es **{{P:HONORARIO_RETIRO_PCT|pct}} de lo que paga la Afore, IVA incluido** (antes {{A:HONORARIO_RETIRO_PCT|pct}}).\n\n### Cómo lo explicas\n\n- Es un porcentaje de lo que la Afore deposita al cliente; se cobra cuando la Afore paga.\n- Ya incluye el IVA: no se suma nada aparte.\n- Ejemplo: si la Afore deposita $10,000, el honorario es {{P:HONORARIO_RETIRO_PCT*10000|pesos}}.\n- Genera el contrato desde el sistema: ya trae el porcentaje vigente.\n\n> **Lo que dices:** «Nuestro honorario es el {{P:HONORARIO_RETIRO_PCT|pct}} de lo que te pague la Afore, con IVA incluido. Si no te pagan, no nos pagas.»",
+  "preguntas": [
+   {
+    "clave": "Q1",
+    "tipo": "numerica",
+    "enunciado": "La Afore deposita $10,000 al cliente. ¿Cuál es el honorario con el porcentaje vigente (IVA incluido)?",
+    "opciones": [],
+    "correcta": "{{P:HONORARIO_RETIRO_PCT*10000}}",
+    "tolerancia": 0.5
+   },
+   {
+    "clave": "Q2",
+    "tipo": "opcion_multiple",
+    "enunciado": "El honorario del retiro vigente desde el {{desde}} es:",
+    "opciones": [
+     "{{P:HONORARIO_RETIRO_PCT|pct}} de lo que paga la Afore, IVA incluido.",
+     "{{A:HONORARIO_RETIRO_PCT|pct}} de lo que paga la Afore, IVA incluido.",
+     "{{P:HONORARIO_RETIRO_PCT|pct}} más IVA."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q3",
+    "tipo": "opcion_multiple",
+    "enunciado": "Un cliente pregunta si al honorario se le suma el IVA. ¿Qué le contestas?",
+    "opciones": [
+     "No: el {{P:HONORARIO_RETIRO_PCT|pct}} ya incluye el IVA.",
+     "Sí: se suma el 16% de IVA.",
+     "Depende del monto que pague la Afore."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q4",
+    "tipo": "numerica",
+    "enunciado": "El monto estimado de la Afore es $20,000. ¿Qué honorario estimado le explicas al cliente?",
+    "opciones": [],
+    "correcta": "{{P:HONORARIO_RETIRO_PCT*20000}}",
+    "tolerancia": 0.5
+   },
+   {
+    "clave": "Q5",
+    "tipo": "opcion_multiple",
+    "enunciado": "¿Cuándo se cobra el honorario del retiro?",
+    "opciones": [
+     "Cuando la Afore paga al cliente.",
+     "Al firmar el contrato.",
+     "Al ingresar la solicitud a la Afore."
+    ],
+    "correcta": 0
+   }
+  ]
+ },
+ {
+  "clave": "COSTO_ALTA",
+  "parametros": [
+   "COSTO_ADMIN_ALTA"
+  ],
+  "modulos": [
+   "N0-01"
+  ],
+  "titulo": "Nuevo costo administrativo por alta desde el {{desde}}",
+  "contenido": "## Cambió el costo administrativo por alta\n\nDesde el **{{desde}}** el costo administrativo por alta es **{{P:COSTO_ADMIN_ALTA|pesos}}** (antes {{A:COSTO_ADMIN_ALTA|pesos}}).\n\n### Cómo afecta tu comisión\n\nTu comisión = (honorario − costo administrativo del alta) × tu porcentaje.\n\nEjemplo con honorario de $3,000 y tu porcentaje de 40%: ($3,000 − {{P:COSTO_ADMIN_ALTA|pesos}}) × 40% = **{{(3000-P:COSTO_ADMIN_ALTA)*0.4|pesos}}**.\n\nTu porcentaje lo marca tu esquema de comisión; consúltalo en tu estado de cuenta.",
+  "preguntas": [
+   {
+    "clave": "Q1",
+    "tipo": "opcion_multiple",
+    "enunciado": "El costo administrativo por alta vigente desde el {{desde}} es:",
+    "opciones": [
+     "{{P:COSTO_ADMIN_ALTA|pesos}}",
+     "{{A:COSTO_ADMIN_ALTA|pesos}}",
+     "No hay costo administrativo."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q2",
+    "tipo": "numerica",
+    "enunciado": "Honorario cobrado: $3,000; tu porcentaje: 40%. Con el costo administrativo vigente, ¿cuál es tu comisión?",
+    "opciones": [],
+    "correcta": "{{(3000-P:COSTO_ADMIN_ALTA)*0.4}}",
+    "tolerancia": 0.5
+   },
+   {
+    "clave": "Q3",
+    "tipo": "numerica",
+    "enunciado": "Honorario cobrado: $6,000; tu porcentaje: 40%. ¿Cuál es tu comisión?",
+    "opciones": [],
+    "correcta": "{{(6000-P:COSTO_ADMIN_ALTA)*0.4}}",
+    "tolerancia": 0.5
+   },
+   {
+    "clave": "Q4",
+    "tipo": "numerica",
+    "enunciado": "Con un honorario de $3,000 y tu porcentaje de 40%, ¿cuánto cambia tu comisión respecto del costo anterior? (positivo si sube, negativo si baja)",
+    "opciones": [],
+    "correcta": "{{(A:COSTO_ADMIN_ALTA-P:COSTO_ADMIN_ALTA)*0.4}}",
+    "tolerancia": 0.5
+   },
+   {
+    "clave": "Q5",
+    "tipo": "opcion_multiple",
+    "enunciado": "¿Cómo se calcula tu comisión de un retiro?",
+    "opciones": [
+     "(Honorario − costo administrativo del alta) × tu porcentaje.",
+     "Honorario × tu porcentaje, sin descuentos.",
+     "Lo que paga la Afore × tu porcentaje."
+    ],
+    "correcta": 0
+   }
+  ]
+ },
+ {
+  "clave": "DIAS_ESPERA",
+  "parametros": [
+   "DIAS_ESPERA_DESEMPLEO"
+  ],
+  "modulos": [
+   "R1-01"
+  ],
+  "titulo": "Cambió el plazo para solicitar el retiro desde el {{desde}}",
+  "contenido": "## Nuevo criterio de días de espera\n\nDesde el **{{desde}}** la fecha elegible es la **fecha de baja + {{P:DIAS_ESPERA_DESEMPLEO|entero}} días naturales** (antes {{A:DIAS_ESPERA_DESEMPLEO|entero}}).\n\nEjemplo: baja el 1 de octubre de 2026 → se puede solicitar desde el **{{fecha:2026-10-01+P:DIAS_ESPERA_DESEMPLEO}}**.\n\nEl sistema calcula la fecha elegible con el parámetro vigente: revisa la fecha en el expediente antes de dar una fecha al cliente.",
+  "preguntas": [
+   {
+    "clave": "Q1",
+    "tipo": "numerica",
+    "enunciado": "¿Cuántos días naturales después de la baja se puede solicitar el retiro con el criterio vigente desde el {{desde}}?",
+    "opciones": [],
+    "correcta": "{{P:DIAS_ESPERA_DESEMPLEO}}",
+    "tolerancia": 0
+   },
+   {
+    "clave": "Q2",
+    "tipo": "opcion_multiple",
+    "enunciado": "Fecha de baja: 1 de octubre de 2026. ¿Desde qué fecha se puede solicitar el retiro?",
+    "opciones": [
+     "{{fecha:2026-10-01+P:DIAS_ESPERA_DESEMPLEO}}",
+     "{{fecha:2026-10-01+A:DIAS_ESPERA_DESEMPLEO}}",
+     "1 de octubre de 2026"
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q3",
+    "tipo": "opcion_multiple",
+    "enunciado": "Fecha de baja: 15 de marzo de 2027. ¿Desde qué fecha se puede solicitar el retiro?",
+    "opciones": [
+     "{{fecha:2027-03-15+A:DIAS_ESPERA_DESEMPLEO}}",
+     "{{fecha:2027-03-15+P:DIAS_ESPERA_DESEMPLEO}}",
+     "15 de abril de 2027"
+    ],
+    "correcta": 1
+   },
+   {
+    "clave": "Q4",
+    "tipo": "opcion_multiple",
+    "enunciado": "Los días de espera se cuentan en:",
+    "opciones": [
+     "Días naturales desde la fecha de baja.",
+     "Días hábiles desde la fecha de baja.",
+     "Días hábiles desde que el cliente firma."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q5",
+    "tipo": "opcion_multiple",
+    "enunciado": "Antes de darle una fecha al cliente, tú:",
+    "opciones": [
+     "Revisas la fecha elegible que calcula el sistema en el expediente.",
+     "Le sumas 30 días a la baja de memoria.",
+     "Le dices que en cuanto firme se ingresa."
+    ],
+    "correcta": 0
+   }
+  ]
+ },
+ {
+  "clave": "PLAZOS",
+  "parametros": [
+   "SLA_DIAS_HABILES",
+   "AFORE_DIAS_HABILES"
+  ],
+  "modulos": [
+   "R1-06"
+  ],
+  "titulo": "Cambiaron los plazos de ingreso y resolución desde el {{desde}}",
+  "contenido": "## Nuevos plazos\n\nDesde el **{{desde}}**:\n\n- Ingresamos la solicitud en máximo **{{P:SLA_DIAS_HABILES|entero}} días hábiles** desde que el expediente está completo (antes {{A:SLA_DIAS_HABILES|entero}}).\n- La Afore tiene **{{P:AFORE_DIAS_HABILES|entero}} días hábiles** para resolver (antes {{A:AFORE_DIAS_HABILES|entero}}).\n\nSon días hábiles: el sistema descuenta fines de semana y los días inhábiles cargados.\n\n> **Lo que dices:** «Ingresamos en máximo {{P:SLA_DIAS_HABILES|entero}} días hábiles desde que tu expediente está completo; la Afore tiene {{P:AFORE_DIAS_HABILES|entero}} días hábiles para resolver.»\n>\n> **Lo que nunca dices:** «En 30 días ya tienes tu dinero.»",
+  "preguntas": [
+   {
+    "clave": "Q1",
+    "tipo": "numerica",
+    "enunciado": "¿En cuántos días hábiles como máximo ingresamos la solicitud desde que el expediente está completo?",
+    "opciones": [],
+    "correcta": "{{P:SLA_DIAS_HABILES}}",
+    "tolerancia": 0
+   },
+   {
+    "clave": "Q2",
+    "tipo": "numerica",
+    "enunciado": "¿Cuántos días hábiles tiene la Afore para resolver?",
+    "opciones": [],
+    "correcta": "{{P:AFORE_DIAS_HABILES}}",
+    "tolerancia": 0
+   },
+   {
+    "clave": "Q3",
+    "tipo": "opcion_multiple",
+    "enunciado": "¿Qué plazo le explicas al cliente?",
+    "opciones": [
+     "\"En 30 días ya tienes tu dinero.\"",
+     "Ingresamos en máximo {{P:SLA_DIAS_HABILES|entero}} días hábiles desde que el expediente está completo; la Afore tiene {{P:AFORE_DIAS_HABILES|entero}} días hábiles para resolver.",
+     "\"Mañana mismo.\""
+    ],
+    "correcta": 1
+   },
+   {
+    "clave": "Q4",
+    "tipo": "opcion_multiple",
+    "enunciado": "Estos plazos se cuentan en:",
+    "opciones": [
+     "Días hábiles, sin fines de semana ni días inhábiles.",
+     "Días naturales.",
+     "Semanas completas."
+    ],
+    "correcta": 0
+   },
+   {
+    "clave": "Q5",
+    "tipo": "opcion_multiple",
+    "enunciado": "¿Desde cuándo corre nuestro plazo de ingreso?",
+    "opciones": [
+     "Desde que el expediente está completo.",
+     "Desde que el cliente llama por primera vez.",
+     "Desde la fecha de baja."
+    ],
+    "correcta": 0
+   }
+  ]
  }
 ];
