@@ -15,6 +15,7 @@ import { Card, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { EstadoVacio } from "@/components/rpd/estado-vacio";
 import Link from "next/link";
+import { conUsuario } from "@/lib/db/prisma";
 import { formatoFecha } from "@/components/rpd/insignia-dia46";
 import { misAlertas } from "@/lib/alertas/consultas";
 import { obtenerSesion } from "@/lib/auth/sesion";
@@ -41,6 +42,9 @@ export default async function Hoy() {
     movimientosDelMes(sesion, hoy.slice(0, 7)),
   ]);
   const [costos, proy, comProy, pDinero] = veDinero ? await Promise.all([altasYCostos(sesion), proyecciones(sesion), comisionesProyectadas(sesion), parametrosDinero(hoy)]) : [null, null, null, null];
+  // Correos del IMSS que no se pudieron ligar solos a un caso (bandeja para el Director y el analista).
+  const correosImss = usuario.rol === "director" || usuario.rol === "asesor"
+    ? await conUsuario(sesion.claims, (tx) => tx.correoEntrante.count({ where: { estado: "sin_caso", archivado_at: null } }), sesion.ip).catch(() => 0) : 0;
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
   // Total de todas las altas (cada una con el costo vigente el día de su alta); no baja aunque el cliente pague.
   const costoTotal = costos ? costoAdministrativo(costos.altas, costos.vigencias) : null;
@@ -138,6 +142,11 @@ export default async function Hoy() {
   return (
     <>
       <Encabezado titulo={`Hola, ${usuario.nombre.split(" ")[0]}`} descripcion={fecha.charAt(0).toUpperCase() + fecha.slice(1)} />
+      {correosImss > 0 && (
+        <Link href="/correos-imss" className="mb-4 flex items-center justify-between gap-2 rounded-[var(--radius-tarjeta)] border border-aviso/30 bg-aviso-tint px-4 py-3 text-sm text-aviso hover:underline">
+          <span><span className="font-semibold">{correosImss} {correosImss === 1 ? "correo del IMSS" : "correos del IMSS"}</span> por asignar a un caso</span><span aria-hidden>→</span>
+        </Link>
+      )}
       <section aria-label="Indicadores" className="mb-6 grid grid-cols-2 gap-3 lg:grid-cols-3 xl:grid-cols-3">
         {INDICADORES.map(({ t, v, nota, liga, destacado }) => {
           const contenido = (

@@ -2,6 +2,7 @@
 
 import { Eye } from "lucide-react";
 import { useState, useTransition } from "react";
+import { BotonCopiar } from "@/components/rpd/boton-copiar";
 import { verIdentificador } from "./acciones";
 
 // Muestra el dato enmascarado; "Ver completo" lo pide al servidor y queda en bitácora.
@@ -25,6 +26,7 @@ export function DatoSensible({ personaId, campo, enmascarado, puedeVer }: { pers
           <Eye className="size-3.5" aria-hidden /> {pendiente ? "Abriendo…" : "Ver completo"}
         </button>
       )}
+      {valor && <BotonCopiar texto={valor} />}
       {valor && <span className="text-xs text-ink-muted">Quedó registrado en la bitácora</span>}
       {error && <span className="text-xs text-critico">{error}</span>}
     </span>

@@ -32,7 +32,7 @@ beforeAll(async () => {
     await db.query("INSERT INTO usuarios (id, nombre, email, rol, socio_id, updated_at) VALUES ($1, $2, $3, $4, $5, now())", [uid, `U ${rol}`, email, rol, socio]);
   }
   await db.query("INSERT INTO personas (id, nombre, telefono, origen, owner_id, updated_at) VALUES ($1, 'Cliente Ref', '7770009999', 'web', $2, now())", [P, D]);
-  await db.query("INSERT INTO casos (id, persona_id, tipo_servicio, owner_id, socio_id, updated_at) VALUES ($1, $2, 'RETIRO_DESEMPLEO', $3, $4, now())", [C, P, D, SOCIO1]);
+  await db.query("INSERT INTO casos (id, persona_id, tipo_servicio, owner_id, socio_id, asignado_a, updated_at) VALUES ($1, $2, 'RETIRO_DESEMPLEO', $3, $4, $5, now())", [C, P, D, SOCIO1, A]);
 });
 afterAll(() => db.end());
 

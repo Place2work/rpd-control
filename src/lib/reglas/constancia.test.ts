@@ -52,7 +52,13 @@ describe("constancia de semanas cotizadas", () => {
     const r = leerConstancia(FICTICIA);
     expect(r.patrones).toHaveLength(2);
     expect(r.patrones[0]).toEqual({ nombre: "COMERCIAL EJEMPLO SA DE CV", registro: "A1234567890", entidad: "MORELOS", alta: "2022-03-01", baja: "2026-01-15", sbc: 1250.5 });
-    expect(r).toMatchObject({ fechaBaja: "2026-01-15", primeraAlta: "2010-05-10", ultimoPatron: "COMERCIAL EJEMPLO SA DE CV", sbcUltimo: 1250.5, cotizaActualmente: false });
+    expect(r).toMatchObject({ fechaBaja: "2026-01-15", primeraAlta: "2010-05-10", ultimoPatron: "COMERCIAL EJEMPLO SA DE CV", sbcUltimo: 1250.5, cotizaActualmente: false, regimen: "L97" });
+  });
+  it("indica Ley 73 si la primera alta es anterior al 1 de julio de 1997", () => {
+    const antigua = FICTICIA.map((l) => l.replace("Fecha de alta | 10/05/2010", "Fecha de alta | 30/06/1997"));
+    expect(leerConstancia(antigua)).toMatchObject({ primeraAlta: "1997-06-30", regimen: "L73" });
+    const justo = FICTICIA.map((l) => l.replace("Fecha de alta | 10/05/2010", "Fecha de alta | 01/07/1997"));
+    expect(leerConstancia(justo).regimen).toBe("L97");
   });
   it("acepta el texto con espacios en lugar de « | » (otra herramienta de extracción)", () => {
     const conEspacios = FICTICIA.map((l) => l.replaceAll(" | ", "      "));

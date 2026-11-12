@@ -5,7 +5,7 @@ import { NextResponse, type NextRequest } from "next/server";
 import { modoDemo } from "@/lib/auth/demo";
 
 // /api/calendario/<token>: suscripción .ics; la autoriza el token, no la sesión.
-const PUBLICAS = ["/login", "/auth/callback", "/api/cron", "/api/leads", "/api/calendario/"];
+const PUBLICAS = ["/login", "/auth/callback", "/api/cron", "/api/leads", "/api/correo/entrante", "/api/calendario/"];
 // Con sesión pero sin 2FA solo se puede inscribir el segundo factor o definir contraseña.
 const SIN_2FA = ["/mfa", "/contrasena"];
 

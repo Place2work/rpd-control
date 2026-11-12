@@ -1,5 +1,6 @@
 // Lectura de la «Constancia de Semanas Cotizadas en el IMSS» (12-nov-2026). Pura: recibe los renglones del PDF
 // (separados por « | » o por dos o más espacios) y devuelve los datos; no lee archivos ni la base.
+import { regimenPorPrimeraAlta } from "./fechas";
 
 export type PatronConstancia = {
   nombre: string; registro: string | null; entidad: string | null;
@@ -13,6 +14,8 @@ export type LecturaConstancia = {
   /** Derivados de los patrones. */
   fechaBaja: string | null; primeraAlta: string | null; ultimoPatron: string | null; sbcUltimo: number | null;
   cotizaActualmente: boolean;
+  /** Ley 73 si la primera alta es anterior al 1-jul-1997; si no, Ley 97 (5.3). */
+  regimen: "L73" | "L97" | null;
   avisos: string[];
 };
 
@@ -107,6 +110,6 @@ export function leerConstancia(renglones: string[]): LecturaConstancia {
   return {
     nombre, nss, curp, fechaEmision, folio, total, cotizadas, descontadas, reintegradas, patrones: unicos,
     fechaBaja, primeraAlta, ultimoPatron: reciente?.nombre ?? null, sbcUltimo: reciente?.sbc ?? null,
-    cotizaActualmente: vigentes.length > 0, avisos,
+    cotizaActualmente: vigentes.length > 0, regimen: primeraAlta ? regimenPorPrimeraAlta(primeraAlta) : null, avisos,
   };
 }

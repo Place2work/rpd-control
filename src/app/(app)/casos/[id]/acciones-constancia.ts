@@ -13,7 +13,7 @@ import { bimestresEntre, regimenPorPrimeraAlta } from "@/lib/reglas/fechas";
 import { curpParcial, datosDeCurp } from "@/lib/reglas/identificadores";
 
 type Identidad = "coincide" | "distinto" | "sin_dato" | "no_viene";
-export type CampoConstancia = { clave: string; etiqueta: string; constancia: string; caso: string; cambia: boolean };
+export type CampoConstancia = { clave: string; etiqueta: string; constancia: string; caso: string; cambia: boolean; noMarcar?: boolean };
 export type VistaConstancia = {
   error?: string;
   lectura?: Omit<LecturaConstancia, "nss" | "curp"> & { nssFin: string | null; curpParcial: string | null };
@@ -25,12 +25,13 @@ const dia = (v: string) => new Date(`${v}T00:00:00Z`);
 const isoDe = (d: Date | null | undefined) => (d ? d.toISOString().slice(0, 10) : null);
 const larga = (v: string | null) => (v ? new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeZone: "UTC" }).format(dia(v)) : "—");
 const num = (v: unknown) => (v === null || v === undefined ? null : Number(v));
+const REGIMEN: Record<string, string> = { L73: "Ley 73", L97: "Ley 97", por_definir: "Por definir" };
 const txtNum = (v: number | null) => (v === null ? "—" : v.toLocaleString("es-MX"));
 
 type Contexto = {
   lectura: LecturaConstancia; personaId: string; nssHash: string | null; curpHash: string | null;
   imss: { fecha_constancia: Date | null; semanas_cotizadas: unknown; semanas_descontadas: unknown; semanas_reintegradas: unknown; fecha_baja: Date | null;
-    fecha_primera_alta: Date | null; sbc_ultimo: unknown; ultimo_patron: string | null; cotiza_actualmente: boolean; regimen: string; bimestres_cotizados: number | null } | null;
+    fecha_primera_alta: Date | null; sbc_ultimo: unknown; ultimo_patron: string | null; cotiza_actualmente: boolean; regimen: string; regimen_justificacion: string | null; bimestres_cotizados: number | null } | null;
 };
 
 async function contexto(casoId: string, documentoId: string): Promise<{ ctx?: Contexto; error?: string }> {
@@ -41,7 +42,7 @@ async function contexto(casoId: string, documentoId: string): Promise<{ ctx?: Co
     const caso = await tx.caso.findUnique({ where: { id: casoId }, select: {
       persona: { select: { id: true, nss_hash: true, curp_hash: true } },
       datos_imss: { select: { fecha_constancia: true, semanas_cotizadas: true, semanas_descontadas: true, semanas_reintegradas: true, fecha_baja: true,
-        fecha_primera_alta: true, sbc_ultimo: true, ultimo_patron: true, cotiza_actualmente: true, regimen: true, bimestres_cotizados: true } },
+        fecha_primera_alta: true, sbc_ultimo: true, ultimo_patron: true, cotiza_actualmente: true, regimen: true, regimen_justificacion: true, bimestres_cotizados: true } },
     } });
     return { doc, caso };
   }, ip);
@@ -69,6 +70,9 @@ function campos(ctx: Contexto): CampoConstancia[] {
     ...fila("semanas_reintegradas", "Semanas reintegradas", txtNum(l.reintegradas), txtNum(num(i?.semanas_reintegradas)), l.reintegradas !== null),
     ...fila("fecha_baja", "Fecha de baja", larga(l.fechaBaja), larga(isoDe(i?.fecha_baja)), Boolean(l.fechaBaja)),
     ...fila("fecha_primera_alta", "Primera alta en el IMSS", larga(l.primeraAlta), larga(isoDe(i?.fecha_primera_alta)), Boolean(l.primeraAlta)),
+    // Régimen automático por la primera alta; si en el caso se cambió a mano con justificación, no se marca solo.
+    ...fila("regimen", "Régimen (por la primera alta)", REGIMEN[l.regimen ?? ""] ?? "—", REGIMEN[i?.regimen ?? ""] ?? "—", Boolean(l.regimen))
+      .map((c) => ({ ...c, noMarcar: Boolean(i?.regimen_justificacion) && c.cambia })),
     ...fila("sbc_ultimo", "Último salario base (diario)", l.sbcUltimo === null ? "—" : mxn(l.sbcUltimo), num(i?.sbc_ultimo) === null ? "—" : mxn(num(i?.sbc_ultimo)), l.sbcUltimo !== null),
     ...fila("ultimo_patron", "Último patrón", l.ultimoPatron ?? "—", i?.ultimo_patron ?? "—", Boolean(l.ultimoPatron)),
     ...fila("cotiza_actualmente", "¿Cotiza actualmente?", l.cotizaActualmente ? "Sí" : "No", i ? (i.cotiza_actualmente ? "Sí" : "No") : "—", true),
@@ -103,6 +107,7 @@ export async function aplicarConstancia(casoId: string, documentoId: string, ele
   if (quiere("sbc_ultimo") && l.sbcUltimo !== null) data.sbc_ultimo = l.sbcUltimo;
   if (quiere("ultimo_patron") && l.ultimoPatron) data.ultimo_patron = l.ultimoPatron;
   if (quiere("cotiza_actualmente")) data.cotiza_actualmente = l.cotizaActualmente;
+  if (quiere("regimen") && l.regimen) { data.regimen = l.regimen; data.regimen_justificacion = null; }
   const guardarNss = quiere("guardar_nss") && id.nss === "sin_dato" && l.nss;
   const guardarCurp = quiere("guardar_curp") && id.curp === "sin_dato" && l.curp;
   if (!Object.keys(data).length && !guardarNss && !guardarCurp) return { error: "Marca al menos un dato para pasar." };
@@ -114,7 +119,7 @@ export async function aplicarConstancia(casoId: string, documentoId: string, ele
   if (cot !== null) data.semanas_totales = cot - (num(valor("semanas_descontadas", previo?.semanas_descontadas)) ?? 0) + (num(valor("semanas_reintegradas", previo?.semanas_reintegradas)) ?? 0);
   const alta = isoDe(valor("fecha_primera_alta", previo?.fecha_primera_alta) as Date | null);
   const baja = isoDe(valor("fecha_baja", previo?.fecha_baja) as Date | null);
-  if (alta && (!previo || previo.regimen === "por_definir")) data.regimen = regimenPorPrimeraAlta(alta);
+  if (!("regimen" in data) && alta && (!previo || previo.regimen === "por_definir")) data.regimen = regimenPorPrimeraAlta(alta);
   if (alta && baja && (previo?.bimestres_cotizados ?? null) === null) data.bimestres_cotizados = bimestresEntre(alta, baja);
 
   const bajaPrev = isoDe(previo?.fecha_baja);

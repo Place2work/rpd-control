@@ -25,7 +25,7 @@ export function LectorConstancia({ casoId, documentoId }: { casoId: string; docu
     const v = await verConstancia(casoId, documentoId);
     setVista(v);
     const extra = [v.identidad?.nss === "sin_dato" ? "guardar_nss" : null, v.identidad?.curp === "sin_dato" ? "guardar_curp" : null].filter((x): x is string => Boolean(x));
-    setElegidos([...(v.campos ?? []).filter((c) => c.cambia).map((c) => c.clave), ...extra]);
+    setElegidos([...(v.campos ?? []).filter((c) => c.cambia && !c.noMarcar).map((c) => c.clave), ...extra]);
   });
   const pasar = () => iniciar(async () => {
     const r = await aplicarConstancia(casoId, documentoId, elegidos);
@@ -61,6 +61,7 @@ export function LectorConstancia({ casoId, documentoId }: { casoId: string; docu
       <ul className="mt-2 grid gap-1 text-xs">
         <li>NSS ···{l.nssFin ?? "—"}: <span className={IDENTIDAD[id.nss].clase}>{IDENTIDAD[id.nss].texto}</span></li>
         <li>CURP {l.curpParcial ?? "—"}: <span className={IDENTIDAD[id.curp].clase}>{IDENTIDAD[id.curp].texto}</span></li>
+        {l.regimen && <li>Régimen: <span className="font-semibold text-ink">{l.regimen === "L73" ? "Ley 73" : "Ley 97"}</span> <span className="text-ink-muted">(primera alta {l.primeraAlta?.split("-").reverse().join("/")}; Ley 73 si es antes del 1/07/1997)</span></li>}
         <li className="text-ink-muted">{l.patrones.length} {l.patrones.length === 1 ? "patrón" : "patrones"} en la historia laboral · total {l.total ?? "—"} semanas</li>
       </ul>
       {bloqueado && (
@@ -80,7 +81,7 @@ export function LectorConstancia({ casoId, documentoId }: { casoId: string; docu
                     <td className="py-1.5 pr-2"><input type="checkbox" aria-label={`Pasar ${c.etiqueta}`} className="size-4" checked={elegidos.includes(c.clave)} onChange={(e) => marcar(c.clave, e.target.checked)} /></td>
                     <td className="py-1.5 pr-2 font-medium text-ink">{c.etiqueta}</td>
                     <td className="cifra py-1.5 pr-2 text-ink">{c.constancia}</td>
-                    <td className="cifra py-1.5">{c.caso}{!c.cambia && " ✓"}</td>
+                    <td className="cifra py-1.5">{c.caso}{!c.cambia && " ✓"}{c.noMarcar && <span className="block text-[11px] text-aviso">se cambió a mano con justificación</span>}</td>
                   </tr>
                 ))}
                 {id.nss === "sin_dato" && (

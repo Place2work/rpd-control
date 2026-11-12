@@ -505,3 +505,27 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   definir) y bimestres (si no había), descarta avisos del día 46 si cambió la baja y deja todo en Seguimiento.
 - Pruebas con una constancia ficticia del mismo formato; las reales del Director solo se usaron en la carpeta temporal.
 - Pendiente: SBC promedio de las últimas 250 semanas (pensión Ley 73) a partir de los movimientos.
+- (12-nov, después) La lectura indica sola el régimen: Ley 73 si la primera alta es anterior al 1-jul-1997, si no
+  Ley 97. Se muestra arriba de la tabla y como renglón «Régimen» (no se marca solo si en el caso se cambió a mano con
+  justificación). Al pasarlo se borra la justificación anterior.
+
+## 12-nov-2026 · Trámite oficial asistido de la constancia (buzón de constancias)
+
+- Documentos → «Pedir constancia al IMSS»: pasos guiados en el portal oficial (la persona resuelve el captcha), con
+  CURP y NSS completos (ver completo deja bitácora) y botones «Copiar», y el correo de la empresa
+  `constancias@recibe.retiropordesempleo.com` (subdominio con recepción en Resend; el correo del dominio principal sigue
+  en Hostinger). «Ya la pedí» crea una solicitud (tabla `solicitudes_constancia`, migración 3400).
+- `/api/correo/entrante`: aviso `email.received` de Resend con firma Svix (RESEND_WEBHOOK_SECRET); lee el correo y sus
+  adjuntos con la API de Resend (RESEND_API_KEY). Proceso del sistema (`prismaSistema`, como /api/leads; anotado en
+  CLAUDE.md). Solo acepta correos al buzón, de imss.gob.mx y con DKIM o SPF aprobados; los demás se descartan.
+  - Constancia en PDF → se liga al cliente por hash de NSS/CURP (solicitud viva o caso vivo que pida constancia), se
+    guarda en el expediente con la llave del servidor y queda «Por revisar»; aviso CONSTANCIA_RECIBIDA.
+  - Liga de confirmación (solo https de imss.gob.mx, también validado en la base) → botón «Confirmar en el IMSS» en el
+    caso; aviso CONFIRMAR_CONSTANCIA. Se liga por CURP/NSS del texto o, si no trae, a la única solicitud de las últimas 6 h.
+  - Lo demás → bandeja «Correos del IMSS» (/correos-imss, Director y analista) con aviso en Hoy; al asignar una
+    constancia se vuelve a descargar y se rechaza si el NSS/CURP no son del caso. Idempotente por id de Resend.
+- `correos_entrantes`: solo la escribe el sistema; el Director y el analista la ven y asignan; sin DELETE.
+- Corrección: pdf.js deja vacío el búfer que lee; se le pasa una copia (si no, se guardaba un PDF de 0 bytes).
+- Pendiente del Director: recepción en Resend para `recibe.retiropordesempleo.com` (registro MX), webhook a
+  `https://admin.retiropordesempleo.com/api/correo/entrante`, RESEND_API_KEY y RESEND_WEBHOOK_SECRET en Vercel, y un
+  renglón en el aviso de privacidad sobre la solicitud de la constancia con autorización del cliente.

@@ -449,11 +449,12 @@ model Persona {
   archivado_at             DateTime?    @db.Timestamptz(6)
   motivo_archivo           String?
 
-  referidor   Referidor?           @relation(fields: [referidor_id], references: [id])
-  owner       Usuario              @relation("PersonaOwner", fields: [owner_id], references: [id])
-  casos       Caso[]
-  arco        SolicitudArco[]
-  referencias ReferenciaPersonal[]
+  referidor              Referidor?            @relation(fields: [referidor_id], references: [id])
+  owner                  Usuario               @relation("PersonaOwner", fields: [owner_id], references: [id])
+  casos                  Caso[]
+  arco                   SolicitudArco[]
+  referencias            ReferenciaPersonal[]
+  solicitudes_constancia SolicitudConstancia[]
 
   @@index([telefono])
   @@index([whatsapp])
@@ -525,19 +526,21 @@ model Caso {
   caso_origen Caso?        @relation("Desvio", fields: [caso_origen_id], references: [id])
   desvios     Caso[]       @relation("Desvio")
 
-  datos_imss   DatosImss?
-  datos_afore  DatosAfore?
-  calculos     Calculo[]
-  documentos   Documento[]
-  eventos      Evento[]
-  historial    HistorialEtapa[]
-  suspensiones SuspensionContrato[]
-  alertas      Alerta[]
-  pagos_afore  PagoAfore[]
-  cobros       Cobro[]
-  comisiones   Comision[]
-  pagos_m40    PagoM40[]
-  partes       ParteCaso[]
+  datos_imss             DatosImss?
+  datos_afore            DatosAfore?
+  calculos               Calculo[]
+  documentos             Documento[]
+  eventos                Evento[]
+  historial              HistorialEtapa[]
+  suspensiones           SuspensionContrato[]
+  alertas                Alerta[]
+  pagos_afore            PagoAfore[]
+  cobros                 Cobro[]
+  comisiones             Comision[]
+  pagos_m40              PagoM40[]
+  partes                 ParteCaso[]
+  solicitudes_constancia SolicitudConstancia[]
+  correos_entrantes      CorreoEntrante[]
 
   @@index([etapa])
   @@index([asignado_a])
@@ -1025,6 +1028,52 @@ model ReferenciaPersonal {
   persona Persona @relation(fields: [persona_id], references: [id])
 
   @@map("referencias_personales")
+  @@schema("public")
+}
+
+// Trámite oficial asistido de la constancia de semanas (12-nov): solicitudes desde el caso y correos del IMSS.
+model SolicitudConstancia {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  caso_id           String    @db.Uuid
+  persona_id        String    @db.Uuid
+  estado            String    @default("pendiente") // pendiente | confirmar | recibida | cancelada
+  liga_confirmacion String?
+  documento_id      String?   @db.Uuid
+  created_at        DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at        DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  created_by        String?   @db.Uuid
+  archivado_at      DateTime? @db.Timestamptz(6)
+
+  caso    Caso             @relation(fields: [caso_id], references: [id])
+  persona Persona          @relation(fields: [persona_id], references: [id])
+  correos CorreoEntrante[]
+
+  @@map("solicitudes_constancia")
+  @@schema("public")
+}
+
+model CorreoEntrante {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  resend_id    String    @unique
+  remitente    String
+  asunto       String?
+  recibido_at  DateTime  @default(now()) @db.Timestamptz(6)
+  tipo         String // constancia | confirmacion | otro
+  estado       String // ligado | sin_caso | descartado
+  detalle      String?
+  liga         String?
+  caso_id      String?   @db.Uuid
+  solicitud_id String?   @db.Uuid
+  documento_id String?   @db.Uuid
+  asignado_por String?   @db.Uuid
+  created_at   DateTime  @default(now()) @db.Timestamptz(6)
+  updated_at   DateTime  @default(now()) @updatedAt @db.Timestamptz(6)
+  archivado_at DateTime? @db.Timestamptz(6)
+
+  caso      Caso?                @relation(fields: [caso_id], references: [id])
+  solicitud SolicitudConstancia? @relation(fields: [solicitud_id], references: [id])
+
+  @@map("correos_entrantes")
   @@schema("public")
 }
 

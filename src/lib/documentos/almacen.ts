@@ -55,3 +55,17 @@ export async function leerArchivo(ruta: string): Promise<Uint8Array> {
   if (error || !data) throw new Error(`No se pudo leer el documento: ${error?.message}`);
   return new Uint8Array(await data.arrayBuffer());
 }
+
+/**
+ * Guardar un archivo como proceso del sistema (sin usuario): solo para la constancia que llega del IMSS al buzón
+ * de la empresa (/api/correo/entrante). Usa la llave secreta del servidor; la ruta la decide el servidor.
+ */
+export async function guardarComoSistema(ruta: string, bytes: Uint8Array, mime: string): Promise<void> {
+  if (modoDemo()) return guardarLocal(ruta, Buffer.from(bytes));
+  const url = process.env.NEXT_PUBLIC_SUPABASE_URL, llave = process.env.SUPABASE_SECRET_KEY;
+  if (!url || !llave) throw new Error("Falta SUPABASE_SECRET_KEY en el servidor");
+  const { createClient } = await import("@supabase/supabase-js");
+  const cliente = createClient(url, llave, { auth: { persistSession: false, autoRefreshToken: false } });
+  const { error } = await cliente.storage.from(BUCKET).upload(ruta, bytes, { contentType: mime, upsert: false });
+  if (error) throw new Error(`No se pudo guardar el archivo: ${error.message}`);
+}

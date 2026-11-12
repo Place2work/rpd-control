@@ -24,7 +24,7 @@
 - Datos sensibles (NSS, CURP, CLABE) cifrados (src/lib/cripto) con hash HMAC para buscar;
   el dato completo solo con verDatoSensible(), que deja bitácora.
 - **Toda consulta hecha a nombre de un usuario pasa por `conUsuario()`** (src/lib/db/prisma.ts)
-  para que aplique RLS. `prismaSistema` solo para la tarea diaria, /api/leads, catálogos y el motor de comisiones
+  para que aplique RLS. `prismaSistema` solo para la tarea diaria, /api/leads, /api/correo/entrante (buzón de constancias del IMSS), catálogos y el motor de comisiones
   (src/lib/dinero/motor.ts), que corre después de que el usuario registró el pago o cobro con RLS.
 - Nunca crear campos para contraseñas de portales de terceros.
 - Nadie borra: se archiva con motivo. Las migraciones no conceden DELETE.

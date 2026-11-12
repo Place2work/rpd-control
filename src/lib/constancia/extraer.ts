@@ -6,7 +6,8 @@ import { getDocumentProxy } from "unpdf";
 type Pieza = { str: string; transform: number[]; width: number };
 
 export async function renglonesDePdf(bytes: Uint8Array, maxPaginas = 40): Promise<string[]> {
-  const pdf = await getDocumentProxy(bytes);
+  // pdf.js se queda con el búfer que recibe (lo deja vacío): se le pasa una copia para poder guardar el original.
+  const pdf = await getDocumentProxy(bytes.slice());
   const renglones: string[] = [];
   for (let n = 1; n <= Math.min(pdf.numPages, maxPaginas); n++) {
     const pagina = await pdf.getPage(n);

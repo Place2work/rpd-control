@@ -10,6 +10,9 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { RevisarDocumento } from "../revisar-documento";
 import { SubirDocumento } from "../subir-documento";
 import { LectorConstancia } from "../lector-constancia";
+import { SolicitudConstancia } from "../solicitud-constancia";
+import { BUZON_CONSTANCIAS } from "@/lib/correo/buzon";
+import { ligasConsulta } from "@/lib/parametros";
 
 const ESTADO: Record<EstadoVisible, { texto: string; tono: "prospecto" | "tramite" | "pagado" | "critico" | "espera"; icono: typeof FileUp }> = {
   pendiente: { texto: "Pendiente", tono: "prospecto", icono: FileUp },
@@ -24,14 +27,17 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
     return <Card><CardContent className="text-sm text-ink-muted">El expediente lo opera el analista; tu rol no ve los documentos.</CardContent></Card>;
   }
   const hoy = hoyCDMX();
-  const { tipos, docs } = await conUsuario(sesion.claims, async (tx) => ({
+  const { tipos, docs, solicitud } = await conUsuario(sesion.claims, async (tx) => ({
     tipos: await tx.tipoDocumentoServicio.findMany({
       where: { tipo_servicio: caso.tipo_servicio, tipo_documento: { activo: true } },
       include: { tipo_documento: true },
       orderBy: { tipo_documento: { orden: "asc" } },
     }),
     docs: await tx.documento.findMany({ where: { caso_id: caso.id, archivado_at: null }, orderBy: { created_at: "desc" } }),
+    solicitud: await tx.solicitudConstancia.findFirst({ where: { caso_id: caso.id, archivado_at: null, estado: { not: "cancelada" } }, orderBy: { created_at: "desc" },
+      select: { id: true, estado: true, liga_confirmacion: true, created_at: true, updated_at: true } }),
   }), sesion.ip);
+  const portalSemanas = (await ligasConsulta()).semanas;
 
   const filas = tipos.map(({ tipo_documento: t, obligatorio }) => {
     const ultimo = docs.find((d) => d.tipo_id === t.id);
@@ -96,6 +102,12 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
                   {/* Constancia de semanas en PDF: se lee y se pasa a IMSS y Afore con confirmación. */}
                   {ultimo?.archivo_path && ultimo.archivo_mime === "application/pdf" && /constancia de semanas/i.test(t.nombre) && (
                     <LectorConstancia casoId={caso.id} documentoId={ultimo.id} />
+                  )}
+                  {/* Trámite oficial asistido: pedirla en el portal del IMSS con el buzón de la empresa. */}
+                  {/constancia de semanas/i.test(t.nombre) && (
+                    <SolicitudConstancia casoId={caso.id} personaId={caso.persona.id} curp={caso.persona.curp_parcial} nss={caso.persona.nss_ultimos4 ? `•••••••${caso.persona.nss_ultimos4}` : null}
+                      puedeVer={sesion.usuario.rol !== "vendedor"} buzon={BUZON_CONSTANCIAS} portal={portalSemanas}
+                      solicitud={solicitud ? { id: solicitud.id, estado: solicitud.estado, liga: solicitud.liga_confirmacion, creada: solicitud.created_at.toISOString(), actualizada: solicitud.updated_at.toISOString() } : null} />
                   )}
                   {estado !== "validado" && estado !== "recibido" && (
                     <SubirDocumento casoId={caso.id} tipoId={t.id} pideEmision={Boolean(t.vigencia_dias)} hoy={hoy}
