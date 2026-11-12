@@ -46,3 +46,12 @@ export async function guardarLocal(ruta: string, datos: Buffer) {
 export async function leerLocal(ruta: string) {
   return readFile(path.join(dirLocal(), ruta));
 }
+
+/** Bytes de un documento del expediente, con la sesión del usuario (aplican las políticas de storage). */
+export async function leerArchivo(ruta: string): Promise<Uint8Array> {
+  if (modoDemo()) return new Uint8Array(await leerLocal(ruta));
+  const supabase = await crearClienteServidor();
+  const { data, error } = await supabase.storage.from(BUCKET).download(ruta);
+  if (error || !data) throw new Error(`No se pudo leer el documento: ${error?.message}`);
+  return new Uint8Array(await data.arrayBuffer());
+}

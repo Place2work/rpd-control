@@ -488,3 +488,20 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
 - (11-nov, después) Las referencias también se editan desde el panel: dentro de «Editar» de cada caso van Referencia 1
   y 2 con todos sus campos (misma acción `guardarReferencia`, misma validación y mismo registro en Seguimiento).
 - (11-nov, después) «Quitar esta referencia» también en el panel (pide confirmación; archiva, no borra; queda en Seguimiento).
+
+## 12-nov-2026 · Lectura automática de la constancia de semanas (IMSS)
+
+- No se automatiza el portal del IMSS (captcha, correo de verificación): solo se lee el PDF que ya está en el expediente,
+  venga del IMSS o de otro proveedor.
+- Documentos → «Constancia de semanas cotizadas» (PDF): botón «Leer constancia». El texto se extrae en el servidor con
+  `unpdf` (src/lib/constancia/extraer.ts, renglones por posición) y la regla pura `leerConstancia`
+  (src/lib/reglas/constancia.ts) saca nombre, NSS, CURP, fecha de emisión, folio, semanas (cotizadas, descontadas,
+  reintegradas, total) y la historia laboral; deriva fecha de baja, primera alta, último patrón, último SBC y si sigue
+  cotizando, y avisa si el total no cuadra.
+- Candado de identidad: NSS y CURP se comparan por hash HMAC con los del cliente; si alguno no coincide no se pasa nada.
+  Si el cliente no los tenía, se ofrece guardarlos cifrados.
+- Se muestra «En la constancia / En el caso» con casillas (vienen marcadas las que cambian). «Pasar a IMSS y Afore»
+  vuelve a leer el PDF en el servidor (no confía en el navegador), recalcula semanas totales, régimen (si estaba por
+  definir) y bimestres (si no había), descarta avisos del día 46 si cambió la baja y deja todo en Seguimiento.
+- Pruebas con una constancia ficticia del mismo formato; las reales del Director solo se usaron en la carpeta temporal.
+- Pendiente: SBC promedio de las últimas 250 semanas (pensión Ley 73) a partir de los movimientos.

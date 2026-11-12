@@ -9,6 +9,7 @@ import type { CasoDetalle } from "@/lib/prospectos/consultas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { RevisarDocumento } from "../revisar-documento";
 import { SubirDocumento } from "../subir-documento";
+import { LectorConstancia } from "../lector-constancia";
 
 const ESTADO: Record<EstadoVisible, { texto: string; tono: "prospecto" | "tramite" | "pagado" | "critico" | "espera"; icono: typeof FileUp }> = {
   pendiente: { texto: "Pendiente", tono: "prospecto", icono: FileUp },
@@ -91,6 +92,10 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
                 <div className="flex flex-col gap-2 md:items-end">
                   {ultimo?.archivo_path && (
                     <RevisarDocumento casoId={caso.id} documentoId={ultimo.id} puedeValidar={estado === "recibido"} />
+                  )}
+                  {/* Constancia de semanas en PDF: se lee y se pasa a IMSS y Afore con confirmación. */}
+                  {ultimo?.archivo_path && ultimo.archivo_mime === "application/pdf" && /constancia de semanas/i.test(t.nombre) && (
+                    <LectorConstancia casoId={caso.id} documentoId={ultimo.id} />
                   )}
                   {estado !== "validado" && estado !== "recibido" && (
                     <SubirDocumento casoId={caso.id} tipoId={t.id} pideEmision={Boolean(t.vigencia_dias)} hoy={hoy}
