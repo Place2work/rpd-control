@@ -307,6 +307,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "R1-04.mp4",
+   "duracion_seg": 125,
+   "titulo": "Qué buscar en la constancia y en el estado de cuenta"
+  },
   "contenido": "**Constancia de Semanas Cotizadas**\n\n- Cuenta **bimestres con aportación**, no semanas. Un historial fragmentado toca más bimestres con\n  menos semanas.\n- Muestra semanas **descontadas** por retiros, pero **no la fecha** del retiro. El candado de 5 años\n  solo se verifica con el **estado de cuenta de la Afore** → mientras no lo tengas, el resultado es\n  `APTO_BLOQUEADO`.\n- Fecha de **primera alta** antes del 1-jul-1997 → Ley 73.\n- **Constancia en ceros con NSS asignado** → tres sospechas: NSS duplicado, cotizó en el ISSSTE o\n  nunca cotizó formalmente. Pregunta: *\"¿Trabajaste con recibo de nómina? ¿En qué sector?\"*\n- Si aparece un **alta vigente** (cotiza actualmente) → no puede retirar todavía.\n\n**Estado de cuenta de la Afore:** saldo RCV, SAR 92, vivienda (se muestra en otra columna desde el\nprimer contacto, nunca se suma), voluntarias y movimientos de retiros previos.\n\n**Certificación de la Baja del Trabajador Desempleado (IMSS):** la firma **ya no la pide** en el expediente. Si el\ncliente la tiene, sirve para confirmar el SBC promedio de 250 semanas.\n\n**Lectura automática:** al subir la constancia en PDF a Documentos, el botón «Leer constancia» llena semanas,\nfecha de baja, primera alta, último salario y el régimen (Ley 73 si la primera alta es antes del 1-jul-1997).\nTú revisas y confirmas.\n\n**Práctica:** el simulador muestra constancias ficticias y el asesor de pensiones captura régimen, semanas,\nbimestres, fecha de baja y si hay retiros previos.\n"
  },
  {

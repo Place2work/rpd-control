@@ -1,0 +1,10 @@
+Leer los documentos del cliente: qué buscar en la constancia de semanas y en el estado de cuenta de la Afore.
+La constancia cuenta bimestres con aportación, no semanas. Un historial fragmentado toca más bimestres con menos semanas.
+La constancia muestra las semanas descontadas por retiros, pero no la fecha del retiro. El candado de cinco años solo se verifica con el estado de cuenta de la Afore. Mientras no lo tengas, el resultado es apto bloqueado.
+Si la fecha de primera alta es antes del primero de julio de mil novecientos noventa y siete, es Ley setenta y tres.
+Una constancia en ceros con NSS asignado tiene tres sospechas: NSS duplicado, que cotizó en el ISSSTE, o que nunca cotizó formalmente. Pregunta: ¿trabajaste con recibo de nómina? ¿En qué sector?
+Si aparece un alta vigente, el cliente cotiza actualmente, y todavía no puede retirar.
+En el estado de cuenta de la Afore revisas el saldo de retiro, cesantía y vejez, el SAR noventa y dos, la vivienda, las voluntarias y los retiros previos. La vivienda se muestra en otra columna, y nunca se suma.
+La certificación de baja del IMSS ya no se pide en el expediente. Si el cliente la tiene, sirve para confirmar el salario promedio de las últimas doscientas cincuenta semanas.
+Al subir la constancia en PDF a Documentos, el botón leer constancia llena las semanas, la fecha de baja, la primera alta, el último salario y el régimen. Tú revisas y confirmas.
+Para practicar, el simulador te muestra constancias ficticias, y tú capturas régimen, semanas, bimestres, fecha de baja y si hay retiros previos.
