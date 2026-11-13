@@ -392,6 +392,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "R2-02.mp4",
+   "duracion_seg": 122,
+   "titulo": "Los 7 desvíos y las 3 preguntas del recién desempleado"
+  },
   "contenido": "| Si detectas… | Ofreces… |\n|---|---|\n| Necesita liquidez pero no puede perder semanas | Revisar **aportaciones voluntarias**: se retiran sin costo en semanas (art. 192) |\n| Ley 73, 55+ años, o cerca de pensionarse | **Asesoría de pensión** (ruta P) |\n| Recién dado de baja, Ley 73, menos de 5 años de la baja | **Modalidad 40** (ruta P) |\n| Recién dado de baja con padecimiento crónico | **Incorporación voluntaria (M10)** dentro de 12 meses (ruta P) |\n| NSS duplicado o semanas que no aparecen | **Corrección de NSS / semanas** |\n| Retiró por matrimonio hace años y sus semanas siguen descontadas | Reclamar la **reintegración** (Transitorio Sexto, DOF 26-05-2009) |\n| Pensionado que nunca usó crédito Infonavit | **Devolución de vivienda** |\n\n**Preguntas frecuentes del recién desempleado:**\n\n- *\"¿Me quedo sin seguro médico?\"* — Si tenía al menos 8 semanas cotizadas seguidas antes de la baja,\n  conserva **8 semanas** de atención médica, él y sus beneficiarios (art. 109 LSS).\n- *\"¿Pierdo mis semanas viejas si dejo de trabajar?\"* — No. Al volver a cotizar se reconocen; según\n  el tiempo fuera puede requerir 26 o 52 semanas nuevas (art. 151 LSS).\n- *\"¿Pierdo mi Infonavit?\"* — El retiro no toca la subcuenta de vivienda.\n"
  },
  {
