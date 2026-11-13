@@ -249,6 +249,11 @@ export const MODULOS: Modulo[] = [
   "fuentes": [
    "claude/marco-legal-retiro-desempleo.md"
   ],
+  "video": {
+   "archivo": "R1-01.mp4",
+   "duracion_seg": 119,
+   "titulo": "Las 5 condiciones antes de prometer nada (ejemplo con valores 2026)"
+  },
   "contenido": "**Lo que tienes que saber — las 5 condiciones antes de prometer nada:**\n\n1. **Día 46 natural** desde que quedó desempleado. Criterio de la casa: `fecha de baja + 46 días`.\n   Baja el 1-oct-2026 → puede pedirlo el **16-nov-2026**. En el sistema verás dos fechas: la **legal** (día 46) y\n   la del **trámite**, que suma los días administrativos de la firma (parámetro vigente en Configuración).\n2. **Antigüedad de la cuenta** (no del trabajador): 3 años para modalidad A, 5 para B. La\n   antigüedad cuenta toda la historia, también la anterior a 2009 (Transitorio Segundo, DOF\n   26-05-2009). Un cliente con cuenta vieja califica aunque crea que no.\n3. **12 bimestres** de cotización en la cuenta (modalidad A).\n4. **Sin retiros en los 5 años previos**, acreditado con estados de cuenta de la Afore.\n5. **La elección A o B es del trabajador**, y la ley le permite irse por A aunque califique a B.\n\n**Modalidades**\n\n| | Modalidad A | Modalidad B |\n|---|---|---|\n| Requisito | Cuenta con 3+ años **y** 12+ bimestres | Cuenta con 5+ años |\n| Monto | 30 días del **último SBC**, tope **10 UMA mensuales = $35,662.20** (2026) | Lo **menor** entre 90 días del SBC promedio de las últimas 250 semanas y el **11.5% del saldo RCV** |\n| Pago | Una exhibición | Hasta **6 mensualidades** (la primera puede ser de 30 días de SBC). Si se reincorpora a trabajar, se suspenden las siguientes |\n\nNinguna modalidad paga más que el saldo RCV.\n\n**Fuente:** art. 191-II LSS (texto vigente en `claude/marco-legal-retiro-desempleo.md` sección 1).\n"
  },
  {

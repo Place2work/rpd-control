@@ -1,0 +1,197 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<!-- Fuente del video de la lección R1-01. Duraciones ajustadas a la voz (R1-01.voz.txt, una línea por escena).
+     Para regenerarlo: node scripts/academia-video.cjs R1-01 --voz <pista.wav> -->
+<title>R1-01 · El derecho</title>
+<style>
+@font-face { font-family: Poppins; font-weight: 500; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-500-normal.woff) format("woff"); }
+@font-face { font-family: Poppins; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-600-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 400; src: url(../../../../src/lib/pdf/fuentes/inter-latin-400-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/inter-latin-600-normal.woff) format("woff"); }
+:root { --azul: #004aad; --azul-osc: #00357d; --azul-tinte: #e8f0fb; --verde: #5e9e3a; --verde-txt: #3f7a24; --verde-tinte: #eef6e9;
+  --tinta: #0f172a; --gris: #64748b; --borde: #e2e8f0; --rojo: #b42318; --rojo-tinte: #fef3f2; --fondo: #f6f8fc; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--fondo); font-family: Inter, sans-serif; color: var(--tinta); }
+.marco { position: absolute; inset: 0; }
+header { position: absolute; top: 0; left: 0; right: 0; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 72px; background: #fff; border-bottom: 1px solid var(--borde); }
+.marca { font-family: Poppins; color: var(--azul); line-height: 1; }
+.marca b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -0.5px; }
+.marca span { font-size: 19px; font-weight: 600; } .marca small { font-size: 13px; font-weight: 500; } .marca i { font-style: normal; color: var(--verde); }
+.leccion { font-family: Poppins; font-weight: 500; font-size: 22px; color: var(--gris); }
+.leccion strong { color: var(--azul); font-weight: 600; }
+.escena { position: absolute; top: 96px; left: 0; right: 0; bottom: 150px; padding: 56px 120px; display: flex; flex-direction: column; justify-content: center; gap: 28px; opacity: 0; }
+.paso { font-family: Poppins; font-weight: 600; font-size: 24px; color: var(--azul); letter-spacing: 1px; text-transform: uppercase; }
+h1 { font-family: Poppins; font-weight: 600; font-size: 76px; line-height: 1.1; letter-spacing: -1px; }
+h2 { font-family: Poppins; font-weight: 600; font-size: 54px; line-height: 1.15; }
+p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
+.tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 32px; }
+.tarjeta .et { font-size: 24px; color: var(--gris); }
+.tarjeta .v { font-family: Poppins; font-weight: 600; font-size: 50px; margin-top: 10px; }
+.formula { font-family: Poppins; font-weight: 600; font-size: 72px; display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap; }
+.formula .op { color: var(--gris); font-weight: 500; }
+.formula .res { color: var(--azul); }
+.caja { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 36px 44px; font-size: 34px; line-height: 1.4; }
+.caja.ok { border-color: var(--verde); background: var(--verde-tinte); color: var(--verde-txt); }
+.caja.alerta { border-color: #f3c27a; background: #fff8eb; }
+.caja.mal { border-color: #f5b5ae; background: var(--rojo-tinte); }
+.caja b { font-family: Poppins; font-weight: 600; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+.mod { background: #fff; border: 2px solid var(--borde); border-radius: 24px; padding: 40px; }
+.mod.gana { border-color: var(--verde); box-shadow: 0 0 0 6px var(--verde-tinte); }
+.mod .nom { font-family: Poppins; font-weight: 600; font-size: 30px; color: var(--gris); }
+.mod .monto { font-family: Poppins; font-weight: 600; font-size: 88px; margin-top: 8px; }
+.mod .nota { font-size: 26px; color: var(--gris); margin-top: 6px; }
+.barra { height: 64px; border-radius: 14px; background: var(--azul-tinte); position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; left: 0; top: 0; bottom: 0; background: var(--azul); border-radius: 14px; }
+.lista { display: grid; gap: 22px; }
+.lista .caja { font-size: 30px; padding: 26px 36px; }
+.subtitulo { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: var(--tinta); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0 140px; text-align: center; font-size: 36px; line-height: 1.3; }
+.progreso { position: absolute; left: 0; bottom: 150px; height: 6px; background: var(--verde); }
+
+.linea { position: relative; height: 260px; margin-top: 10px; }
+.linea .eje { position: absolute; left: 0; right: 0; top: 120px; height: 8px; background: var(--borde); border-radius: 4px; }
+.linea .avance { position: absolute; left: 0; top: 120px; height: 8px; background: var(--azul); border-radius: 4px; }
+.hito { position: absolute; top: 0; width: 360px; margin-left: -180px; text-align: center; }
+.hito .punto { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 6px solid var(--azul); margin: 107px auto 18px; }
+.hito.verde .punto { border-color: var(--verde); }
+.hito .f { font-family: Poppins; font-weight: 600; font-size: 38px; }
+.hito .e { font-size: 24px; color: var(--gris); margin-top: 4px; }
+.hito .arriba { position: absolute; top: 20px; left: 0; right: 0; font-family: Poppins; font-weight: 600; font-size: 26px; color: var(--azul); }
+.num { display: inline-flex; width: 64px; height: 64px; border-radius: 50%; background: var(--azul); color: #fff; font-family: Poppins; font-weight: 600; font-size: 34px; align-items: center; justify-content: center; margin-right: 18px; vertical-align: middle; }
+table.mods { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--borde); border-radius: 20px; overflow: hidden; font-size: 28px; }
+table.mods th, table.mods td { padding: 22px 28px; text-align: left; border-bottom: 1px solid var(--borde); vertical-align: top; line-height: 1.35; }
+table.mods th { font-family: Poppins; font-weight: 600; font-size: 30px; background: var(--azul-tinte); color: var(--azul); }
+table.mods td:first-child { color: var(--gris); width: 220px; }
+table.mods tr:last-child td { border-bottom: 0; }
+.checks { display: grid; gap: 16px; font-size: 32px; }
+.checks div { background: #fff; border: 1px solid var(--borde); border-radius: 16px; padding: 18px 28px; }
+.checks b { color: var(--verde-txt); font-family: Poppins; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca"><b>retiro</b><span><small>por </small>desempleo<i>.com</i></span></div>
+    <div class="leccion">Academia · <strong>R1-01</strong> · El derecho: artículo 191-II LSS</div>
+  </header>
+
+  <section class="escena" data-dur="12">
+    <div class="paso" data-at="0">Ruta R1 · Asesor de retiro</div>
+    <h1 data-at="0.3">El derecho: artículo 191-II<br>de la Ley del Seguro Social</h1>
+    <p class="sub" data-at="1">Las 5 condiciones antes de prometer nada.</p>
+  </section>
+  <section class="escena" data-dur="14">
+    <div class="paso" data-at="0"><span class="num">1</span>El día 46</div>
+    <h2 data-at="0.3">Fecha de baja + 46 días naturales</h2>
+    <div class="linea" data-at="1">
+      <div class="eje"></div><div class="avance" data-ancho-linea="62" data-de="3"></div>
+      <div class="hito" style="left:12%"><div class="punto"></div><div class="f">1 oct 2026</div><div class="e">Fecha de baja</div></div>
+      <div class="hito verde" style="left:62%" data-at="5"><div class="arriba">+46 días naturales</div><div class="punto"></div><div class="f">16 nov 2026</div><div class="e">Ya puede pedirlo</div></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="14">
+    <div class="paso" data-at="0"><span class="num">1</span>Dos fechas en el sistema</div>
+    <h2 data-at="0.3">La legal y la del trámite</h2>
+    <div class="linea" data-at="0.8">
+      <div class="eje"></div><div class="avance" data-ancho-linea="80" data-de="4.5" data-desde="47"></div>
+      <div class="hito" style="left:12%"><div class="punto"></div><div class="f">1 oct</div><div class="e">Baja</div></div>
+      <div class="hito verde" style="left:47%"><div class="arriba">Fecha legal</div><div class="punto"></div><div class="f">16 nov</div><div class="e">Día 46</div></div>
+      <div class="hito" style="left:80%" data-at="5.5"><div class="arriba">+10 días administrativos</div><div class="punto"></div><div class="f">26 nov</div><div class="e">Fecha del trámite</div></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="18">
+    <div class="paso" data-at="0"><span class="num">2</span>Antigüedad de la cuenta</div>
+    <h2 data-at="0.3">De la cuenta, no del trabajador</h2>
+    <div class="duo">
+      <div class="mod" data-at="2.5"><div class="nom">Modalidad A</div><div class="monto">3 años</div></div>
+      <div class="mod" data-at="3.5"><div class="nom">Modalidad B</div><div class="monto">5 años</div></div>
+    </div>
+    <div class="caja ok" data-at="7"><b>Cuenta toda la historia, también antes de 2009.</b> Un cliente con cuenta vieja califica aunque crea que no.</div>
+  </section>
+  <section class="escena" data-dur="7">
+    <div class="paso" data-at="0"><span class="num">3</span>Cotización</div>
+    <h2 data-at="0.3">12 bimestres en la cuenta</h2>
+    <p class="sub" data-at="1">Requisito de la modalidad A.</p>
+  </section>
+  <section class="escena" data-dur="13">
+    <div class="paso" data-at="0"><span class="num">4</span>Retiros anteriores</div>
+    <h2 data-at="0.3">Sin retiros en los 5 años previos</h2>
+    <div class="caja" data-at="3.2">Se acredita con los <b>estados de cuenta de la Afore</b>.</div>
+    <div class="caja alerta" data-at="6.5">Mientras no lo verifiques, <b>el sistema no lo da por libre</b>.</div>
+  </section>
+  <section class="escena" data-dur="9">
+    <div class="paso" data-at="0"><span class="num">5</span>La elección</div>
+    <h2 data-at="0.3">A o B lo decide el trabajador</h2>
+    <div class="caja ok" data-at="3.5">La ley le permite irse por <b>A</b> aunque califique a <b>B</b>.</div>
+  </section>
+  <section class="escena" data-dur="21">
+    <div class="paso" data-at="0">Las dos modalidades</div>
+    <table class="mods" data-at="0.4">
+      <tr><th></th><th>Modalidad A</th><th>Modalidad B</th></tr>
+      <tr><td>Requisito</td><td>Cuenta con 3+ años y 12+ bimestres</td><td>Cuenta con 5+ años</td></tr>
+      <tr><td>Monto</td><td>30 días del último SBC, tope 10 UMA mensuales = <b>$35,662.20</b> (2026)</td><td>Lo menor entre 90 días del SBC promedio de 250 semanas y el <b>11.5% del saldo RCV</b></td></tr>
+      <tr><td>Pago</td><td>Una exhibición</td><td>Hasta 6 mensualidades; si vuelve a trabajar, se suspenden las siguientes</td></tr>
+    </table>
+  </section>
+  <section class="escena" data-dur="11">
+    <div class="paso" data-at="0">Antes de dar fecha o monto</div>
+    <h2 data-at="0.2">Ninguna modalidad paga más que el saldo RCV</h2>
+    <div class="checks">
+      <div data-at="4"><b>✓</b> Día 46 desde la baja</div>
+      <div data-at="4.4"><b>✓</b> Antigüedad de la cuenta: 3 años (A) / 5 años (B)</div>
+      <div data-at="4.8"><b>✓</b> 12 bimestres (A)</div>
+      <div data-at="5.2"><b>✓</b> Sin retiros en 5 años, con estados de cuenta</div>
+      <div data-at="5.6"><b>✓</b> El trabajador elige A o B</div>
+    </div>
+  </section>
+
+  <div class="progreso"></div>
+  <div class="subtitulo"></div>
+</div>
+<script>
+// Subtítulos por escena, en tramos repartidos según la duración de la voz (AUDIO, en segundos; entra 0.6 s después).
+const SUBS = [["El retiro por desempleo es un derecho del artículo 191-II de la Ley del Seguro Social.", "Antes de prometer nada, revisa cinco condiciones."], ["Condición 1: el día 46.", "Si la baja fue el 1 de octubre de 2026, sumamos 46 días naturales:", "puede pedirlo desde el 16 de noviembre."], ["En el sistema verás dos fechas: la legal, el día 46,", "y la del trámite, que suma los 10 días administrativos de la firma.", "En este ejemplo, el 26 de noviembre."], ["Condición 2: la antigüedad es de la cuenta, no del trabajador.", "3 años para la modalidad A y 5 para la B.", "Cuenta toda la historia, también antes de 2009:", "un cliente con cuenta vieja califica aunque crea que no."], ["Condición 3: para la modalidad A necesita 12 bimestres de cotización en la cuenta."], ["Condición 4: sin retiros en los 5 años previos,", "y eso se acredita con los estados de cuenta de la Afore.", "Mientras no lo verifiques, el sistema no lo da por libre."], ["Condición 5: la elección entre A y B es del trabajador.", "La ley le permite irse por A aunque califique a B."], ["Las dos modalidades: la A paga 30 días del último salario, con tope de 10 UMA, en una sola exhibición.", "La B paga lo menor entre 90 días del salario promedio y el 11.5% del saldo,", "en hasta 6 mensualidades; si vuelve a trabajar, se suspenden las siguientes."], ["Y recuerda: ninguna modalidad paga más que el saldo de su cuenta.", "Revisa las cinco condiciones antes de dar una fecha o un monto."]];
+const AUDIO = [10.45, 12.19, 11.99, 16.09, 5.22, 11.02, 7.22, 19.16, 9.42];
+const escenas = [...document.querySelectorAll(".escena")];
+const inicios = []; let total = 0;
+for (const e of escenas) { inicios.push(total); total += Number(e.dataset.dur); }
+window.DURACION = total;
+const sube = (x) => Math.max(0, Math.min(1, x));
+const suave = (x) => 1 - Math.pow(1 - sube(x), 3);
+const pesos = (n) => "$" + Math.round(n).toLocaleString("en-US");
+window.render = (t) => {
+  let i = escenas.length - 1;
+  for (let k = 0; k < escenas.length; k++) if (t < inicios[k] + Number(escenas[k].dataset.dur)) { i = k; break; }
+  escenas.forEach((e, k) => {
+    const local = t - inicios[k], dur = Number(e.dataset.dur);
+    const entra = suave(local / 0.45), sale = k === escenas.length - 1 ? 1 : 1 - sube((local - (dur - 0.35)) / 0.35);
+    e.style.opacity = k === i ? Math.min(entra, sale) : 0;
+    if (k !== i) return;
+    e.querySelectorAll("[data-at]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.at)) / 0.5);
+      el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 28}px)`;
+    });
+    e.querySelectorAll("[data-cuenta]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.de)) / 0.9);
+      el.textContent = pesos(Number(el.dataset.cuenta) * p);
+    });
+    e.querySelectorAll("[data-ancho-linea]").forEach((el) => { const d = Number(el.dataset.desde ?? 0); el.style.width = d + (Number(el.dataset.anchoLinea) - d) * suave((local - Number(el.dataset.de)) / 1.4) + "%"; });
+    e.querySelectorAll("[data-ancho]").forEach((el) => { el.style.width = Number(el.dataset.ancho) * suave((local - Number(el.dataset.de)) / 1.2) + "%"; });
+    e.querySelectorAll("[data-marca-gana]").forEach((el) => {
+      const de = Number(el.dataset.marcaGana);
+      el.classList.toggle("gana", de > 0 && local >= de);
+    });
+  });
+  const tramos = SUBS[i], local = t - inicios[i] - 0.6, total = tramos.join("").length;
+  let acum = 0, txt = tramos[0];
+  for (const tr of tramos) { if (local >= AUDIO[i] * acum / total) txt = tr; acum += tr.length; }
+  document.querySelector(".subtitulo").textContent = txt;
+  document.querySelector(".progreso").style.width = (t / total) * 100 + "%";
+};
+window.render(0);
+</script>
+</body>
+</html>
