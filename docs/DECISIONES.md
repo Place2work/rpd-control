@@ -712,3 +712,7 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   ubicación, el Director escribe el monto de cada día al aprobar la foto; el campo trae la tarifa base. El analista
   aprueba con la tarifa base. Mientras la semana no se pague, el Director puede corregir el monto de cada día aprobado
   en Pagos de campo; la bitácora guarda el cambio. Lo que ya se pagó no se puede cambiar.
+- **Tarifa por prospecto (13-nov)**: `CAMPO_PAGO_PROSPECTO` sube a $25; todavía no había prospectos, así que se
+  ajustó el valor inicial. El Director cambia las tarifas (por prospecto y base por día) desde el recuadro «Tarifas»
+  en Pagos de campo, con fecha «desde», con la misma regla de vigencia que Configuración. Cada prospecto se paga con
+  la tarifa vigente el día en que se levantó.

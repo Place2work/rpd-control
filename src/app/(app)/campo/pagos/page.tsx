@@ -13,6 +13,7 @@ import { hoyCDMX } from "@/lib/tiempo";
 import { CampoTexto } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
 import { ajustarPagoDia, pagarSemanaCampo } from "../acciones";
+import { programarParametro } from "../../configuracion/acciones";
 
 const plural = (k: number, uno: string, varios: string) => `${k} ${k === 1 ? uno : varios}`;
 export const metadata: Metadata = { title: "Pagos de campo" };
@@ -49,9 +50,27 @@ export default async function PagosCampo() {
     <>
       <Encabezado titulo="Pagos de campo" descripcion={`Tarifas vigentes: ${pesos(tarifa.prospectoCent)} por prospecto verificado y ${pesos(tarifa.diaCent)} por día con foto aprobada. Lo de lunes a domingo se paga el miércoles siguiente.`}>
         <Link href="/campo/revisar" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><ArrowLeft className="size-4" aria-hidden /> Prospectos de campo</Link>
-        <Link href="/configuracion" className="text-sm text-brand underline">Cambiar tarifas</Link>
+
       </Encabezado>
       <div className="grid gap-4">
+        <Card>
+          <CardHeader><CardTitle>Tarifas</CardTitle></CardHeader>
+          <CardContent className="grid gap-4 text-sm lg:grid-cols-2">
+            {([
+              ["CAMPO_PAGO_PROSPECTO", "Pago por prospecto verificado", tarifa.prospectoCent, "Aplica a los prospectos levantados desde esa fecha; lo anterior conserva su tarifa."],
+              ["CAMPO_PAGO_DIA", "Pago base por día", tarifa.diaCent, "Es el monto que trae cada día al aprobarlo; ahí puedes cambiarlo según la ubicación."],
+            ] as const).map(([clave, titulo, cent, ayuda]) => (
+              <FormularioAccion key={clave} accion={programarParametro.bind(null, clave)} boton="Guardar tarifa" etiquetas={{ valor: "Monto", vigente_desde: "Desde" }} className="grid gap-2 rounded-[var(--radius-boton)] border border-borde p-3">
+                <p className="font-medium text-ink">{titulo}: <span className="font-display">{pesos(cent)}</span></p>
+                <div className="grid gap-2 sm:grid-cols-2">
+                  <CampoTexto id="valor" etiqueta="Monto nuevo (pesos)" inputMode="decimal" valor={(cent / 100).toFixed(2)} />
+                  <CampoTexto id="vigente_desde" etiqueta="Desde" tipo="date" valor={hoy} min={hoy} />
+                </div>
+                <p className="text-xs text-ink-muted">{ayuda}</p>
+              </FormularioAccion>
+            ))}
+          </CardContent>
+        </Card>
         {d.gerentes.length === 0 && <Card><CardContent className="pt-5 text-sm text-ink-muted">Todavía no hay gerentes de campo. Dalos de alta en Configuración → Usuarios con el rol «Gerente de campo».</CardContent></Card>}
         {d.gerentes.map((g) => {
           const porEstado = (e: string) => g.totales.find((t) => t.estado === e)?._count._all ?? 0;

@@ -59,6 +59,7 @@ export async function programarParametro(clave: string, _p: Resultado, form: For
   }, s.ip);
   if (res.ok) {
     revalidatePath("/configuracion");
+    if (clave.startsWith("CAMPO_")) { revalidatePath("/campo"); revalidatePath("/campo/revisar"); revalidatePath("/campo/pagos"); }
     // Academia (9.6): las preguntas que dependen del parámetro pasan a revisión y se prepara la microlección.
     await procesarCambiosParametro().catch((e) => console.error("[configuracion] academia", e));
     revalidatePath("/academia/contenido");
