@@ -84,7 +84,13 @@ async function restablecerConClaveInterno(id: string): Promise<{ clave?: string;
 async function fijarClavePropiaInterno(id: string, clave: string): Promise<{ error?: string }> {
   if (modoDemo()) return {};
   const { error } = await admin().updateUserById(id, { password: clave, app_metadata: { debe_cambiar_clave: false } });
-  if (error) return { error: /same|different/i.test(error.message) ? "Usa una contraseña distinta a la temporal." : "No pudimos guardar la contraseña. Intenta con otra." };
+  if (error) {
+    console.error("[auth admin] contraseña", error.message);
+    if (/same|different/i.test(error.message)) return { error: "Usa una contraseña distinta a la temporal." };
+    // Regla propia de Supabase (Authentication → Policies): se avisa tal cual para que el Director la ajuste.
+    if (/at least|characters|weak|length|pwned|leaked/i.test(error.message)) return { error: "Supabase pidió una contraseña más fuerte que la del sistema. Prueba con una más larga o avisa al Director." };
+    return { error: "No pudimos guardar la contraseña. Intenta con otra." };
+  }
   return {};
 }
 

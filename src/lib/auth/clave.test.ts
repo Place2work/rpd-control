@@ -14,3 +14,15 @@ describe("contraseña temporal", () => {
     expect(muchas.size).toBe(2000);
   });
 });
+
+describe("contraseña propia", () => {
+  it("pide mínimo 6 caracteres, una mayúscula y un número", async () => {
+    const { validarClave } = await import("./clave");
+    expect(validarClave("Retiro7")).toBeNull();
+    expect(validarClave("Abc12")).toMatch(/mínimo 6 caracteres/);
+    expect(validarClave("retiro7")).toMatch(/mayúscula/);
+    expect(validarClave("Retiros")).toMatch(/número/);
+    expect(validarClave("")).toBe("Tu contraseña necesita: mínimo 6 caracteres, al menos una letra mayúscula (A-Z), al menos un número (0-9).");
+    expect(validarClave("Ñandú2026")).toBeNull();
+  });
+});

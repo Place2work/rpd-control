@@ -6,7 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Label } from "@/components/ui/input";
 import { crearClienteNavegador } from "@/lib/supabase/client";
-import { MINIMO_CLAVE as MINIMO } from "@/lib/auth/clave";
+import { MINIMO_CLAVE as MINIMO, REQUISITOS_CLAVE, validarClave } from "@/lib/auth/clave";
 import { cambiarClavePropia, cambiarClaveTemporal } from "./acciones";
 import { InputClave } from "@/components/ui/input-clave";
 
@@ -21,6 +21,7 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
   const [listo, setListo] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [enviando, setEnviando] = useState(false);
+  const [escrita, setEscrita] = useState("");
 
   useEffect(() => {
     const supabase = crearClienteNavegador();
@@ -35,7 +36,8 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
 
   async function guardar(form: FormData) {
     const nueva = String(form.get("nueva"));
-    if (nueva.length < MINIMO) return setError(`Usa al menos ${MINIMO} caracteres.`);
+    const falta = validarClave(nueva);
+    if (falta) return setError(falta);
     if (nueva !== String(form.get("confirmacion"))) return setError("Las contraseñas no coinciden.");
     setEnviando(true);
     setError(null);
@@ -66,8 +68,19 @@ export function DefinirContrasena({ temporal = false }: { temporal?: boolean }) 
           <form action={guardar} className="flex flex-col gap-4">
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="nueva">Contraseña nueva</Label>
-              <InputClave id="nueva" name="nueva" autoComplete="new-password" minLength={MINIMO} required />
-              <p className="text-xs text-ink-muted">Mínimo {MINIMO} caracteres. Una frase larga es más segura y fácil de recordar.</p>
+              <InputClave id="nueva" name="nueva" autoComplete="new-password" minLength={MINIMO} required onChange={(e) => setEscrita(e.currentTarget.value)} aria-describedby="requisitos-clave" />
+              <ul id="requisitos-clave" className="mt-1 grid gap-1 text-sm">
+                {REQUISITOS_CLAVE.map((r) => {
+                  const ok = r.cumple(escrita);
+                  return (
+                    <li key={r.clave} className={ok ? "flex items-center gap-2 text-exito-texto" : "flex items-center gap-2 text-ink-muted"}>
+                      <span aria-hidden className={ok ? "inline-flex size-5 items-center justify-center rounded-full bg-exito text-xs text-white" : "inline-flex size-5 items-center justify-center rounded-full border border-borde text-xs"}>{ok ? "✓" : ""}</span>
+                      {r.texto}<span className="sr-only">{ok ? " (listo)" : " (falta)"}</span>
+                    </li>
+                  );
+                })}
+              </ul>
+              <p className="text-xs text-ink-muted">Ejemplo: <span className="font-mono">Retiro7</span> (no uses este).</p>
             </div>
             <div className="flex flex-col gap-1.5">
               <Label htmlFor="confirmacion">Repítela</Label>
