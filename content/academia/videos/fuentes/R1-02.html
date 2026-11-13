@@ -1,0 +1,207 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<!-- Fuente del video de la lección R1-02. Para regenerarlo (p. ej. si cambia la UMA): node scripts/academia-video.cjs R1-02 -->
+<meta charset="utf-8">
+<title>R1-02 · Cómo se calcula</title>
+<style>
+@font-face { font-family: Poppins; font-weight: 500; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-500-normal.woff) format("woff"); }
+@font-face { font-family: Poppins; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-600-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 400; src: url(../../../../src/lib/pdf/fuentes/inter-latin-400-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/inter-latin-600-normal.woff) format("woff"); }
+:root { --azul: #004aad; --azul-osc: #00357d; --azul-tinte: #e8f0fb; --verde: #5e9e3a; --verde-txt: #3f7a24; --verde-tinte: #eef6e9;
+  --tinta: #0f172a; --gris: #64748b; --borde: #e2e8f0; --rojo: #b42318; --rojo-tinte: #fef3f2; --fondo: #f6f8fc; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--fondo); font-family: Inter, sans-serif; color: var(--tinta); }
+.marco { position: absolute; inset: 0; }
+header { position: absolute; top: 0; left: 0; right: 0; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 72px; background: #fff; border-bottom: 1px solid var(--borde); }
+.marca { font-family: Poppins; color: var(--azul); line-height: 1; }
+.marca b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -0.5px; }
+.marca span { font-size: 19px; font-weight: 600; } .marca small { font-size: 13px; font-weight: 500; } .marca i { font-style: normal; color: var(--verde); }
+.leccion { font-family: Poppins; font-weight: 500; font-size: 22px; color: var(--gris); }
+.leccion strong { color: var(--azul); font-weight: 600; }
+.escena { position: absolute; top: 96px; left: 0; right: 0; bottom: 150px; padding: 56px 120px; display: flex; flex-direction: column; justify-content: center; gap: 28px; opacity: 0; }
+.paso { font-family: Poppins; font-weight: 600; font-size: 24px; color: var(--azul); letter-spacing: 1px; text-transform: uppercase; }
+h1 { font-family: Poppins; font-weight: 600; font-size: 76px; line-height: 1.1; letter-spacing: -1px; }
+h2 { font-family: Poppins; font-weight: 600; font-size: 54px; line-height: 1.15; }
+p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
+.tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 32px; }
+.tarjeta .et { font-size: 24px; color: var(--gris); }
+.tarjeta .v { font-family: Poppins; font-weight: 600; font-size: 50px; margin-top: 10px; }
+.formula { font-family: Poppins; font-weight: 600; font-size: 72px; display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap; }
+.formula .op { color: var(--gris); font-weight: 500; }
+.formula .res { color: var(--azul); }
+.caja { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 36px 44px; font-size: 34px; line-height: 1.4; }
+.caja.ok { border-color: var(--verde); background: var(--verde-tinte); color: var(--verde-txt); }
+.caja.alerta { border-color: #f3c27a; background: #fff8eb; }
+.caja.mal { border-color: #f5b5ae; background: var(--rojo-tinte); }
+.caja b { font-family: Poppins; font-weight: 600; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+.mod { background: #fff; border: 2px solid var(--borde); border-radius: 24px; padding: 40px; }
+.mod.gana { border-color: var(--verde); box-shadow: 0 0 0 6px var(--verde-tinte); }
+.mod .nom { font-family: Poppins; font-weight: 600; font-size: 30px; color: var(--gris); }
+.mod .monto { font-family: Poppins; font-weight: 600; font-size: 88px; margin-top: 8px; }
+.mod .nota { font-size: 26px; color: var(--gris); margin-top: 6px; }
+.barra { height: 64px; border-radius: 14px; background: var(--azul-tinte); position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; left: 0; top: 0; bottom: 0; background: var(--azul); border-radius: 14px; }
+.lista { display: grid; gap: 22px; }
+.lista .caja { font-size: 30px; padding: 26px 36px; }
+.subtitulo { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: var(--tinta); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0 140px; text-align: center; font-size: 36px; line-height: 1.3; }
+.progreso { position: absolute; left: 0; bottom: 150px; height: 6px; background: var(--verde); }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca"><b>retiro</b><span><small>por </small>desempleo<i>.com</i></span></div>
+    <div class="leccion">Academia · <strong>R1-02</strong> · Cómo se calcula</div>
+  </header>
+
+  <!-- 1. Título -->
+  <section class="escena" data-dur="5">
+    <div class="paso" data-at="0">Ruta R1 · Asesor de retiro</div>
+    <h1 data-at="0.3">Cómo se calcula el retiro<br>por desempleo</h1>
+    <p class="sub" data-at="0.9">En el mismo orden que usa la calculadora del sistema.</p>
+  </section>
+
+  <!-- 2. Datos del cliente -->
+  <section class="escena" data-dur="7">
+    <div class="paso" data-at="0">El ejemplo</div>
+    <h2 data-at="0.2">Un cliente con estos datos de su constancia</h2>
+    <div class="tarjetas">
+      <div class="tarjeta" data-at="0.8"><div class="et">Último salario base (SBC)</div><div class="v">$500 <small style="font-size:26px;color:var(--gris)">/día</small></div></div>
+      <div class="tarjeta" data-at="1.3"><div class="et">SBC promedio 250 semanas</div><div class="v">$450 <small style="font-size:26px;color:var(--gris)">/día</small></div></div>
+      <div class="tarjeta" data-at="1.8"><div class="et">Saldo RCV</div><div class="v">$100,000</div></div>
+      <div class="tarjeta" data-at="2.3"><div class="et">Semanas cotizadas</div><div class="v">1,000</div></div>
+    </div>
+  </section>
+
+  <!-- 3. A paso 1 -->
+  <section class="escena" data-dur="7">
+    <div class="paso" data-at="0">Modalidad A · paso 1</div>
+    <h2 data-at="0.2">30 días del último salario</h2>
+    <div class="formula" data-at="0.8"><span>30</span><span class="op">×</span><span>$500</span><span class="op">=</span><span class="res" data-cuenta="15000" data-de="1.4">$15,000</span></div>
+  </section>
+
+  <!-- 4. A paso 2: tope -->
+  <section class="escena" data-dur="9">
+    <div class="paso" data-at="0">Modalidad A · paso 2</div>
+    <h2 data-at="0.2">Se topa en 10 UMA mensuales: $35,662.20</h2>
+    <div class="caja ok" data-at="1.2"><b>$15,000 queda debajo del tope:</b> no aplica, sigue igual.</div>
+    <div class="caja" data-at="3"><b>¿Cuándo pega el tope?</b> Con un SBC mayor a <b>$1,188.74 diarios</b>. Arriba de eso, ganar más ya no aumenta el retiro.</div>
+  </section>
+
+  <!-- 5. A paso 3: saldo -->
+  <section class="escena" data-dur="7">
+    <div class="paso" data-at="0">Modalidad A · paso 3</div>
+    <h2 data-at="0.2">Se compara contra el saldo y se paga el menor</h2>
+    <div class="duo">
+      <div class="mod gana" data-at="0.9"><div class="nom">Cálculo de A</div><div class="monto">$15,000</div></div>
+      <div class="mod" data-at="1.4"><div class="nom">Saldo RCV</div><div class="monto" style="color:var(--gris)">$100,000</div></div>
+    </div>
+    <div class="caja ok" data-at="2.6">Modalidad A = <b>$15,000</b></div>
+  </section>
+
+  <!-- 6. Modalidad B -->
+  <section class="escena" data-dur="10">
+    <div class="paso" data-at="0">Modalidad B</div>
+    <h2 data-at="0.2">El menor de dos cálculos</h2>
+    <div class="duo">
+      <div class="mod" data-at="1" data-marca-gana="0"><div class="nom">90 días del SBC promedio</div><div class="monto" style="font-size:54px">90 × $450 = $40,500</div></div>
+      <div class="mod" data-at="2.4" data-marca-gana="4.2"><div class="nom">11.5% del saldo RCV (sin SAR 92)</div><div class="monto" style="font-size:54px">11.5% × $100,000 = $11,500</div></div>
+    </div>
+    <div class="caja ok" data-at="4.4">Modalidad B = <b>$11,500</b> (el menor)</div>
+  </section>
+
+  <!-- 7. Comparación -->
+  <section class="escena" data-dur="7">
+    <div class="paso" data-at="0">¿Cuál le conviene?</div>
+    <h2 data-at="0.2">El sistema propone la de mayor monto</h2>
+    <div class="duo">
+      <div class="mod gana" data-at="0.9"><div class="nom">Modalidad A</div><div class="monto">$15,000</div><div class="nota">Propuesta por el sistema</div></div>
+      <div class="mod" data-at="1.3"><div class="nom">Modalidad B</div><div class="monto" style="color:var(--gris)">$11,500</div></div>
+    </div>
+  </section>
+
+  <!-- 8. Semanas -->
+  <section class="escena" data-dur="10">
+    <div class="paso" data-at="0">El costo real</div>
+    <h2 data-at="0.2">Lo que retira se descuenta de sus semanas</h2>
+    <div class="formula" data-at="1" style="font-size:60px"><span>$15,000</span><span class="op">÷</span><span>$100,000</span><span class="op">=</span><span class="res">15% del saldo</span></div>
+    <div data-at="2.6"><div class="barra"><div class="relleno" data-ancho="15" data-de="2.8"></div></div></div>
+    <div class="caja alerta" data-at="4.2">15% de 1,000 semanas = <b>150 semanas que se pierden</b>. Lo ves a fondo en R1-03.</div>
+  </section>
+
+  <!-- 9. Trampas -->
+  <section class="escena" data-dur="13">
+    <div class="paso" data-at="0">Trampas frecuentes</div>
+    <div class="lista">
+      <div class="caja mal" data-at="0.4"><b>La Circular CONSAR 31-10</b> dice 75 días y 10%: está desactualizada. La ley vigente dice <b>90 días y 11.5%</b>. Manda la ley.</div>
+      <div class="caja" data-at="3"><b>El SBC promedio no se inventa:</b> sale de la constancia de semanas. Sin ese dato, B queda como estimado.</div>
+      <div class="caja" data-at="5.8"><b>Salario alto con saldo bajo</b> suele caer en B por el 11.5% y cobra menos de lo que espera. Adviértelo antes.</div>
+      <div class="caja alerta" data-at="8.6"><b>Puede haber retención de ISR:</b> nunca prometas el neto exacto.</div>
+    </div>
+  </section>
+
+  <!-- 10. Cierre -->
+  <section class="escena" data-dur="7">
+    <div class="paso" data-at="0">Lo que dices</div>
+    <h2 data-at="0.3" style="color:var(--azul)">«Es un estimado con los valores vigentes;<br>el monto final lo determina la Afore.»</h2>
+    <p class="sub" data-at="1.6">Valores 2026: UMA mensual $3,566.22 · tope de A 10 UMA · B: 90 días u 11.5%.</p>
+  </section>
+
+  <div class="progreso"></div>
+  <div class="subtitulo"></div>
+</div>
+
+<script>
+// Guion (subtítulos): una línea por escena, en el orden de arriba. Es también el texto para grabar la voz.
+const GUION = [
+  "Así se calcula el retiro por desempleo, paso a paso, en el mismo orden que usa la calculadora del sistema.",
+  "Tomemos un cliente con último salario de 500 pesos diarios, promedio de 450, saldo de 100 mil y mil semanas cotizadas.",
+  "Modalidad A, paso uno: 30 días de su último salario. 30 por 500 son 15 mil pesos.",
+  "Paso dos: la modalidad A se topa en 10 UMA mensuales. 15 mil está debajo, así que no aplica. El tope solo pega con salarios mayores a 1,188 pesos diarios.",
+  "Paso tres: se compara contra el saldo de su cuenta y se paga el menor. Modalidad A: 15 mil pesos.",
+  "Modalidad B es el menor de dos cálculos: 90 días del salario promedio, 40,500, o el 11.5% del saldo, 11,500. Gana el menor: 11,500.",
+  "Entre las dos, el sistema propone la de mayor monto: la modalidad A, con 15 mil pesos.",
+  "Pero tiene un costo: 15 mil es el 15% de su saldo, y eso le descuenta el 15% de sus semanas: 150 semanas.",
+  "Cuidado con estas trampas: la circular vieja de la CONSAR, inventar el salario promedio, el salario alto con saldo bajo y prometer el neto exacto.",
+  "Y siempre dilo así: es un estimado con los valores vigentes; el monto final lo determina la Afore.",
+];
+const escenas = [...document.querySelectorAll(".escena")];
+const inicios = []; let total = 0;
+for (const e of escenas) { inicios.push(total); total += Number(e.dataset.dur); }
+window.DURACION = total;
+const sube = (x) => Math.max(0, Math.min(1, x));
+const suave = (x) => 1 - Math.pow(1 - sube(x), 3);
+const pesos = (n) => "$" + Math.round(n).toLocaleString("en-US");
+window.render = (t) => {
+  let i = escenas.length - 1;
+  for (let k = 0; k < escenas.length; k++) if (t < inicios[k] + Number(escenas[k].dataset.dur)) { i = k; break; }
+  escenas.forEach((e, k) => {
+    const local = t - inicios[k], dur = Number(e.dataset.dur);
+    const entra = suave(local / 0.45), sale = k === escenas.length - 1 ? 1 : 1 - sube((local - (dur - 0.35)) / 0.35);
+    e.style.opacity = k === i ? Math.min(entra, sale) : 0;
+    if (k !== i) return;
+    e.querySelectorAll("[data-at]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.at)) / 0.5);
+      el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 28}px)`;
+    });
+    e.querySelectorAll("[data-cuenta]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.de)) / 0.9);
+      el.textContent = pesos(Number(el.dataset.cuenta) * p);
+    });
+    e.querySelectorAll("[data-ancho]").forEach((el) => { el.style.width = Number(el.dataset.ancho) * suave((local - Number(el.dataset.de)) / 1.2) + "%"; });
+    e.querySelectorAll("[data-marca-gana]").forEach((el) => {
+      const de = Number(el.dataset.marcaGana);
+      el.classList.toggle("gana", de > 0 && local >= de);
+    });
+  });
+  document.querySelector(".subtitulo").textContent = GUION[i];
+  document.querySelector(".progreso").style.width = (t / total) * 100 + "%";
+};
+window.render(0);
+</script>
+</body>
+</html>

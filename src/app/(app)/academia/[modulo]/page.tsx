@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, CheckCircle2, Clock } from "lucide-react";
+import { ArrowLeft, CheckCircle2, Clock, PlayCircle } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Leccion } from "@/components/rpd/leccion";
 import { exigirRol } from "@/lib/auth/sesion";
@@ -44,6 +44,13 @@ export default async function LeccionPagina({ params }: Props) {
         <Card><CardContent className="text-sm text-ink-muted">{estado.bloqueo}. Termina primero la Inducción.</CardContent></Card>
       ) : (
         <>
+          {m.video && (
+            <figure className="grid gap-2">
+              <video controls preload="metadata" playsInline className="aspect-video w-full rounded-[var(--radius-tarjeta)] border border-borde bg-ink"
+                src={`/api/academia/video/${m.clave}`} aria-label={m.video.titulo} />
+              <figcaption className="flex items-center gap-1.5 text-xs text-ink-muted"><PlayCircle className="size-4" aria-hidden /> {m.video.titulo} · {Math.floor(m.video.duracion_seg / 60)}:{String(m.video.duracion_seg % 60).padStart(2, "0")} min · con subtítulos</figcaption>
+            </figure>
+          )}
           <Card><CardContent className="pt-5"><Leccion bloques={bloquesMarkdown(m.contenido)} /></CardContent></Card>
           {m.fuentes.length > 0 && <p className="text-xs text-ink-muted">Fuentes internas: {m.fuentes.join(" · ")}</p>}
           <div className="flex flex-wrap items-center gap-3">

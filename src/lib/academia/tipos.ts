@@ -15,6 +15,8 @@ export type Ruta = {
 export type Modulo = {
   clave: string; ruta: ClaveRuta; titulo: string; orden: number; duracion_min: number; version: number;
   parametros: string[]; fuentes: string[]; contenido: string;
+  /** Video de apoyo en content/academia/videos/ (se sirve solo con sesión). */
+  video?: { archivo: string; duracion_seg: number; titulo: string };
 };
 
 export type Pregunta = {

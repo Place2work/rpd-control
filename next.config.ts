@@ -8,6 +8,8 @@ const nextConfig: NextConfig = {
     "/api/comisiones/estado-cuenta": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
     "/api/casos/[id]/contrato": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
     "/api/exportar/reporte": ["./src/lib/pdf/fuentes/**", "./src/lib/pdf/logo-pdf.png"],
+    // Videos de la Academia: se sirven con sesión desde el disco de la función.
+    "/api/academia/video/[clave]": ["./content/academia/videos/*.mp4"],
   },
   serverExternalPackages: ["@react-pdf/renderer"],
   partialPrefetching: true,
