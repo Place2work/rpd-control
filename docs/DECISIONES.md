@@ -745,3 +745,14 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   que ya estaba.
 - Solo el sistema crea registros con origen formulario: el gerente no tiene permiso en esa columna.
 - La tarifa por prospecto quedó en $20 desde el 13-nov (la guardó el Director en «Tarifas»).
+
+## 13-nov-2026 · CURP en el formulario con QR y panel financiero de campo
+
+- **CURP opcional** en el formulario público, validada con su formato y dígito verificador. Se guarda cifrada, con
+  hash HMAC (también para detectar repetidos) y la versión parcial. El analista solo ve la parcial. Al verificar, pasa
+  cifrada tal cual al cliente (no se descifra) y entra a la búsqueda de duplicados.
+- **Corrección**: la tarifa del prospecto se buscaba con la fecha de registro recorrida un día (zona horaria). El único
+  prospecto afectado en producción, todavía sin pagar, se corrigió de $25 a $20.
+- **Panel financiero** en Pagos de campo, total y por gerente: por pagar (verificado sin pagar), próximo pago, en
+  revisión (estimado con la tarifa vigente; los días, con el pago base), proyección total, prospectos de la semana,
+  del mes y totales, verificados, tasa de verificación, pagado del mes y acumulado, y costo por prospecto verificado.

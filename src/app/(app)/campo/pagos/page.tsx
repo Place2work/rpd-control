@@ -1,13 +1,13 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ArrowLeft, Wallet } from "lucide-react";
+import { ArrowLeft, BarChart3, Wallet } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
 import { exigirRol } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { liquidacionesDe, tarifasCampo } from "@/lib/campo/datos";
-import { semanaCerrada } from "@/lib/reglas/campo";
+import { panelFinanciero, semanaCerrada, sumarPaneles, type PanelFinanciero } from "@/lib/reglas/campo";
 import { mxn } from "@/lib/formato";
 import { hoyCDMX } from "@/lib/tiempo";
 import { CampoTexto } from "../../casos/[id]/campos";
@@ -41,10 +41,21 @@ export default async function PagosCampo() {
           select: { id: true, fecha: true, municipio: true, lugar: true, monto_cent: true } }),
         pendientes: await tx.campoProspecto.count({ where: { gerente_id: g.id, estado: "pendiente", archivado_at: null } }),
         totales: await tx.campoProspecto.groupBy({ by: ["estado"], where: { gerente_id: g.id, archivado_at: null }, _count: { _all: true } }),
+        todos: await tx.campoProspecto.findMany({ where: { gerente_id: g.id, archivado_at: null }, select: { estado: true, monto_cent: true, pago_id: true, fecha_registro: true } }),
+        jornadas: await tx.campoJornada.findMany({ where: { gerente_id: g.id }, select: { estado: true, monto_cent: true, pago_id: true } }),
+        pagosG: await tx.campoPago.findMany({ where: { gerente_id: g.id }, select: { fecha_pago: true, total_cent: true } }),
       }))),
       pagos: await tx.campoPago.findMany({ orderBy: { fecha_pago: "desc" }, take: 30, select: { id: true, fecha_pago: true, semana_inicio: true, semana_fin: true, prospectos: true, dias: true, total_cent: true, referencia: true, gerente: { select: { nombre: true } } } }),
     };
   }, s.ip);
+
+  // Panel financiero: por gerente y el total.
+  const paneles = d.gerentes.map((g) => ({ id: g.id, nombre: g.nombre, panel: panelFinanciero(
+    g.todos.map((p) => ({ estado: p.estado, montoCent: p.monto_cent === null ? null : Number(p.monto_cent), pagada: !!p.pago_id, fechaRegistro: isoDb(p.fecha_registro) })),
+    g.jornadas.map((j) => ({ estado: j.estado, montoCent: j.monto_cent === null ? null : Number(j.monto_cent), pagada: !!j.pago_id })),
+    g.pagosG.map((x) => ({ fechaPago: isoDb(x.fecha_pago), totalCent: Number(x.total_cent) })),
+    g.liquidaciones, tarifa, hoy) }));
+  const total = sumarPaneles(paneles.map((x) => x.panel));
 
   return (
     <>
@@ -53,6 +64,7 @@ export default async function PagosCampo() {
 
       </Encabezado>
       <div className="grid gap-4">
+        <PanelFinancieroCampo total={total} paneles={paneles} />
         <Card>
           <CardHeader><CardTitle>Tarifas</CardTitle></CardHeader>
           <CardContent className="grid gap-4 text-sm lg:grid-cols-2">
@@ -135,5 +147,61 @@ export default async function PagosCampo() {
         </Card>
       </div>
     </>
+  );
+}
+
+function Cifra({ titulo, valor, detalle, tono = "ink" }: { titulo: string; valor: string; detalle?: string; tono?: "ink" | "exito" | "brand" }) {
+  const color = { ink: "text-ink", exito: "text-exito-texto", brand: "text-brand" }[tono];
+  return (
+    <div className="rounded-[var(--radius-boton)] border border-borde p-3">
+      <p className="text-xs text-ink-muted">{titulo}</p>
+      <p className={`font-display text-2xl font-semibold ${color}`}>{valor}</p>
+      {detalle && <p className="text-xs text-ink-muted">{detalle}</p>}
+    </div>
+  );
+}
+
+function PanelFinancieroCampo({ total: t, paneles }: { total: PanelFinanciero; paneles: { id: string; nombre: string; panel: PanelFinanciero }[] }) {
+  return (
+    <Card>
+      <CardHeader><CardTitle className="flex items-center gap-2"><BarChart3 className="size-5 text-brand" aria-hidden /> Panel financiero</CardTitle></CardHeader>
+      <CardContent className="grid gap-4 text-sm">
+        <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+          <Cifra titulo="Por pagar (ya verificado)" tono="exito" valor={pesos(t.porPagar.cent)} detalle={`${plural(t.porPagar.prospectos, "prospecto", "prospectos")} · ${plural(t.porPagar.dias, "día", "días")}`} />
+          <Cifra titulo="Próximo pago" valor={t.proximoPago ? pesos(t.proximoPago.cent) : "—"} detalle={t.proximoPago ? `se paga el ${dia(t.proximoPago.fecha)}` : "Nada pendiente"} />
+          <Cifra titulo="En revisión (si se verifica)" valor={pesos(t.enRevision.centEstimado)} detalle={`${plural(t.enRevision.prospectos, "prospecto", "prospectos")} · ${plural(t.enRevision.dias, "día", "días")} por aprobar`} />
+          <Cifra titulo="Proyección total por pagar" tono="brand" valor={pesos(t.proyeccionCent)} detalle="Por pagar + en revisión" />
+          <Cifra titulo="Prospectos esta semana" valor={String(t.prospectos.semana)} detalle={`${t.prospectos.mes} este mes · ${t.prospectos.total} en total`} />
+          <Cifra titulo="Verificados" valor={String(t.prospectos.verificados)} detalle={`${t.prospectos.pendientes} por verificar · ${t.prospectos.rechazados} no cuentan`} />
+          <Cifra titulo="Tasa de verificación" valor={t.tasaVerificacion === null ? "—" : `${t.tasaVerificacion}%`} detalle="De los revisados, cuántos eran reales" />
+          <Cifra titulo="Pagado" valor={pesos(t.pagado.mesCent)} detalle={`este mes · ${pesos(t.pagado.totalCent)} acumulado${t.costoPorVerificadoCent !== null ? ` · ${pesos(t.costoPorVerificadoCent)} por verificado` : ""}`} />
+        </div>
+        {paneles.length > 0 && (
+          <div className="overflow-x-auto">
+            <table className="w-full min-w-[720px] text-left text-sm">
+              <thead className="text-xs text-ink-muted">
+                <tr className="border-b border-borde">
+                  <th className="py-2 pr-3 font-medium">Gerente</th><th className="py-2 pr-3 font-medium">Semana</th><th className="py-2 pr-3 font-medium">Mes</th>
+                  <th className="py-2 pr-3 font-medium">Verificados</th><th className="py-2 pr-3 font-medium">Por verificar</th>
+                  <th className="py-2 pr-3 text-right font-medium">Por pagar</th><th className="py-2 pr-3 text-right font-medium">En revisión</th>
+                  <th className="py-2 pr-3 text-right font-medium">Proyección</th><th className="py-2 text-right font-medium">Pagado</th>
+                </tr>
+              </thead>
+              <tbody>
+                {paneles.map(({ id, nombre, panel: p }) => (
+                  <tr key={id} className="border-b border-borde last:border-0">
+                    <td className="py-2 pr-3 text-ink">{nombre}</td><td className="py-2 pr-3">{p.prospectos.semana}</td><td className="py-2 pr-3">{p.prospectos.mes}</td>
+                    <td className="py-2 pr-3">{p.prospectos.verificados}</td><td className="py-2 pr-3">{p.prospectos.pendientes}</td>
+                    <td className="py-2 pr-3 text-right font-medium text-exito-texto">{pesos(p.porPagar.cent)}</td><td className="py-2 pr-3 text-right">{pesos(p.enRevision.centEstimado)}</td>
+                    <td className="py-2 pr-3 text-right font-medium text-brand">{pesos(p.proyeccionCent)}</td><td className="py-2 text-right">{pesos(p.pagado.totalCent)}</td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        )}
+        <p className="text-xs text-ink-muted">«En revisión» es un estimado con la tarifa vigente; los días, con el pago base. Lo verificado conserva el monto con el que se verificó.</p>
+      </CardContent>
+    </Card>
   );
 }

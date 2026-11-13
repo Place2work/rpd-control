@@ -26,7 +26,7 @@ export default async function RevisarCampo() {
   const tarifa = await tarifasCampo();
   const d = await conUsuario(s.claims, async (tx) => ({
     pendientes: await tx.campoProspecto.findMany({ where: { estado: "pendiente", archivado_at: null }, orderBy: { created_at: "asc" },
-      select: { id: true, nombre: true, whatsapp: true, municipio: true, lugar: true, tipo_servicio: true, fecha_baja: true, notas: true, intentos: true, ultimo_intento_at: true, created_at: true, origen: true, gerente: { select: { nombre: true } } } }),
+      select: { id: true, nombre: true, whatsapp: true, municipio: true, lugar: true, tipo_servicio: true, fecha_baja: true, notas: true, intentos: true, ultimo_intento_at: true, created_at: true, origen: true, curp_parcial: true, gerente: { select: { nombre: true } } } }),
     jornadas: await tx.campoJornada.findMany({ where: { estado: "pendiente" }, orderBy: { fecha: "asc" },
       select: { id: true, fecha: true, municipio: true, lugar: true, foto_path: true, gerente: { select: { nombre: true } } } }),
     recientes: await tx.campoProspecto.findMany({ where: { estado: { not: "pendiente" } }, orderBy: { verificado_at: "desc" }, take: 15,
@@ -51,7 +51,7 @@ export default async function RevisarCampo() {
                 <div className="flex flex-wrap items-start justify-between gap-2">
                   <div>
                     <p className="font-medium text-ink">{p.nombre}</p>
-                    <p className="text-xs text-ink-muted">{p.municipio}{p.lugar ? ` · ${p.lugar}` : ""} · {p.origen === "formulario" ? `se registró con el QR de ${p.gerente.nombre}` : `lo levantó ${p.gerente.nombre}`} · {cuando(p.created_at)}</p>
+                    <p className="text-xs text-ink-muted">{p.municipio}{p.lugar ? ` · ${p.lugar}` : ""} · {p.origen === "formulario" ? `se registró con el QR de ${p.gerente.nombre}` : `lo levantó ${p.gerente.nombre}`} · {cuando(p.created_at)}{p.curp_parcial ? ` · CURP ${p.curp_parcial}` : ""}</p>
                     {(p.fecha_baja || p.notas) && <p className="text-xs text-ink-muted">{p.fecha_baja ? `Baja: ${dia(p.fecha_baja)}` : ""}{p.fecha_baja && p.notas ? " · " : ""}{p.notas ?? ""}</p>}
                     {p.intentos > 0 && <p className="text-xs text-aviso">{p.intentos} {p.intentos === 1 ? "llamada" : "llamadas"} sin respuesta · última {cuando(p.ultimo_intento_at!)}</p>}
                   </div>

@@ -5,10 +5,11 @@
 // código; el analista lo verifica y entonces se vuelve cliente.
 import { headers } from "next/headers";
 import { prismaSistema } from "@/lib/db/prisma";
-import { hashToken } from "@/lib/cripto";
+import { cifrar, hashIdentificador, hashToken } from "@/lib/cripto";
 import { selloValido } from "@/lib/campo/formulario";
 import { parametrosVigentes } from "@/lib/parametros";
 import { whatsappMx } from "@/lib/reglas/campo";
+import { curpParcial, validarCurp } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
 
 export type EstadoRegistro = { ok?: boolean; errores?: Record<string, string>; error?: string };
@@ -26,6 +27,10 @@ export async function registrarDesdeQr(codigo: string, _p: EstadoRegistro, form:
   if (nombre.length < 2) errores.nombre = "Escribe tu nombre";
   if (!whatsapp) errores.whatsapp = "Escribe tu WhatsApp a 10 dígitos";
   if (municipio.length < 2) errores.municipio = "Escribe tu municipio";
+  // CURP opcional; si la escribe, tiene que ser válida (formato y dígito verificador).
+  const curpTexto = txt(form, "curp", 30);
+  const curp = curpTexto ? validarCurp(curpTexto) : null;
+  if (curp && !curp.valido) errores.curp = `${curp.error}. Revísala o déjala en blanco`;
   if (form.get("acepto") !== "si") errores.acepto = "Para registrarte necesitas aceptar el aviso de privacidad";
   if (Object.keys(errores).length) return { errores };
 
@@ -41,8 +46,9 @@ export async function registrarDesdeQr(codigo: string, _p: EstadoRegistro, form:
   if (recientes >= Number(CAMPO_FORMULARIO_MAX_HORA ?? 5)) return { error: "Ya recibimos varios registros desde este teléfono. Intenta más tarde o pide ayuda al promotor." };
 
   // Si ya está registrado (cliente o prospecto de campo vivo) no se duplica ni se le dice: se le confirma igual.
-  const repetido = await db.persona.findFirst({ where: { OR: [{ telefono: whatsapp! }, { whatsapp: whatsapp! }] }, select: { id: true } })
-    ?? await db.campoProspecto.findFirst({ where: { whatsapp: whatsapp!, estado: { not: "rechazado" }, archivado_at: null }, select: { id: true } });
+  const curpHash = curp?.valido ? hashIdentificador("curp", curp.valor) : null;
+  const repetido = await db.persona.findFirst({ where: { OR: [{ telefono: whatsapp! }, { whatsapp: whatsapp! }, ...(curpHash ? [{ curp_hash: curpHash }] : [])] }, select: { id: true } })
+    ?? await db.campoProspecto.findFirst({ where: { OR: [{ whatsapp: whatsapp! }, ...(curpHash ? [{ curp_hash: curpHash }] : [])], estado: { not: "rechazado" }, archivado_at: null }, select: { id: true } });
   if (repetido) return { ok: true };
 
   const hoy = hoyCDMX();
@@ -51,6 +57,7 @@ export async function registrarDesdeQr(codigo: string, _p: EstadoRegistro, form:
   const nuevo = await db.campoProspecto.create({ select: { id: true }, data: {
     gerente_id: gerente.id, nombre, whatsapp: whatsapp!, municipio, lugar: jornada?.lugar ?? null, tipo_servicio: valido?.clave ?? null,
     origen: "formulario", privacidad_aceptada_at: new Date(), privacidad_version: PRIVACIDAD_VERSION ?? null, ip_hash: ipHash,
+    ...(curp?.valido ? { curp_cifrada: cifrar(curp.valor), curp_hash: curpHash, curp_parcial: curpParcial(curp.valor) } : {}),
   } });
 
   // Aviso al analista (y al Director) para que lo llame pronto.

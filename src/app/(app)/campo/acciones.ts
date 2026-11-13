@@ -87,7 +87,7 @@ export async function verificarCampo(id: string, _p: Resultado, form: FormData):
   if (!servicio) return { errores: { tipo_servicio: "Elige el servicio" } };
   if (socioId && !UUID.test(socioId)) return { errores: { socio_id: "Asesor no válido" } };
   const previo = await conUsuario(s.claims, async (tx) => ({
-    p: await tx.campoProspecto.findUnique({ where: { id }, select: { estado: true, nombre: true, whatsapp: true, municipio: true, fecha_baja: true, fecha_registro: true, gerente_id: true } }),
+    p: await tx.campoProspecto.findUnique({ where: { id }, select: { estado: true, nombre: true, whatsapp: true, municipio: true, fecha_baja: true, fecha_registro: true, gerente_id: true, curp_cifrada: true, curp_hash: true, curp_parcial: true } }),
     servicio: await tx.tipoServicio.findFirst({ where: { clave: servicio, activo: true }, select: { clave: true, embudo: true } }),
     cuenta: socioId ? await tx.usuario.findFirst({ where: { socio_id: socioId, activo: true, archivado_at: null }, select: { id: true, nombre: true } }) : null,
   }), s.ip);
@@ -96,15 +96,18 @@ export async function verificarCampo(id: string, _p: Resultado, form: FormData):
   if (socioId && previo.servicio.embudo === "pension" && previo.cuenta && (await permisoDeOtro(s, previo.cuenta.id, "prospecto.pension.recibir")) === false) {
     return { errores: { socio_id: `${previo.cuenta.nombre} todavía no tiene la certificación P1 para recibir casos de pensión` } };
   }
-  const tarifa = await tarifasCampo(hoyCDMX(previo.p.fecha_registro));
+  // fecha_registro es DATE (medianoche UTC): se lee tal cual, sin pasarla a hora de México (eso la recorría un día).
+  const tarifa = await tarifasCampo(previo.p.fecha_registro.toISOString().slice(0, 10));
   const p = previo.p;
   const r = await conUsuario(s.claims, async (tx) => {
-    const [dup] = await tx.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM app.buscar_duplicados(${p.whatsapp}, NULL, NULL)`;
+    const [dup] = await tx.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM app.buscar_duplicados(${p.whatsapp}, ${p.curp_hash}, NULL)`;
     if (dup?.n) return "repetido";
     const [nombre, ...resto] = p.nombre.split(/\s+/);
     const persona = await tx.persona.create({ select: { id: true }, data: {
       nombre, apellido_paterno: resto[0] ?? null, apellido_materno: resto.slice(1).join(" ") || null,
       telefono: p.whatsapp, whatsapp: p.whatsapp, municipio: p.municipio, origen: "campo", owner_id: s.usuario.id,
+      // La CURP que dejó en el formulario pasa cifrada tal cual (no se descifra aquí).
+      ...(p.curp_hash ? { curp_cifrada: p.curp_cifrada, curp_hash: p.curp_hash, curp_parcial: p.curp_parcial } : {}),
     } });
     const caso = await tx.caso.create({ select: { id: true }, data: {
       persona_id: persona.id, tipo_servicio: servicio, owner_id: s.usuario.id, socio_id: socioId,
@@ -119,7 +122,7 @@ export async function verificarCampo(id: string, _p: Resultado, form: FormData):
     } });
     return caso.id;
   }, s.ip);
-  if (r === "repetido") return { error: "Ese WhatsApp ya es de un cliente: recházalo como «Repetido»." };
+  if (r === "repetido") return { error: "Ese WhatsApp o esa CURP ya son de un cliente: recházalo como «Repetido»." };
   refrescar();
   revalidatePath("/prospectos");
   return { ok: true, mensaje: "Verificado: ya es prospecto en el sistema." };

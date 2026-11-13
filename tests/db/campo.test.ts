@@ -106,4 +106,10 @@ describe("formulario público del gerente de campo (QR)", () => {
     expect(ok.estado).toBe("pendiente");
     await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ('Falso', $1, 'Cuautla', 'formulario', now())", [tel()])).rejects.toThrow(/permission denied/);
   });
+  it("la CURP del formulario va completa (cifrada + hash + parcial) o no va; el gerente no puede escribirla", async () => {
+    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at, curp_hash) VALUES ($1, 'Media', $2, 'Cuautla', 'formulario', now(), 'abc')", [G1, tel()])).rejects.toThrow(/curp/);
+    const [r] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at, curp_cifrada, curp_hash, curp_parcial) VALUES ($1, 'Completa', $2, 'Cuautla', 'formulario', now(), '\\x00', 'h1', 'PELJ••••06') RETURNING curp_parcial", [G1, tel()])).rows;
+    expect(r.curp_parcial).toBe("PELJ••••06");
+    await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, curp_hash) VALUES ('X', $1, 'Cuautla', 'h2')", [tel()])).rejects.toThrow(/permission denied/);
+  });
 });

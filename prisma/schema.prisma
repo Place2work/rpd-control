@@ -1465,6 +1465,9 @@ model CampoProspecto {
   privacidad_aceptada_at DateTime? @db.Timestamptz(6)
   privacidad_version     String?
   ip_hash                String?
+  curp_cifrada           Bytes?
+  curp_hash              String?
+  curp_parcial           String?
   created_at             DateTime  @default(dbgenerated("now()")) @db.Timestamptz(6)
   archivado_at           DateTime? @db.Timestamptz(6)
 

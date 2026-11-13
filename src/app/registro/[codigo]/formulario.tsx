@@ -41,6 +41,12 @@ export function FormularioRegistro({ codigo, sello, promotor, municipio, servici
       </div>
       {campo("nombre", "Tu nombre completo", { autoComplete: "name", placeholder: "Juan Pérez López", required: true })}
       {campo("whatsapp", "Tu WhatsApp (10 dígitos)", { inputMode: "tel", autoComplete: "tel", placeholder: "55 1234 5678", required: true })}
+      <div className="grid gap-1.5">
+        <label htmlFor="curp" className="text-sm font-medium text-ink">Tu CURP (opcional)</label>
+        <Input id="curp" name="curp" aria-invalid={Boolean(err.curp)} autoComplete="off" autoCapitalize="characters" maxLength={18} placeholder="PELJ800101HMCRPN09" className="uppercase" />
+        {err.curp ? <p className="text-xs text-critico">{err.curp}</p>
+          : <p className="text-xs text-ink-muted">Nos ayuda a revisar tu caso más rápido. ¿No la sabes? <a href="https://www.gob.mx/curp/" target="_blank" rel="noopener noreferrer" className="text-brand underline">Consúltala aquí</a>.</p>}
+      </div>
       {campo("municipio", "Tu municipio", { defaultValue: municipio, placeholder: "Jiutepec", required: true })}
       <div className="grid gap-1.5">
         <label htmlFor="tipo_servicio" className="text-sm font-medium text-ink">¿Qué te interesa? (opcional)</label>
@@ -61,7 +67,7 @@ export function FormularioRegistro({ codigo, sello, promotor, municipio, servici
       {err.acepto && <p className="text-xs text-critico">{err.acepto}</p>}
       {estado.error && <p role="alert" className="rounded-[var(--radius-boton)] bg-critico-tint p-3 text-sm text-critico">{estado.error}</p>}
       <Button type="submit" disabled={enviando} className="h-12 text-base">{enviando ? "Enviando…" : "Quiero que me contacten"}</Button>
-      <p className="text-xs text-ink-muted">No te pedimos NSS, CURP ni contraseñas.</p>
+      <p className="text-xs text-ink-muted">Tus datos viajan y se guardan protegidos. Nunca te pediremos contraseñas.</p>
     </form>
   );
 }
