@@ -1,0 +1,9 @@
+El retiro por desempleo tiene un costo real: se descuentan semanas cotizadas, según el artículo ciento noventa y ocho de la Ley del Seguro Social. Por eso el monto siempre va junto con las semanas.
+Tomemos un cliente con saldo de cien mil pesos y cuatrocientas semanas cotizadas, que retira quince mil pesos.
+Paso uno: el cociente. Saldo entre semanas: cien mil entre cuatrocientas son doscientos cincuenta pesos por semana.
+Paso dos: las semanas perdidas. Monto retirado entre el cociente: quince mil entre doscientos cincuenta son sesenta semanas. Es el quince por ciento de su saldo.
+Paso tres: las semanas que le quedan. Cuatrocientas menos sesenta: trescientas cuarenta semanas.
+Esas semanas se pueden recuperar reintegrando el dinero, de forma proporcional. Las reglas las emite la CONSAR: no expliques el procedimiento, solo que existe.
+No confundas dos cosas: las semanas que se descuentan por el retiro, del artículo ciento noventa y ocho, son distintas de las semanas viejas que se reconocen al volver a cotizar, del artículo ciento cincuenta y uno.
+Lo que dices: puedes retirar hasta quince mil pesos, estimado. A cambio se descuentan sesenta de tus cuatrocientas semanas; te quedarías con trescientas cuarenta. Esas semanas se pueden recuperar si después reintegras el dinero. Nuestro honorario sería de cuatro mil quinientos pesos, con IVA incluido.
+Lo que nunca dices: no pierdes nada, las semanas no importan, o el monto sin las semanas.

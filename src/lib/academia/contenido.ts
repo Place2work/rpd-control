@@ -291,6 +291,11 @@ export const MODULOS: Modulo[] = [
    "HONORARIO_RETIRO_PCT"
   ],
   "fuentes": [],
+  "video": {
+   "archivo": "R1-03.mp4",
+   "duracion_seg": 110,
+   "titulo": "Cuántas semanas cuesta un retiro, paso a paso"
+  },
   "contenido": "**La fórmula, en este orden:**\n\n```\ncociente          = saldo RCV ÷ semanas cotizadas\nsemanas perdidas  = monto retirado ÷ cociente\nsemanas después   = semanas cotizadas − semanas perdidas\n```\n\nEjemplo: saldo $100,000, 400 semanas, retira $15,000 → cociente $250 → pierde **60 semanas**\n(15% del saldo) → le quedan 340.\n\n- Las semanas **se pueden recuperar** reintegrando el dinero (proporcional). Las reglas de reintegro\n  las emite CONSAR — **pendiente de fuente**: no expliques el procedimiento, solo que existe.\n- No confundas dos cosas: las semanas que se **descuentan por el retiro** (art. 198) son distintas\n  de las semanas viejas que **se reconocen al volver a cotizar** (art. 151).\n\n**Lo que dices:** *\"Puedes retirar hasta $15,000, estimado. A cambio se descuentan 60 de tus 400\nsemanas; te quedarías con 340. Esas semanas se pueden recuperar si después reintegras el dinero.\nNuestro honorario sería $4,500 con IVA incluido.\"*\n\n**Lo que nunca dices:** *\"No pierdes nada\"*, *\"las semanas no importan\"*, o el monto sin las\nsemanas.\n"
  },
  {
