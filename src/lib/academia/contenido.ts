@@ -530,6 +530,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "P2-01.mp4",
+   "duracion_seg": 99,
+   "titulo": "Préstamos, negativas y correcciones"
+  },
   "contenido": "**Descuentos por préstamos (Transitorio Vigésimo Noveno LSS):** el total de descuentos no puede\npasar de **30%** de la pensión, no puede dejarla debajo del **promedio de las pensiones garantizadas**\na 1 salario mínimo y 60 años, y el plazo no puede pasar de **60 meses**. Un pensionado que recibe\nunos cientos de pesos por préstamos está probablemente debajo del piso legal → reclamación al IMSS y\nqueja en CONDUSEF (lo arma el Director).\n\n**Negativa de pensión:**\n\n- **Recurso de inconformidad:** 15 días hábiles desde la notificación (art. 294 LSS). Ese plazo no se\n  perdona → alerta inmediata al Director.\n- **Juicio:** Tribunal Laboral Federal del lugar de la clínica del asegurado. Lo firma y lleva el\n  **abogado**; nosotros integramos expediente (art. 899-C LFT), calculamos y canalizamos.\n- Siempre conseguir el **acuse sellado** de la solicitud (sirve para impugnar el silencio del IMSS).\n\n**Corrección de pensiones mal calculadas — honestidad primero:** antes de ofrecer un \"retroactivo\",\nel Director revisa la hoja de cálculo de la resolución. Hay casos donde el IMSS calculó bien y la\npensión es baja porque subió por inflación y no por salario mínimo (criterio de la SCJN de 2024).\n**No se presenta como probable lo que solo se gana en juicio con riesgo alto.**\n"
  },
  {
@@ -541,6 +546,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "P2-02.mp4",
+   "duracion_seg": 103,
+   "titulo": "Las 11 preguntas y la presentación del plan"
+  },
   "contenido": "**Preguntas obligatorias en todo diagnóstico de pensión** (checklist del sistema):\n\n1. Régimen, semanas totales (cotizadas − descontadas + reintegradas), fecha de primera alta.\n2. Fecha de nacimiento → fechas de 60 y 65.\n3. Fecha de última baja → conservación de derechos, plazo de M40 (5 años), ventana M10 (12 meses).\n4. ¿Trabaja hoy? ¿Formal, independiente, gobierno?\n5. Estado de salud (para comparar invalidez — sin prometer dictamen).\n6. **Estado civil: casado o unión libre.** ¿Hijos en común? Edad de él al casarse.\n7. **¿Designó beneficiarios en la Afore?**\n8. ¿Tuvo crédito Infonavit? ¿Qué firmó al \"traspasar\" la casa? (una cesión ante notario no libera el\n   crédito)\n9. ¿Préstamos descontados de la pensión? (si ya es pensionado)\n10. ¿Retiros previos de la Afore? ¿Aportaciones voluntarias?\n11. ¿Cotizó alguna vez al ISSSTE?\n\n**Presentación del plan (junto con el Director):** comparativo de rutas (cesantía, invalidez, vejez,\nM40, M10/PTI), lo que cuesta cada una, lo que deja a la familia y las fechas límite. Siempre se dice\n**\"estimado\"**.\n"
  }
 ];
