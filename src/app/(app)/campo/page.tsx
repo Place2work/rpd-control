@@ -1,5 +1,7 @@
 import type { Metadata } from "next";
-import { CalendarCheck, Clock, Coins, MapPin } from "lucide-react";
+import { CalendarCheck, Clock, Coins, Download, MapPin, QrCode } from "lucide-react";
+import QRCode from "qrcode";
+import { headers } from "next/headers";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
@@ -7,6 +9,7 @@ import { exigirRol } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { mxn } from "@/lib/formato";
 import { liquidacionesDe, tarifasCampo } from "@/lib/campo/datos";
+import { ligaFormulario } from "@/lib/campo/formulario";
 import { resumenGerente } from "@/lib/reglas/campo";
 import { hoyCDMX } from "@/lib/tiempo";
 import { CampoTexto, Seleccion } from "../casos/[id]/campos";
@@ -31,19 +34,24 @@ export default async function Campo() {
   const tarifa = await tarifasCampo(hoy);
   const d = await conUsuario(s.claims, async (tx) => ({
     prospectos: await tx.campoProspecto.findMany({ where: { gerente_id: s.usuario.id, archivado_at: null }, orderBy: { created_at: "desc" },
-      select: { id: true, nombre: true, municipio: true, estado: true, motivo_rechazo: true, monto_cent: true, pago_id: true, created_at: true } }),
+      select: { id: true, nombre: true, municipio: true, estado: true, motivo_rechazo: true, monto_cent: true, pago_id: true, created_at: true, origen: true } }),
     jornadas: await tx.campoJornada.findMany({ where: { gerente_id: s.usuario.id }, orderBy: { fecha: "desc" }, take: 30,
       select: { id: true, fecha: true, municipio: true, lugar: true, estado: true, motivo: true, monto_cent: true, pago_id: true } }),
     pagos: await tx.campoPago.findMany({ where: { gerente_id: s.usuario.id }, orderBy: { fecha_pago: "desc" }, take: 12,
       select: { id: true, semana_inicio: true, semana_fin: true, fecha_pago: true, prospectos: true, dias: true, total_cent: true } }),
     liquidaciones: await liquidacionesDe(tx, s.usuario.id, tarifa.diasParaPago),
     servicios: await tx.tipoServicio.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, select: { clave: true, nombre: true } }),
+    codigo: (await tx.usuario.findUnique({ where: { id: s.usuario.id }, select: { campo_codigo: true } }))?.campo_codigo ?? null,
   }), s.ip);
   const pagado = d.pagos.reduce((a, p) => a + Number(p.total_cent), 0);
   const r = resumenGerente(
     d.prospectos.map((p) => ({ estado: p.estado, montoCent: p.monto_cent === null ? null : Number(p.monto_cent), pagada: !!p.pago_id })),
     d.jornadas.map((j) => ({ estado: j.estado, montoCent: j.monto_cent === null ? null : Number(j.monto_cent), pagada: !!j.pago_id })),
     d.liquidaciones, tarifa.prospectoCent, pagado, hoy);
+  // Tu QR: la persona lo escanea y se registra sola; el registro llega a tu nombre.
+  const liga = d.codigo ? ligaFormulario(d.codigo, (await headers()).get("host")) : null;
+  const qrSvg = liga ? await QRCode.toString(liga, { type: "svg", margin: 1, color: { dark: "#004AAD" } }) : null;
+  const qrPng = liga ? await QRCode.toDataURL(liga, { width: 1200, margin: 2, color: { dark: "#004AAD" } }) : null;
   const hoyRegistrado = d.jornadas.find((j) => j.fecha.toISOString().slice(0, 10) === hoy && j.estado !== "rechazada");
   const deHoy = d.prospectos.filter((p) => hoyCDMX(p.created_at) === hoy).length;
 
@@ -101,6 +109,23 @@ export default async function Campo() {
           </Card>
         </div>
 
+        {liga && qrSvg && qrPng && (
+          <Card>
+            <CardHeader><CardTitle className="flex items-center gap-2"><QrCode className="size-5 text-brand" aria-hidden /> Tu QR para registrarse</CardTitle></CardHeader>
+            <CardContent className="grid gap-4 text-sm sm:grid-cols-[200px_1fr]">
+              <div className="mx-auto w-48 rounded-[var(--radius-boton)] border border-borde bg-white p-2" dangerouslySetInnerHTML={{ __html: qrSvg }} />
+              <div className="grid content-start gap-3">
+                <p className="text-ink">Ponlo en tus volantes y en el banner. Quien lo escanea deja su nombre, WhatsApp y municipio desde su celular, y el registro llega <b>a tu nombre</b> para que el analista lo verifique.</p>
+                <p className="break-all rounded-[var(--radius-boton)] bg-slate-50 p-2 font-mono text-xs text-ink">{liga}</p>
+                <div className="flex flex-wrap gap-2">
+                  <a href={qrPng} download="mi-qr-retiro-por-desempleo.png" className="inline-flex h-10 items-center gap-1.5 rounded-[var(--radius-boton)] bg-brand px-3 text-sm font-medium text-white"><Download className="size-4" aria-hidden /> Descargar QR para imprimir</a>
+                  <a href={`https://wa.me/?text=${encodeURIComponent(`Regístrate aquí y un asesor te contacta por WhatsApp: ${liga}`)}`} target="_blank" rel="noopener noreferrer" className="inline-flex h-10 items-center rounded-[var(--radius-boton)] border border-brand px-3 text-sm font-medium text-brand">Compartir por WhatsApp</a>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        )}
+
         <Card>
           <CardHeader><CardTitle>Mis prospectos ({d.prospectos.length})</CardTitle></CardHeader>
           <CardContent className="grid gap-2 text-sm">
@@ -108,7 +133,7 @@ export default async function Campo() {
               <ul className="divide-y divide-borde">
                 {d.prospectos.slice(0, 100).map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
-                    <span><span className="font-medium text-ink">{p.nombre}</span> <span className="text-xs text-ink-muted">· {p.municipio} · {corta(p.created_at)}</span>
+                    <span><span className="font-medium text-ink">{p.nombre}</span> <span className="text-xs text-ink-muted">· {p.municipio} · {corta(p.created_at)}{p.origen === "formulario" ? " · por tu QR" : ""}</span>
                       {p.estado === "rechazado" && p.motivo_rechazo && <span className="block text-xs text-critico">{p.motivo_rechazo}</span>}</span>
                     <span className="flex items-center gap-2">{p.monto_cent !== null && <span className="cifra text-xs text-ink-muted">{pesos(Number(p.monto_cent))}{p.pago_id ? " · pagado" : ""}</span>}
                       <Badge tono={ESTADO[p.estado].tono}>{ESTADO[p.estado].texto}</Badge></span>

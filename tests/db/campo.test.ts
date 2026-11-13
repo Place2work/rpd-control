@@ -86,3 +86,24 @@ describe("días trabajados y pagos", () => {
     expect(await como(A, "SELECT id FROM campo_pagos WHERE id = $1", [pago])).toHaveLength(0);
   });
 });
+
+describe("formulario público del gerente de campo (QR)", () => {
+  it("cada gerente de campo tiene su código; se asigna al volverse gerente y se conserva", async () => {
+    const [g] = (await db.query("SELECT campo_codigo FROM usuarios WHERE id = $1", [G1])).rows;
+    expect(g.campo_codigo).toMatch(/^[a-z0-9]{8}$/);
+    const [a] = (await db.query("SELECT campo_codigo FROM usuarios WHERE id = $1", [A])).rows;
+    expect(a.campo_codigo).toBeNull();
+    const nuevo = randomUUID();
+    await db.query("INSERT INTO auth.users (id, email) VALUES ($1, $2)", [nuevo, `rol-${nuevo.slice(0, 6)}@campo.mx`]);
+    await db.query("INSERT INTO usuarios (id, nombre, email, rol, updated_at) VALUES ($1, 'Cambio', $2, 'socio', now())", [nuevo, `rol-${nuevo.slice(0, 6)}@campo.mx`]);
+    await db.query("UPDATE usuarios SET rol = 'campo' WHERE id = $1", [nuevo]);
+    const [c] = (await db.query("SELECT campo_codigo FROM usuarios WHERE id = $1", [nuevo])).rows;
+    expect(c.campo_codigo).toMatch(/^[a-z0-9]{8}$/);
+  });
+  it("un registro por formulario exige el aviso de privacidad; el gerente no puede hacerse pasar por formulario", async () => {
+    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen) VALUES ($1, 'Sin aviso', $2, 'Cuautla', 'formulario')", [G1, tel()])).rejects.toThrow(/privacidad/);
+    const [ok] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Con aviso', $2, 'Cuautla', 'formulario', now()) RETURNING estado", [G1, tel()])).rows;
+    expect(ok.estado).toBe("pendiente");
+    await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ('Falso', $1, 'Cuautla', 'formulario', now())", [tel()])).rejects.toThrow(/permission denied/);
+  });
+});

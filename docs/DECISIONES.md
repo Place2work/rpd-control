@@ -727,3 +727,21 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - **«Ver como»** (antes solo para asesores de pensiones) ahora sirve para todos los roles menos Director: asesor de
   pensiones, analista, vendedor y gerente de campo. Sigue siendo de solo lectura, con bitácora y aviso en la barra
   amarilla, que ahora muestra el rol de la persona.
+
+## 13-nov-2026 · Formulario con QR del gerente de campo
+
+- Cada gerente de campo tiene un código (`usuarios.campo_codigo`, 8 caracteres). Se asigna con un disparador al darlo
+  de alta o al cambiarle el rol a gerente, y se conserva si cambia de rol. Su pantalla muestra su QR, su liga
+  `/registro/<código>`, el botón para descargar el QR en PNG para imprimirlo en volantes y banner, y el botón para
+  compartir la liga por WhatsApp.
+- `/registro/<código>` es público (sin sesión). La persona deja nombre, WhatsApp, municipio (viene lleno con el
+  municipio de la foto del día del gerente) y, si quiere, el servicio; tiene que aceptar el aviso de privacidad. Se
+  guarda como prospecto de campo **pendiente** a nombre de ese gerente (`origen = 'formulario'`, con fecha y versión
+  del aviso). Llega un aviso `CAMPO_QR_NUEVO` al analista y al Director. Se le paga al gerente igual que lo que
+  captura él: solo si el analista lo verifica.
+- Protección: campo trampa y sello de tiempo firmado (descarta envíos en menos de 3 segundos o con más de 2 horas),
+  `CAMPO_FORMULARIO_MAX_HORA` (5) registros por hora por teléfono (IP en hash) y la base exige el aviso de privacidad
+  en todo registro por formulario. Si el WhatsApp ya existe, se le confirma igual pero no se duplica ni se le dice
+  que ya estaba.
+- Solo el sistema crea registros con origen formulario: el gerente no tiene permiso en esa columna.
+- La tarifa por prospecto quedó en $20 desde el 13-nov (la guardó el Director en «Tarifas»).

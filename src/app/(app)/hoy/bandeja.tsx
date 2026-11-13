@@ -65,6 +65,7 @@ function Fila({ a }: { a: AlertaVista }) {
           <p className="text-sm text-ink"><span className={cn("font-medium", s.texto)}>{s.etiqueta}: </span>{a.mensaje}</p>
           <div className="mt-1 flex flex-wrap gap-0.5">
             {a.casoId && <Link href={`/casos/${a.casoId}`} className={cn(boton, "text-brand")}>Abrir caso</Link>}
+            {!a.casoId && a.regla.startsWith("CAMPO_") && <Link href="/campo/revisar" className={cn(boton, "text-brand")}>Abrir prospectos de campo</Link>}
             {!a.casoId && a.regla.startsWith("CAP_") && <Link href={a.regla === "CAP_PREGUNTAS_REVISAR" ? "/academia/contenido" : "/academia"} className={cn(boton, "text-brand")}>Abrir Academia</Link>}
             {a.whatsapp && (
               <a href={a.whatsapp} target="_blank" rel="noopener noreferrer" className={cn(boton, "text-brand")}>

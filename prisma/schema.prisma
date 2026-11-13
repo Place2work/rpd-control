@@ -307,6 +307,7 @@ model Usuario {
   cap_entrevistas  CapEntrevista[]          @relation("CapEntrevistas")
   cap_incidencias  CapIncidencia[]          @relation("CapIncidencias")
   campo_pagos      CampoPago[]              @relation("CampoPagos")
+  campo_codigo     String?                  @unique // QR y liga del formulario público del gerente de campo
   campo_prospectos CampoProspecto[]         @relation("CampoProspectos")
   campo_jornadas   CampoJornada[]           @relation("CampoJornadas")
   cap_solicitudes  CapSolicitud[]           @relation("CapSolicitudes")
@@ -1441,27 +1442,31 @@ model CampoPago {
 }
 
 model CampoProspecto {
-  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
-  gerente_id        String    @default(dbgenerated("auth.uid()")) @db.Uuid
-  nombre            String
-  whatsapp          String
-  municipio         String
-  lugar             String?
-  tipo_servicio     String?
-  fecha_baja        DateTime? @db.Date
-  notas             String?
-  fecha_registro    DateTime  @default(dbgenerated("((now() AT TIME ZONE 'America/Mexico_City'::text))::date")) @db.Date
-  estado            String    @default(dbgenerated("'pendiente'::text")) // pendiente | verificado | rechazado
-  motivo_rechazo    String?
-  intentos          Int       @default(dbgenerated("0"))
-  ultimo_intento_at DateTime? @db.Timestamptz(6)
-  verificado_por    String?   @db.Uuid
-  verificado_at     DateTime? @db.Timestamptz(6)
-  monto_cent        BigInt?
-  caso_id           String?   @db.Uuid
-  pago_id           String?   @db.Uuid
-  created_at        DateTime  @default(dbgenerated("now()")) @db.Timestamptz(6)
-  archivado_at      DateTime? @db.Timestamptz(6)
+  id                     String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gerente_id             String    @default(dbgenerated("auth.uid()")) @db.Uuid
+  nombre                 String
+  whatsapp               String
+  municipio              String
+  lugar                  String?
+  tipo_servicio          String?
+  fecha_baja             DateTime? @db.Date
+  notas                  String?
+  fecha_registro         DateTime  @default(dbgenerated("((now() AT TIME ZONE 'America/Mexico_City'::text))::date")) @db.Date
+  estado                 String    @default(dbgenerated("'pendiente'::text")) // pendiente | verificado | rechazado
+  motivo_rechazo         String?
+  intentos               Int       @default(dbgenerated("0"))
+  ultimo_intento_at      DateTime? @db.Timestamptz(6)
+  verificado_por         String?   @db.Uuid
+  verificado_at          DateTime? @db.Timestamptz(6)
+  monto_cent             BigInt?
+  caso_id                String?   @db.Uuid
+  pago_id                String?   @db.Uuid
+  origen                 String    @default(dbgenerated("'gerente'::text")) // gerente | formulario
+  privacidad_aceptada_at DateTime? @db.Timestamptz(6)
+  privacidad_version     String?
+  ip_hash                String?
+  created_at             DateTime  @default(dbgenerated("now()")) @db.Timestamptz(6)
+  archivado_at           DateTime? @db.Timestamptz(6)
 
   gerente Usuario    @relation("CampoProspectos", fields: [gerente_id], references: [id])
   caso    Caso?      @relation("CampoProspectoCaso", fields: [caso_id], references: [id])
