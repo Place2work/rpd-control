@@ -27,10 +27,11 @@ export async function registrarDesdeQr(codigo: string, _p: EstadoRegistro, form:
   if (nombre.length < 2) errores.nombre = "Escribe tu nombre";
   if (!whatsapp) errores.whatsapp = "Escribe tu WhatsApp a 10 dígitos";
   if (municipio.length < 2) errores.municipio = "Escribe tu municipio";
-  // CURP opcional; si la escribe, tiene que ser válida (formato y dígito verificador).
+  // CURP obligatoria (decisión 13-nov-2026) y válida: formato y dígito verificador.
   const curpTexto = txt(form, "curp", 30);
   const curp = curpTexto ? validarCurp(curpTexto) : null;
-  if (curp && !curp.valido) errores.curp = `${curp.error}. Revísala o déjala en blanco`;
+  if (!curp) errores.curp = "Escribe tu CURP (18 caracteres)";
+  else if (!curp.valido) errores.curp = `${curp.error}. Revísala`;
   if (form.get("acepto") !== "si") errores.acepto = "Para registrarte necesitas aceptar el aviso de privacidad";
   if (Object.keys(errores).length) return { errores };
 

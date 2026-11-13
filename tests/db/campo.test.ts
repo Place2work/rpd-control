@@ -101,8 +101,8 @@ describe("formulario público del gerente de campo (QR)", () => {
     expect(c.campo_codigo).toMatch(/^[a-z0-9]{8}$/);
   });
   it("un registro por formulario exige el aviso de privacidad; el gerente no puede hacerse pasar por formulario", async () => {
-    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen) VALUES ($1, 'Sin aviso', $2, 'Cuautla', 'formulario')", [G1, tel()])).rejects.toThrow(/privacidad/);
-    const [ok] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Con aviso', $2, 'Cuautla', 'formulario', now()) RETURNING estado", [G1, tel()])).rows;
+    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, curp_cifrada, curp_hash, curp_parcial) VALUES ($1, 'Sin aviso', $2, 'Cuautla', 'formulario', '\\\\x00', 'h9', 'P••')", [G1, tel()])).rejects.toThrow(/privacidad/);
+    const [ok] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at, curp_cifrada, curp_hash, curp_parcial) VALUES ($1, 'Con aviso', $2, 'Cuautla', 'formulario', now(), '\\\\x00', 'h0', 'P••') RETURNING estado", [G1, tel()])).rows;
     expect(ok.estado).toBe("pendiente");
     await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ('Falso', $1, 'Cuautla', 'formulario', now())", [tel()])).rejects.toThrow(/permission denied/);
   });
@@ -111,5 +111,28 @@ describe("formulario público del gerente de campo (QR)", () => {
     const [r] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at, curp_cifrada, curp_hash, curp_parcial) VALUES ($1, 'Completa', $2, 'Cuautla', 'formulario', now(), '\\x00', 'h1', 'PELJ••••06') RETURNING curp_parcial", [G1, tel()])).rows;
     expect(r.curp_parcial).toBe("PELJ••••06");
     await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, curp_hash) VALUES ('X', $1, 'Cuautla', 'h2')", [tel()])).rejects.toThrow(/permission denied/);
+  });
+});
+
+describe("fecha de asignación al asesor y CURP obligatoria (13-nov-2026)", () => {
+  it("la base pone la fecha al asignar asesor, la conserva en otros cambios y la renueva al cambiar de asesor", async () => {
+    const [s1, s2, per, caso] = [randomUUID(), randomUUID(), randomUUID(), randomUUID()];
+    await db.query("INSERT INTO socios (id, nombre, updated_at) VALUES ($1, 'Asig 1', now()), ($2, 'Asig 2', now())", [s1, s2]);
+    await db.query("INSERT INTO personas (id, nombre, telefono, origen, owner_id, updated_at) VALUES ($1, 'Cliente Asig', $2, 'campo', $3, now())", [per, tel(), D]);
+    await db.query("INSERT INTO casos (id, persona_id, tipo_servicio, owner_id, asignado_a, updated_at) VALUES ($1, $2, 'RETIRO_DESEMPLEO', $3, $3, now())", [caso, per, D]);
+    const fecha = async () => (await db.query("SELECT socio_asignado_at AS f FROM casos WHERE id = $1", [caso])).rows[0].f as Date | null;
+    expect(await fecha()).toBeNull();
+    await db.query("UPDATE casos SET socio_id = $2 WHERE id = $1", [caso, s1]);
+    const primera = await fecha();
+    expect(primera).not.toBeNull();
+    await db.query("UPDATE casos SET socio_asignado_at = '2020-01-01' WHERE id = $1", [caso]);
+    expect((await fecha())!.getTime()).toBe(primera!.getTime());
+    await db.query("UPDATE casos SET socio_id = $2 WHERE id = $1", [caso, s2]);
+    expect((await fecha())!.getTime()).toBeGreaterThanOrEqual(primera!.getTime());
+    await db.query("UPDATE casos SET socio_id = NULL WHERE id = $1", [caso]);
+    expect(await fecha()).toBeNull();
+  });
+  it("lo que llega por el formulario trae CURP", async () => {
+    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Sin CURP', $2, 'Cuautla', 'formulario', now())", [G1, tel()])).rejects.toThrow(/curp/);
   });
 });

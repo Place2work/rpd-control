@@ -756,3 +756,12 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - **Panel financiero** en Pagos de campo, total y por gerente: por pagar (verificado sin pagar), próximo pago, en
   revisión (estimado con la tarifa vigente; los días, con el pago base), proyección total, prospectos de la semana,
   del mes y totales, verificados, tasa de verificación, pagado del mes y acumulado, y costo por prospecto verificado.
+
+## 13-nov-2026 · CURP obligatoria en el formulario con QR y fecha de asignación automática
+
+- **CURP obligatoria** en el formulario con QR («es el dato más importante»): sin CURP válida no se puede enviar.
+  La base lo exige en todo registro nuevo del formulario; los anteriores quedan como estaban.
+- **Fecha de asignación** (`casos.socio_asignado_at`): la pone la base con un disparador cada vez que el caso recibe
+  asesor de pensiones o cambia de asesor, venga de donde venga la asignación. Se borra si el caso se queda sin asesor.
+  Se ve en el resumen del caso («Asignado al asesor el …») y en los recientes de Prospectos de campo. A los casos que
+  ya tenían asesor se les puso su fecha de alta.

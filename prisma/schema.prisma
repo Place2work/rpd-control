@@ -498,6 +498,7 @@ model Caso {
   owner_id                   String                    @db.Uuid
   vendedor_id                String?                   @db.Uuid
   socio_id                   String?                   @db.Uuid
+  socio_asignado_at          DateTime?                 @db.Timestamptz(6) // la pone la base al asignar o cambiar de asesor
   referidor_id               String?                   @db.Uuid
   prioridad                  Prioridad                 @default(normal)
   fecha_primer_contacto      DateTime?                 @db.Date

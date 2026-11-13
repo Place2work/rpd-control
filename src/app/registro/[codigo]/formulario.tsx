@@ -42,10 +42,10 @@ export function FormularioRegistro({ codigo, sello, promotor, municipio, servici
       {campo("nombre", "Tu nombre completo", { autoComplete: "name", placeholder: "Juan Pérez López", required: true })}
       {campo("whatsapp", "Tu WhatsApp (10 dígitos)", { inputMode: "tel", autoComplete: "tel", placeholder: "55 1234 5678", required: true })}
       <div className="grid gap-1.5">
-        <label htmlFor="curp" className="text-sm font-medium text-ink">Tu CURP (opcional)</label>
-        <Input id="curp" name="curp" aria-invalid={Boolean(err.curp)} autoComplete="off" autoCapitalize="characters" maxLength={18} placeholder="PELJ800101HMCRPN09" className="uppercase" />
+        <label htmlFor="curp" className="text-sm font-medium text-ink">Tu CURP</label>
+        <Input id="curp" name="curp" aria-invalid={Boolean(err.curp)} autoComplete="off" autoCapitalize="characters" maxLength={18} minLength={18} required placeholder="PELJ800101HMCRPN09" className="uppercase" />
         {err.curp ? <p className="text-xs text-critico">{err.curp}</p>
-          : <p className="text-xs text-ink-muted">Nos ayuda a revisar tu caso más rápido. ¿No la sabes? <a href="https://www.gob.mx/curp/" target="_blank" rel="noopener noreferrer" className="text-brand underline">Consúltala aquí</a>.</p>}
+          : <p className="text-xs text-ink-muted">La necesitamos para revisar tu caso. ¿No la sabes? <a href="https://www.gob.mx/curp/" target="_blank" rel="noopener noreferrer" className="text-brand underline">Consúltala aquí</a>.</p>}
       </div>
       {campo("municipio", "Tu municipio", { defaultValue: municipio, placeholder: "Jiutepec", required: true })}
       <div className="grid gap-1.5">

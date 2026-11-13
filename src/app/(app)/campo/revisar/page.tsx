@@ -30,7 +30,7 @@ export default async function RevisarCampo() {
     jornadas: await tx.campoJornada.findMany({ where: { estado: "pendiente" }, orderBy: { fecha: "asc" },
       select: { id: true, fecha: true, municipio: true, lugar: true, foto_path: true, gerente: { select: { nombre: true } } } }),
     recientes: await tx.campoProspecto.findMany({ where: { estado: { not: "pendiente" } }, orderBy: { verificado_at: "desc" }, take: 15,
-      select: { id: true, nombre: true, estado: true, motivo_rechazo: true, caso_id: true, municipio: true, gerente: { select: { nombre: true } } } }),
+      select: { id: true, nombre: true, estado: true, motivo_rechazo: true, caso_id: true, municipio: true, gerente: { select: { nombre: true } }, caso: { select: { socio_asignado_at: true, socio: { select: { nombre: true } } } } } }),
     servicios: await tx.tipoServicio.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, select: { clave: true, nombre: true } }),
     socios: await tx.socio.findMany({ where: { archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true } }),
   }), s.ip);
@@ -117,7 +117,7 @@ export default async function RevisarCampo() {
                 {d.recientes.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                     <span><span className="font-medium text-ink">{p.nombre}</span> <span className="text-xs text-ink-muted">· {p.municipio} · {p.gerente.nombre}</span></span>
-                    {p.estado === "verificado" && p.caso_id ? <Link href={`/casos/${p.caso_id}`} className="text-xs text-brand underline">Verificado · abrir caso</Link>
+                    {p.estado === "verificado" && p.caso_id ? <span className="text-xs text-ink-muted">{p.caso?.socio && p.caso.socio_asignado_at ? `Asignado a ${p.caso.socio.nombre} el ${cuando(p.caso.socio_asignado_at)} · ` : "Sin asesor todavía · "}<Link href={`/casos/${p.caso_id}`} className="text-brand underline">abrir caso</Link></span>
                       : <span className="text-xs text-critico">No cuenta · {p.motivo_rechazo}</span>}
                   </li>
                 ))}

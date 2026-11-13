@@ -18,6 +18,7 @@ import { FormularioAccion } from "../formulario-accion";
 import { ProximoRetiro } from "./dinero";
 
 const ETIQUETA_ORIGEN = Object.fromEntries(ORIGENES) as Record<string, string>;
+const fechaHora = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "long", timeStyle: "short", timeZone: "America/Mexico_City" }).format(d);
 const largo = (iso: string | null) => (iso ? formatoFecha(iso, { dateStyle: "long" }) : "—");
 
 export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesion: Sesion }) {
@@ -130,6 +131,7 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
             <Dato titulo="Límite de resolución de la Afore" valor={largo(isoDe(caso.fecha_limite_resolucion))} />
             <Dato titulo="Origen" valor={ETIQUETA_ORIGEN[caso.persona.origen] ?? caso.persona.origen} />
             <Dato titulo="Asesor de pensiones · referidor" valor={`${caso.socio?.nombre ?? "—"} · ${caso.referidor?.nombre ?? "—"}`} />
+            {caso.socio && caso.socio_asignado_at && <Dato titulo="Asignado al asesor el" valor={fechaHora(caso.socio_asignado_at)} />}
           </dl>
           <p className="mt-4 text-xs text-ink-muted">Todas las fechas y montos son estimados hasta que se verifican con los documentos y la Afore paga.</p>
         </CardContent>
