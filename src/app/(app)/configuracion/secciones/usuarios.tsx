@@ -1,6 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import type { Sesion } from "@/lib/auth/sesion";
+import { ROLES_VER_COMO, type Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { CampoTexto, Seleccion } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
@@ -63,7 +63,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                   <div className="flex items-center gap-2">
                     <Badge tono={u.rol === "director" ? "tramite" : "prospecto"}>{ETIQUETA_ROL[u.rol]}</Badge>
                     {!u.activo && <Badge tono="critico">Sin acceso</Badge>}
-                    {u.activo && u.rol === "socio" && (
+                    {u.activo && u.id !== sesion.usuario.id && (ROLES_VER_COMO as readonly string[]).includes(u.rol) && (
                       <form action={verComo.bind(null, u.id)}>
                         <button type="submit" className="h-9 rounded-[var(--radius-boton)] border border-brand px-3 text-sm font-medium text-brand hover:bg-brand-tint">Ver como</button>
                       </form>

@@ -2,6 +2,7 @@
 // certificaciones. Corre en el servidor después de verificar la sesión, con `prismaSistema` (como el motor de
 // comisiones): las personas no escriben intentos ni certificaciones, así nadie se autoaprueba (CLAUDE.md).
 import "server-only";
+import { reconocerRepasos } from "./vigencia";
 import { prismaSistema } from "@/lib/db/prisma";
 import { calificar, compararCaso, estadoRuta, puedeIntentar, resultadoCasoRetiro, seleccionarPreguntas, venceEl, type AvanceUsuario, type EstadoRuta, type ResultadoCaso } from "@/lib/reglas/capacitacion";
 import { parametrosRetiro, parametrosVigentes } from "@/lib/parametros";
@@ -200,8 +201,14 @@ export async function terminarEvaluacion(usuarioId: string, intentoId: string, r
   if (r.aprobado && tipo === "recertificacion") { await renovarCertificacion(usuarioId, intento.objetivo as ClaveRuta, ahora); mensaje = `Certificación ${intento.objetivo} renovada.`; }
   if (r.aprobado && tipo === "actualizacion") mensaje = await aprobarActualizacion(usuarioId, intento.objetivo, ahora);
   if (r.aprobado && tipo === "quiz_modulo") {
-    const n = await prismaSistema.capRepaso.updateMany({ where: { usuario_id: usuarioId, modulo: intento.objetivo, completado_at: null, archivado_at: null, created_at: { lte: intento.inicio } }, data: { completado_at: ahora } });
-    if (n.count) mensaje = "Repaso obligatorio completado.";
+    const abiertos = await prismaSistema.capRepaso.findMany({ where: { usuario_id: usuarioId, modulo: intento.objetivo, completado_at: null, archivado_at: null, created_at: { lte: intento.inicio } }, select: { id: true } });
+    if (abiertos.length) {
+      const ids = abiertos.map((x) => x.id);
+      await prismaSistema.capRepaso.updateMany({ where: { id: { in: ids }, completado_at: null }, data: { completado_at: ahora } });
+      // Reconocimiento (decisión 13-nov-2026). Si fallara, el repaso ya quedó completado.
+      await reconocerRepasos(ids).catch((e) => console.error("[academia] reconocimiento", e));
+      mensaje = "¡Repaso completado! Te llegó un reconocimiento en tus notificaciones.";
+    }
   }
   const texto = (p: PreguntaMotor, v: number | null) => v === null ? "Sin respuesta" : p.tipo === "numerica" ? v.toLocaleString("es-MX") : p.opciones[v] ?? "—";
   return {

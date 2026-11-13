@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { alertasAcademia, estadoVigencia, evaluar, listaDias, recordatorioHoy, rellenar, repasosPorGraves, resolverMicroleccion, venceAlRecertificar } from "./actualizaciones";
+import { alertasAcademia, estadoVigencia, reconocimientoRepaso, evaluar, listaDias, recordatorioHoy, rellenar, repasosPorGraves, resolverMicroleccion, venceAlRecertificar } from "./actualizaciones";
 import microlecciones from "../../../content/academia/microlecciones.json";
 import type { Microleccion } from "../academia/tipos";
 
@@ -98,5 +98,22 @@ describe("alertas de la Academia (12.3)", () => {
     expect(r.map((a) => a.regla)).toEqual(["CAP_SIN_AVANCE", "CAP_ROLEPLAY_POR_EVALUAR", "CAP_ACTUALIZACION_PENDIENTE", "CAP_PREGUNTAS_REVISAR", "CAP_METRICA_BAJA"]);
     expect(r.find((a) => a.regla === "CAP_ACTUALIZACION_PENDIENTE")).toMatchObject({ severidad: "critica", para: { persona: "u1", directores: false } });
     expect(r.find((a) => a.regla === "CAP_METRICA_BAJA")!.clave).toBe("CAP_METRICA_BAJA:u1:2027-S06");
+  });
+  it("repaso vencido: solo avisa (una vez por semana), no suspende; dentro del plazo no avisa", () => {
+    const r = alertasAcademia({ ...vacio, repasos: [
+      { id: "r1", usuarioId: "u1", nombre: "Ana", modulo: "R1-06", limite: "2027-02-05" },
+      { id: "r2", usuarioId: "u1", nombre: "Ana", modulo: "N0-02", limite: "2027-02-20" },
+    ] }, "2027-02-10", plazos);
+    expect(r).toHaveLength(1);
+    expect(r[0]).toMatchObject({ regla: "CAP_REPASO_PENDIENTE", severidad: "aviso", para: { persona: "u1", directores: true }, clave: "CAP_REPASO_PENDIENTE:r1:2027-S06" });
+    expect(r[0].mensaje).toContain("pendiente cumplir la Academia");
+    const otraSemana = alertasAcademia({ ...vacio, repasos: [{ id: "r1", usuarioId: "u1", nombre: "Ana", modulo: "R1-06", limite: "2027-02-05" }] }, "2027-02-17", plazos);
+    expect(otraSemana[0].clave).toBe("CAP_REPASO_PENDIENTE:r1:2027-S07");
+  });
+  it("reconocimiento al completar el repaso, a tiempo o tarde", () => {
+    const x = { id: "r1", usuarioId: "u1", nombre: "Ana", modulo: "R1-06", limite: "2027-02-05" };
+    expect(reconocimientoRepaso(x, "2027-02-04")).toMatchObject({ regla: "CAP_RECONOCIMIENTO", severidad: "info", clave: "CAP_RECONOCIMIENTO:r1", para: { persona: "u1", directores: true } });
+    expect(reconocimientoRepaso(x, "2027-02-04").mensaje).toContain("a tiempo");
+    expect(reconocimientoRepaso(x, "2027-02-09").mensaje).not.toContain("a tiempo");
   });
 });

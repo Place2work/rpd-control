@@ -6,7 +6,7 @@ import { addDays, format, parseISO } from "date-fns";
 import { prismaSistema } from "@/lib/db/prisma";
 import { parametrosVigentes } from "@/lib/parametros";
 import { hoyCDMX } from "@/lib/tiempo";
-import { alertasAcademia, estadoVigencia, listaDias, plantillasDe, repasosPorGraves, resolverMicroleccion, type AlertaAcademia } from "@/lib/reglas/actualizaciones";
+import { alertasAcademia, estadoVigencia, listaDias, plantillasDe, reconocimientoRepaso, repasosPorGraves, resolverMicroleccion, type AlertaAcademia } from "@/lib/reglas/actualizaciones";
 import { MICROLECCIONES, PREGUNTAS } from "./contenido";
 import { desempenoDe, lectorSistema } from "./desempeno";
 import { avanceDesdeFilas, estadosDe, VIVAS } from "./motor";
@@ -100,6 +100,21 @@ export async function revisarRepasos(usuarioId: string, hoy = hoyCDMX()) {
     motivo: `${p.gravesUmbral} o más incidencias graves en ${p.gravesDias} días` })) })).count;
 }
 
+/**
+ * Repasos recién completados: llega el reconocimiento a la persona (y al Director) y se dan por atendidos los
+ * recordatorios de «pendiente cumplir la Academia» de ese repaso. Lo llama el motor al aprobar el quiz.
+ */
+export async function reconocerRepasos(ids: string[], hoy = hoyCDMX()) {
+  if (!ids.length) return 0;
+  const repasos = await db.capRepaso.findMany({ where: { id: { in: ids }, completado_at: { not: null } }, select: { id: true, usuario_id: true, modulo: true, fecha_limite: true } });
+  const nombres = new Map((await db.usuario.findMany({ where: { id: { in: repasos.map((r) => r.usuario_id) } }, select: { id: true, nombre: true } })).map((u) => [u.id, u.nombre]));
+  for (const r of repasos) {
+    await db.alerta.updateMany({ where: { regla: "CAP_REPASO_PENDIENTE", clave_dedup: { startsWith: `CAP_REPASO_PENDIENTE:${r.id}:` }, estado: { in: ["activa", "pospuesta"] } },
+      data: { estado: "atendida", atendida_at: new Date() } });
+  }
+  return guardarAlertas(repasos.map((r) => reconocimientoRepaso({ id: r.id, usuarioId: r.usuario_id, nombre: nombres.get(r.usuario_id) ?? "Asesor", modulo: r.modulo, limite: isoDia(r.fecha_limite) }, hoy)), hoy);
+}
+
 /** Tarea diaria de la Academia. */
 export async function tareaAcademia(hoy = hoyCDMX(), ahora = new Date()) {
   const p = await plazos(hoy);
@@ -152,6 +167,8 @@ export async function tareaAcademia(hoy = hoyCDMX(), ahora = new Date()) {
     const ultima = hoyCDMX(new Date(Math.max(...fechas.map((f) => f.getTime()))));
     return estadosDe(a).filter((e) => e.disponible && e.avance > 0 && !a.certificadas.has(e.clave)).map((e) => ({ usuarioId: u.id, nombre: u.nombre, ruta: e.clave, ultimaActividad: ultima }));
   });
+  const repasosAbiertos = await db.capRepaso.findMany({ where: { completado_at: null, archivado_at: null, fecha_limite: { lt: dia(hoy) } }, select: { id: true, usuario_id: true, modulo: true, fecha_limite: true } });
+  const nombresRepaso = new Map((await db.usuario.findMany({ where: { id: { in: repasosAbiertos.map((r) => r.usuario_id) }, activo: true, archivado_at: null }, select: { id: true, nombre: true } })).map((u) => [u.id, u.nombre]));
   const cambiosRevisar = await db.capCambioParametro.findMany({ where: { id: { in: revisarPorCambio.map((x) => x.cambio_id) } }, select: { id: true, parametro_clave: true } });
   const filasDesempeno = await desempenoDe(lectorSistema, personas.map((u) => ({ usuarioId: u.id, socioId: u.socio_id, nombre: u.nombre })), ahora).catch((e) => { console.error("[academia] desempeño", e); return []; });
   const alertas = alertasAcademia({
@@ -162,6 +179,8 @@ export async function tareaAcademia(hoy = hoyCDMX(), ahora = new Date()) {
     actualizacionesPendientes: pendientes,
     preguntasRevisar: cambiosRevisar.map((c) => ({ cambioId: c.id, parametro: c.parametro_clave, n: revisarPorCambio.find((x) => x.cambio_id === c.id)?._count._all ?? 0 })),
     metricasBajas: filasDesempeno.filter((f) => f.socioId).map((f) => ({ usuarioId: f.usuarioId, nombre: f.nombre, modulos: f.repaso.modulos })),
+    // Sin suspensión (decisión 13-nov-2026): solo el recordatorio semanal de «pendiente cumplir la Academia».
+    repasos: repasosAbiertos.filter((r) => nombresRepaso.has(r.usuario_id)).map((r) => ({ id: r.id, usuarioId: r.usuario_id, nombre: nombresRepaso.get(r.usuario_id)!, modulo: r.modulo, limite: isoDia(r.fecha_limite) })),
   }, hoy, { sinAvanceDias: p.sinAvance, solicitudDias: p.solicitud, recordatorios: p.recordatorios });
   const nuevas = await guardarAlertas(alertas, hoy);
 

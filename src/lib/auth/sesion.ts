@@ -37,14 +37,17 @@ async function bloquearAccionesEnVerComo(s: Sesion): Promise<Sesion> {
 }
 
 /**
- * «Ver como asesor»: si quien entra es Director y trae la cookie, la sesión toma la identidad del asesor elegido
+ * «Ver como»: si quien entra es Director y trae la cookie, la sesión toma la identidad de la persona elegida
  * (RLS con su id, transacciones de solo lectura). Cualquier otro rol ignora la cookie.
  */
+/** Roles que el Director puede ver «como» (solo lectura): todos menos Director. */
+export const ROLES_VER_COMO = ["socio", "asesor", "vendedor", "campo"] as const;
+
 async function aplicarVerComo(s: Sesion): Promise<Sesion> {
   if (s.usuario.rol !== "director") return s;
   const id = (await cookies()).get(COOKIE_VER_COMO)?.value;
   if (!id || !/^[0-9a-f-]{36}$/i.test(id)) return s;
-  const otro = await conUsuario(s.claims, (tx) => tx.usuario.findFirst({ where: { id, activo: true, rol: "socio" },
+  const otro = await conUsuario(s.claims, (tx) => tx.usuario.findFirst({ where: { id, activo: true, archivado_at: null, rol: { in: [...ROLES_VER_COMO] } },
     select: { id: true, nombre: true, email: true, rol: true, socio_id: true } }), s.ip);
   if (!otro) return s;
   return { claims: { ...s.claims, sub: otro.id, ver_como: true }, ip: s.ip, usuario: otro, verComo: { directorId: s.usuario.id, directorNombre: s.usuario.nombre } };

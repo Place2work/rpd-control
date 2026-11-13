@@ -128,7 +128,8 @@ export function repasosPorGraves(incidencias: { tipo: string; severidad: string;
 // ───────────── Alertas de la Academia (12.3) ─────────────
 
 export type AlertaAcademia = {
-  regla: "CAP_SIN_AVANCE" | "CAP_ROLEPLAY_POR_EVALUAR" | "CAP_CERT_POR_VENCER" | "CAP_CERT_VENCIDA" | "CAP_ACTUALIZACION_PENDIENTE" | "CAP_PREGUNTAS_REVISAR" | "CAP_METRICA_BAJA";
+  regla: "CAP_SIN_AVANCE" | "CAP_ROLEPLAY_POR_EVALUAR" | "CAP_CERT_POR_VENCER" | "CAP_CERT_VENCIDA" | "CAP_ACTUALIZACION_PENDIENTE" | "CAP_PREGUNTAS_REVISAR" | "CAP_METRICA_BAJA"
+    | "CAP_REPASO_PENDIENTE" | "CAP_RECONOCIMIENTO";
   severidad: "info" | "aviso" | "critica";
   para: { persona?: string; directores: boolean };
   mensaje: string;
@@ -141,6 +142,8 @@ export type DatosAlertasAcademia = {
   actualizacionesPendientes: { actualizacionId: string; titulo: string; publicada: string; usuarioId: string }[];
   preguntasRevisar: { cambioId: string; parametro: string; n: number }[];
   metricasBajas: { usuarioId: string; nombre: string; modulos: string[] }[];
+  /** Repasos obligatorios abiertos (9.5). Pasada la fecha límite no se suspende nada: solo se recuerda cada semana. */
+  repasos?: { id: string; usuarioId: string; nombre: string; modulo: string; limite: string }[];
 };
 const TIPO_SOLICITUD: Record<string, string> = { roleplay: "juego de roles", acompanamiento: "caso acompañado", entrevista: "entrevista" };
 
@@ -176,5 +179,16 @@ export function alertasAcademia(d: DatosAlertasAcademia, hoy: string, p: { sinAv
     r.push({ regla: "CAP_METRICA_BAJA", severidad: "info", para: { persona: m.usuarioId, directores: true }, clave: `CAP_METRICA_BAJA:${m.usuarioId}:${semana}`,
       mensaje: `${m.nombre}: dos o más métricas debajo de la meta dos semanas seguidas. Repaso sugerido: ${m.modulos.join(", ")}.` });
   }
+  for (const x of d.repasos ?? []) if (x.limite < hoy) {
+    r.push({ regla: "CAP_REPASO_PENDIENTE", severidad: "aviso", para: { persona: x.usuarioId, directores: true }, clave: `CAP_REPASO_PENDIENTE:${x.id}:${semana}`,
+      mensaje: `${x.nombre}: pendiente cumplir la Academia. El repaso del módulo ${x.modulo} venció el ${fechaLarga(x.limite)}. No se suspende nada: complétalo aprobando el quiz del módulo.` });
+  }
   return r;
+}
+
+/** Reconocimiento al completar un repaso obligatorio (9.5): le llega a la persona y el Director se entera. */
+export function reconocimientoRepaso(x: { id: string; usuarioId: string; nombre: string; modulo: string; limite: string }, hoy: string): AlertaAcademia {
+  const aTiempo = hoy <= x.limite;
+  return { regla: "CAP_RECONOCIMIENTO", severidad: "info", para: { persona: x.usuarioId, directores: true }, clave: `CAP_RECONOCIMIENTO:${x.id}`,
+    mensaje: `¡Felicidades, ${x.nombre}! Completaste el repaso del módulo ${x.modulo}${aTiempo ? " a tiempo" : ""}. Gracias por tu compromiso con cada cliente.` };
 }

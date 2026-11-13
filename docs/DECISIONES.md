@@ -716,3 +716,14 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   ajustó el valor inicial. El Director cambia las tarifas (por prospecto y base por día) desde el recuadro «Tarifas»
   en Pagos de campo, con fecha «desde», con la misma regla de vigencia que Configuración. Cada prospecto se paga con
   la tarifa vigente el día en que se levantó.
+
+## 13-nov-2026 · Repasos vencidos sin suspensión, reconocimiento y «Ver como» para todo el equipo
+
+- **Repaso obligatorio vencido (9.5)**: no se suspende nada. Pasada la fecha límite, la tarea diaria manda una vez por
+  semana el aviso «pendiente cumplir la Academia» (`CAP_REPASO_PENDIENTE`, aviso) a la persona y al Director, hasta que
+  lo complete aprobando el quiz del módulo.
+- **Reconocimiento**: al completar el repaso, a tiempo o tarde, le llega a la persona la notificación de felicitación
+  (`CAP_RECONOCIMIENTO`, info) y el Director se entera. Los avisos pendientes de ese repaso quedan atendidos.
+- **«Ver como»** (antes solo para asesores de pensiones) ahora sirve para todos los roles menos Director: asesor de
+  pensiones, analista, vendedor y gerente de campo. Sigue siendo de solo lectura, con bitácora y aviso en la barra
+  amarilla, que ahora muestra el rol de la persona.

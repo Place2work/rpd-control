@@ -37,7 +37,7 @@ async function Estructura({ children }: { children: React.ReactNode }) {
       <div className="md:pl-60">
         {sesion.verComo && (
           <div role="status" className="sticky top-0 z-30 flex flex-wrap items-center justify-between gap-2 border-b border-yellow-300 bg-yellow-100 px-4 py-2 text-sm text-ink md:px-8">
-            <p><span className="font-semibold">Estás viendo como {usuario.nombre}</span> · Asesor de pensiones · solo lectura: nada de lo que hagas aquí se guarda.
+            <p><span className="font-semibold">Estás viendo como {usuario.nombre}</span> · {ETIQUETA_ROL[usuario.rol]} · solo lectura: nada de lo que hagas aquí se guarda.
               {avisoLectura && <span className="ml-2 font-semibold text-aviso">No se guardó: sal de «Ver como» para hacer cambios.</span>}</p>
             <form action={salirVerComo}>
               <button type="submit" className="rounded-[var(--radius-boton)] bg-ink px-3 py-1.5 text-xs font-semibold text-white hover:bg-ink/90">Salir y volver a Director</button>
