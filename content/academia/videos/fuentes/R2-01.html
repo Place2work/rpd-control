@@ -1,0 +1,212 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<!-- Fuente del video de la lección R2-01. Duraciones ajustadas a la voz (R2-01.voz.txt, una línea por escena).
+     Para regenerarlo: node scripts/academia-video.cjs R2-01 --voz <pista.wav> -->
+<title>R2-01 · Retiro contra pensión</title>
+<style>
+@font-face { font-family: Poppins; font-weight: 500; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-500-normal.woff) format("woff"); }
+@font-face { font-family: Poppins; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-600-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 400; src: url(../../../../src/lib/pdf/fuentes/inter-latin-400-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/inter-latin-600-normal.woff) format("woff"); }
+:root { --azul: #004aad; --azul-osc: #00357d; --azul-tinte: #e8f0fb; --verde: #5e9e3a; --verde-txt: #3f7a24; --verde-tinte: #eef6e9;
+  --tinta: #0f172a; --gris: #64748b; --borde: #e2e8f0; --rojo: #b42318; --rojo-tinte: #fef3f2; --fondo: #f6f8fc; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--fondo); font-family: Inter, sans-serif; color: var(--tinta); }
+.marco { position: absolute; inset: 0; }
+header { position: absolute; top: 0; left: 0; right: 0; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 72px; background: #fff; border-bottom: 1px solid var(--borde); }
+.marca { font-family: Poppins; color: var(--azul); line-height: 1; }
+.marca b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -0.5px; }
+.marca span { font-size: 19px; font-weight: 600; } .marca small { font-size: 13px; font-weight: 500; } .marca i { font-style: normal; color: var(--verde); }
+.leccion { font-family: Poppins; font-weight: 500; font-size: 22px; color: var(--gris); }
+.leccion strong { color: var(--azul); font-weight: 600; }
+.escena { position: absolute; top: 96px; left: 0; right: 0; bottom: 150px; padding: 56px 120px; display: flex; flex-direction: column; justify-content: center; gap: 28px; opacity: 0; }
+.paso { font-family: Poppins; font-weight: 600; font-size: 24px; color: var(--azul); letter-spacing: 1px; text-transform: uppercase; }
+h1 { font-family: Poppins; font-weight: 600; font-size: 76px; line-height: 1.1; letter-spacing: -1px; }
+h2 { font-family: Poppins; font-weight: 600; font-size: 54px; line-height: 1.15; }
+p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
+.tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 32px; }
+.tarjeta .et { font-size: 24px; color: var(--gris); }
+.tarjeta .v { font-family: Poppins; font-weight: 600; font-size: 50px; margin-top: 10px; }
+.formula { font-family: Poppins; font-weight: 600; font-size: 72px; display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap; }
+.formula .op { color: var(--gris); font-weight: 500; }
+.formula .res { color: var(--azul); }
+.caja { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 36px 44px; font-size: 34px; line-height: 1.4; }
+.caja.ok { border-color: var(--verde); background: var(--verde-tinte); color: var(--verde-txt); }
+.caja.alerta { border-color: #f3c27a; background: #fff8eb; }
+.caja.mal { border-color: #f5b5ae; background: var(--rojo-tinte); }
+.caja b { font-family: Poppins; font-weight: 600; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+.mod { background: #fff; border: 2px solid var(--borde); border-radius: 24px; padding: 40px; }
+.mod.gana { border-color: var(--verde); box-shadow: 0 0 0 6px var(--verde-tinte); }
+.mod .nom { font-family: Poppins; font-weight: 600; font-size: 30px; color: var(--gris); }
+.mod .monto { font-family: Poppins; font-weight: 600; font-size: 88px; margin-top: 8px; }
+.mod .nota { font-size: 26px; color: var(--gris); margin-top: 6px; }
+.barra { height: 64px; border-radius: 14px; background: var(--azul-tinte); position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; left: 0; top: 0; bottom: 0; background: var(--azul); border-radius: 14px; }
+.lista { display: grid; gap: 22px; }
+.lista .caja { font-size: 30px; padding: 26px 36px; }
+.subtitulo { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: var(--tinta); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0 140px; text-align: center; font-size: 36px; line-height: 1.3; }
+.progreso { position: absolute; left: 0; bottom: 150px; height: 6px; background: var(--verde); }
+
+.linea { position: relative; height: 260px; margin-top: 10px; }
+.linea .eje { position: absolute; left: 0; right: 0; top: 120px; height: 8px; background: var(--borde); border-radius: 4px; }
+.linea .avance { position: absolute; left: 0; top: 120px; height: 8px; background: var(--azul); border-radius: 4px; }
+.hito { position: absolute; top: 0; width: 360px; margin-left: -180px; text-align: center; }
+.hito .punto { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 6px solid var(--azul); margin: 107px auto 18px; }
+.hito.verde .punto { border-color: var(--verde); }
+.hito .f { font-family: Poppins; font-weight: 600; font-size: 38px; }
+.hito .e { font-size: 24px; color: var(--gris); margin-top: 4px; }
+.hito .arriba { position: absolute; top: 20px; left: 0; right: 0; font-family: Poppins; font-weight: 600; font-size: 26px; color: var(--azul); }
+.num { display: inline-flex; width: 64px; height: 64px; border-radius: 50%; background: var(--azul); color: #fff; font-family: Poppins; font-weight: 600; font-size: 34px; align-items: center; justify-content: center; margin-right: 18px; vertical-align: middle; }
+table.mods { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--borde); border-radius: 20px; overflow: hidden; font-size: 28px; }
+table.mods th, table.mods td { padding: 22px 28px; text-align: left; border-bottom: 1px solid var(--borde); vertical-align: top; line-height: 1.35; }
+table.mods th { font-family: Poppins; font-weight: 600; font-size: 30px; background: var(--azul-tinte); color: var(--azul); }
+table.mods td:first-child { color: var(--gris); width: 220px; }
+table.mods tr:last-child td { border-bottom: 0; }
+.checks { display: grid; gap: 16px; font-size: 32px; }
+.checks div { background: #fff; border: 1px solid var(--borde); border-radius: 16px; padding: 18px 28px; }
+.checks b { color: var(--verde-txt); font-family: Poppins; }
+
+.semanas { position: relative; height: 90px; border-radius: 16px; background: var(--azul); overflow: hidden; }
+.semanas .pierde { position: absolute; right: 0; top: 0; bottom: 0; background: var(--rojo); opacity: .9; }
+.leyenda { display: flex; justify-content: space-between; font-family: Poppins; font-weight: 600; font-size: 32px; margin-top: 14px; }
+.leyenda .r { color: var(--rojo); }
+.cita { font-family: Poppins; font-weight: 500; font-size: 40px; line-height: 1.35; color: var(--azul); background: #fff; border-left: 10px solid var(--azul); border-radius: 0 20px 20px 0; padding: 30px 40px; }
+.nunca { display: grid; gap: 18px; }
+.nunca div { font-family: Poppins; font-weight: 600; font-size: 40px; color: var(--rojo); background: var(--rojo-tinte); border: 1px solid #f5b5ae; border-radius: 18px; padding: 22px 34px; text-decoration: line-through; text-decoration-thickness: 3px; }
+
+.anios { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
+.anios > div { background: #fff; border: 1px solid var(--borde); border-radius: 18px; padding: 22px; text-align: center; }
+.anios .a { font-size: 26px; color: var(--gris); }
+.anios .s { font-family: Poppins; font-weight: 600; font-size: 46px; margin-top: 6px; color: var(--azul); }
+.regla { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cuentas { font-family: Poppins; font-weight: 600; font-size: 44px; line-height: 1.6; }
+.cuentas .g { color: var(--gris); font-weight: 500; }
+.grande { font-family: Poppins; font-weight: 600; font-size: 96px; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca"><b>retiro</b><span><small>por </small>desempleo<i>.com</i></span></div>
+    <div class="leccion">Academia · <strong>R2-01</strong> · Retiro contra pensión</div>
+  </header>
+
+  <section class="escena" data-dur="10">
+    <div class="paso" data-at="0">Ruta R2 · Retiro avanzado</div>
+    <h1 data-at="0.3">Retiro contra pensión:<br>el análisis de impacto</h1>
+    <p class="sub" data-at="1">Lo que cuesta hoy en la pensión de mañana.</p>
+  </section>
+  <section class="escena" data-dur="18">
+    <div class="paso" data-at="0">Ley 97 · mínimo de semanas</div>
+    <h2 data-at="0.2">Depende del año en que cumple 60</h2>
+    <div class="anios">
+      <div data-at="4"><div class="a">2026</div><div class="s">875</div></div>
+      <div data-at="5.5"><div class="a">2027</div><div class="s">900</div></div>
+      <div data-at="6.5"><div class="a">2028</div><div class="s">925</div></div>
+      <div data-at="7.5"><div class="a">2029</div><div class="s">950</div></div>
+      <div data-at="8.5"><div class="a">2030</div><div class="s">975</div></div>
+      <div data-at="10.5"><div class="a">2031 en adelante</div><div class="s">1,000</div></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="18">
+    <div class="paso" data-at="0">Ley 97 · alertas</div>
+    <div class="caja mal" data-at="0.8"><b>55 años o más</b> y semanas después del retiro <b>debajo del mínimo</b> de su año → <b>alerta crítica</b>: califica, pero no le conviene.</div>
+    <div class="caja alerta" data-at="10.5">Queda <b>a menos de 50 semanas</b> del mínimo → <b>aviso</b>.</div>
+  </section>
+  <section class="escena" data-dur="18">
+    <div class="paso" data-at="0">Ley 73 · incrementos (art. 167 LSS 1973)</div>
+    <h2 data-at="0.2">500 semanas, y cada 52 arriba = un incremento anual</h2>
+    <div class="regla">
+      <div class="caja" data-at="9.5">Sobran <b>13 a 26</b> semanas → <b>medio</b> incremento</div>
+      <div class="caja ok" data-at="12.5">Sobran <b>más de 26</b> → <b>uno completo</b></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="16">
+    <div class="paso" data-at="0">Ejemplo · antes del retiro</div>
+    <div class="cuentas">
+      <div data-at="0.5">900 semanas <span class="g">−</span> 500 <span class="g">=</span> 400 arriba</div>
+      <div data-at="4.5">400 <span class="g">=</span> 7 años <span class="g">(364)</span> <span class="g">+</span> 36 de sobrante</div>
+    </div>
+    <div class="caja ok" data-at="10"><span class="grande" style="font-size:64px">8 incrementos</span></div>
+  </section>
+  <section class="escena" data-dur="12">
+    <div class="paso" data-at="0">Ejemplo · si el retiro le quita 30 semanas</div>
+    <div class="cuentas">
+      <div data-at="0.5">870 semanas <span class="g">−</span> 500 <span class="g">=</span> 370 arriba</div>
+      <div data-at="3.5">370 <span class="g">=</span> 7 años <span class="g">(364)</span> <span class="g">+</span> 6 de sobrante</div>
+    </div>
+    <div class="caja mal" data-at="7"><span class="grande" style="font-size:64px;color:var(--rojo)">7 incrementos</span> · pierde uno, <b>de por vida</b></div>
+  </section>
+  <section class="escena" data-dur="8">
+    <div class="paso" data-at="0">Ley 73 · umbral</div>
+    <h2 data-at="0.2">Debajo de 550 semanas después del retiro</h2>
+    <div class="caja mal" data-at="2.5"><b>Alerta crítica</b></div>
+  </section>
+  <section class="escena" data-dur="19">
+    <div class="paso" data-at="0">Regla que el sistema hace cumplir</div>
+    <h2 data-at="0.2">Sin análisis de impacto, un retiro Ley 73 no pasa a Contrato</h2>
+    <div class="checks">
+      <div data-at="5"><b>✓</b> Semanas antes y después</div>
+      <div data-at="6.5"><b>✓</b> Incrementos (o umbral de 550)</div>
+      <div data-at="8"><b>✓</b> «El cliente recibió y entendió el costo en semanas»</div>
+    </div>
+    <div class="caja" data-at="13"><b>Asesor con R2</b> captura el borrador · <b>el Director</b> lo valida.</div>
+  </section>
+  <section class="escena" data-dur="13">
+    <div class="paso" data-at="0">El cliente más delicado</div>
+    <h2 data-at="0.2">Ley 73 con muchas semanas</h2>
+    <div class="cita" data-at="4">Muchas veces la asesoría honesta es: <b>«no lo hagas»</b>.</div>
+    <p class="sub" data-at="8">Decirlo es lo que construye reputación y referidos.</p>
+  </section>
+
+  <div class="progreso"></div>
+  <div class="subtitulo"></div>
+</div>
+<script>
+// Subtítulos por escena, en tramos repartidos según la duración de la voz (AUDIO, en segundos; entra 0.6 s después).
+const SUBS = [["Retiro contra pensión: el análisis de impacto.", "Antes de sacar dinero hoy, revisa qué le cuesta al cliente en su pensión de mañana."], ["En la Ley 97, el mínimo de semanas depende del año en que el cliente cumple 60:", "875 en 2026, y 25 más cada año,", "hasta 1,000 a partir de 2031."], ["Si tiene 55 años o más y, después del retiro, sus semanas quedan debajo del mínimo de su año,", "la alerta es crítica: califica, pero no le conviene.", "Si queda a menos de 50 semanas del mínimo, es un aviso."], ["En la Ley 73 necesita 500 semanas,", "y cada 52 semanas arriba de 500 es un incremento anual de su pensión.", "Si sobran de 13 a 26 semanas, cuenta medio incremento; si sobran más de 26, uno completo."], ["Ejemplo: con 900 semanas tiene 400 arriba de 500.", "Son 7 años completos (364 semanas) y le sobran 36, más de 26:", "8 incrementos."], ["Si el retiro le quita 30 semanas, queda con 870.", "7 años completos y le sobran 6: 7 incrementos.", "Pierde uno, de por vida."], ["Y si después del retiro sus semanas quedan debajo de 550, la alerta es crítica."], ["Un retiro Ley 73 no pasa a contrato sin el análisis de impacto registrado:", "semanas antes y después, incrementos, y la casilla de que el cliente recibió y entendió el costo en semanas.", "El asesor con R2 captura el borrador y el Director lo valida."], ["El cliente más delicado es el de Ley 73 con muchas semanas.", "Muchas veces la asesoría honesta es: «no lo hagas».", "Decirlo es lo que construye reputación y referidos."]];
+const AUDIO = [8.48, 15.64, 16.5, 16.06, 13.55, 10.46, 6.01, 17.46, 11.46];
+const escenas = [...document.querySelectorAll(".escena")];
+const inicios = []; let total = 0;
+for (const e of escenas) { inicios.push(total); total += Number(e.dataset.dur); }
+window.DURACION = total;
+const sube = (x) => Math.max(0, Math.min(1, x));
+const suave = (x) => 1 - Math.pow(1 - sube(x), 3);
+const pesos = (n) => "$" + Math.round(n).toLocaleString("en-US");
+window.render = (t) => {
+  let i = escenas.length - 1;
+  for (let k = 0; k < escenas.length; k++) if (t < inicios[k] + Number(escenas[k].dataset.dur)) { i = k; break; }
+  escenas.forEach((e, k) => {
+    const local = t - inicios[k], dur = Number(e.dataset.dur);
+    const entra = suave(local / 0.45), sale = k === escenas.length - 1 ? 1 : 1 - sube((local - (dur - 0.35)) / 0.35);
+    e.style.opacity = k === i ? Math.min(entra, sale) : 0;
+    if (k !== i) return;
+    e.querySelectorAll("[data-at]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.at)) / 0.5);
+      el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 28}px)`;
+    });
+    e.querySelectorAll("[data-cuenta]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.de)) / 0.9);
+      el.textContent = pesos(Number(el.dataset.cuenta) * p);
+    });
+    e.querySelectorAll("[data-ancho-linea]").forEach((el) => { const d = Number(el.dataset.desde ?? 0); el.style.width = d + (Number(el.dataset.anchoLinea) - d) * suave((local - Number(el.dataset.de)) / 1.4) + "%"; });
+    e.querySelectorAll("[data-ancho]").forEach((el) => { el.style.width = Number(el.dataset.ancho) * suave((local - Number(el.dataset.de)) / 1.2) + "%"; });
+    e.querySelectorAll("[data-marca-gana]").forEach((el) => {
+      const de = Number(el.dataset.marcaGana);
+      el.classList.toggle("gana", de > 0 && local >= de);
+    });
+  });
+  const tramos = SUBS[i], local = t - inicios[i] - 0.6, total = tramos.join("").length;
+  let acum = 0, txt = tramos[0];
+  for (const tr of tramos) { if (local >= AUDIO[i] * acum / total) txt = tr; acum += tr.length; }
+  document.querySelector(".subtitulo").textContent = txt;
+  document.querySelector(".progreso").style.width = (t / total) * 100 + "%";
+};
+window.render(0);
+</script>
+</body>
+</html>

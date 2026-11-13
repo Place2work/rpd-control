@@ -361,6 +361,11 @@ export const MODULOS: Modulo[] = [
    "L73_SEMANAS_CRITICAS"
   ],
   "fuentes": [],
+  "video": {
+   "archivo": "R2-01.mp4",
+   "duracion_seg": 132,
+   "titulo": "Ley 97 y Ley 73: lo que cuesta el retiro en la pensión"
+  },
   "contenido": "**Ley 97:** el mínimo de semanas depende del año en que el cliente cumple 60:\n`mínimo = menor(1000, 750 + 25 × (año − 2021))` → 875 en 2026, 900 en 2027, 925 en 2028, 950 en\n2029, 975 en 2030 y 1,000 desde 2031.\n\n- Si el cliente tiene **55 años o más** y las semanas después del retiro quedan **debajo** del mínimo\n  de su año → alerta **crítica** → `CALIFICA_NO_CONVIENE`.\n- Si quedan **a menos de 50 semanas** del mínimo → aviso.\n\n**Ley 73:** necesita 500 semanas; cada **52 semanas arriba de 500 es un incremento anual** de su\npensión (art. 167 LSS 1973). Fracciones: sobrante de 13 a 26 semanas = medio incremento; más de 26 =\nuno completo.\n\n- Ejemplo: 900 semanas → 400 arriba de 500 → 7 años (364) + 36 de sobrante (> 26) = **8\n  incrementos**. Si el retiro le quita 30 → 870 → 7 años + 6 = **7 incrementos**: pierde uno, de por\n  vida.\n- Si las semanas después quedan debajo de **550** → alerta crítica.\n\n**Regla de política que el sistema hace cumplir:** un retiro Ley 73 **no pasa a Contrato** sin\nanálisis de impacto registrado (semanas antes y después, incrementos o umbral) y la casilla \"el\ncliente recibió y entendió el costo en semanas\". El asesor de pensiones R2 captura el borrador; el Director lo\nvalida.\n\n**El cliente más delicado:** Ley 73 con muchas semanas. Es el que más tiene que perder y el que más\nse deslumbra con el dinero inmediato. Aquí la asesoría honesta muchas veces es **\"no lo hagas\"**, y\ndecirlo es lo que construye reputación y referidos.\n"
  },
  {
