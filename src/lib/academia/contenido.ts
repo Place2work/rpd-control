@@ -431,6 +431,11 @@ export const MODULOS: Modulo[] = [
    "claude/marco-legal-retiro-desempleo.md",
    "claude/piso-pension-ley-73.md"
   ],
+  "video": {
+   "archivo": "P1-01.mp4",
+   "duracion_seg": 160,
+   "titulo": "Cómo se arma y las decisiones irreversibles"
+  },
   "contenido": "**Requisitos:** 500 semanas + 60 años (cesantía, además de quedar **sin trabajo remunerado**) o 65\n(vejez). Invalidez: 150 semanas y dictamen médico del IMSS.\n\n**Cómo se calcula (en concepto):** cuantía básica + incrementos anuales sobre el **salario promedio\nde las últimas 250 semanas** (art. 167 LSS 1973). Por eso la Modalidad 40 funciona: sube ese\npromedio.\n\n**Cesantía se paga reducida (art. 171):**\n\n| Edad | 60 | 61 | 62 | 63 | 64 | 65 (vejez) |\n|---|---|---|---|---|---|---|\n| % de la pensión de vejez | 75% | 80% | 85% | 90% | 95% | 100% |\n\nSe suma un año cuando la edad pasa en 6 meses.\n\n**🚨 La puerta de un solo sentido (art. 148):** firmar la cesantía **cierra para siempre** la\ninvalidez y la vejez. Un cliente de 63 años que firma cesantía se queda con el 90% de por vida.\nPara un cliente de 60 a 64 con padecimiento crónico hay que comparar tres rutas **antes de firmar\nnada**: cesantía ahora, invalidez (100%, depende de dictamen del IMSS — **nunca lo prometemos**) o\nesperar a vejez.\n\n**El piso (arts. 168 y 169):** ninguna pensión Ley 73 puede ser menor al piso. Para pensiones que se\notorgan en 2026 se trabaja con **$10,636.54 al mes**. Consecuencias:\n\n- Si la cuantía calculada del cliente queda debajo del piso, **pensionarse a los 60 o a los 65 paga\n  lo mismo** → la recomendación es los 60 (cumpliendo el requisito de quedar sin trabajo).\n- Las asignaciones familiares (15% esposa, 10% por hijo) **no se suman encima del piso**: quedan\n  dentro de él. No dejes que un gestor le cobre por \"gestionar asignaciones\" a alguien en el piso.\n- El piso aplica a pensiones **otorgadas** ese año. Las pensiones en curso suben por inflación\n  (INPC). **No prometas \"nivelar\" una pensión vieja al piso de hoy.**\n\n**Conservación de derechos (art. 182 LSS 1973):** quien deja de cotizar conserva su derecho a\npensión por **¼ del tiempo cotizado** desde la baja, **mínimo 12 meses**. Si se vence antes de\ncumplir 60, **no adquiere el derecho** (art. 280) hasta recuperar cotizando de nuevo. Es la\nprimera fecha que hay que calcular en todo cliente Ley 73 que no cotiza.\n\n**Lo que dices:** *\"Antes de firmar cualquier cosa en el IMSS, déjame que el Director compare tus\nrutas. Hay decisiones que no tienen regreso.\"*\n\n**Fuente:** `claude/marco-legal-retiro-desempleo.md` secciones 0-bis y 0-ter;\n`claude/piso-pension-ley-73.md`.\n"
  },
  {
@@ -442,6 +447,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "P1-02.mp4",
+   "duracion_seg": 69,
+   "titulo": "Renta vitalicia, retiro programado y garantizada"
+  },
   "contenido": "- Requisitos: semanas del año (875 en 2026) + 60 (cesantía) o 65 (vejez).\n- La pensión sale de la **cuenta individual**: **renta vitalicia** (aseguradora, de por vida, no\n  deja saldo) o **retiro programado** (el saldo se queda en la Afore y el remanente **sí** se\n  hereda). Elegir entre las dos es, en el fondo, una decisión sobre herencia. Se puede pasar de\n  retiro programado a renta vitalicia, no al revés.\n- **Pensión garantizada** (art. 170): tabla por salario, edad y semanas. Los importes de la tabla\n  son de **diciembre de 2020** y se actualizan cada febrero por inflación → **nunca cotices esos\n  pesos tal cual**.\n- Sin las semanas a los 60: puede **retirar su saldo en una exhibición** o seguir cotizando\n  (art. 154).\n"
  },
  {
@@ -453,6 +463,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "P1-03.mp4",
+   "duracion_seg": 134,
+   "titulo": "Para quién es cada una y los errores que nunca cometes"
+  },
   "contenido": "| | **Modalidad 40** (continuación voluntaria, arts. 218-221) | **Modalidad 10** (incorporación voluntaria, art. 13-I y 222-233) |\n|---|---|---|\n| Para quién | **Ley 73**, para subir el promedio de las últimas 250 semanas | Independientes; también para seguir sumando semanas |\n| Entrada | 52 semanas en los últimos 5 años **y** solicitarla **dentro de 5 años** de la baja | Ser trabajador independiente |\n| Servicio médico | **❌ No** | **✅ Sí**, con tiempos de espera |\n| Se cae por | **2 meses sin pagar** (con 12 meses para reingresar) | No pagar las cuotas |\n\n**M10 — la ventana de oro (art. 85 RACERF):** si se solicita **dentro de 12 meses** de la baja y\ntenía **52 semanas** antes, **no hay** cuestionario médico, rechazo por enfermedad preexistente ni\ntiempos de espera. Pasado el plazo, padecimientos como complicaciones de diabetes, insuficiencia\nrenal, cáncer o VIH impiden entrar (art. 82). **Pregunta la fecha de baja antes que la salud.**\n\n**Tiempos de espera de M10 (art. 83):** parto **10 meses**; ciertas cirugías 1 año; cirugía\nortopédica 2 años. Aplican solo a ese padecimiento; lo demás está cubierto desde el inicio.\n\n**Los tres errores que nunca cometes:**\n\n1. Vender M40 a un cliente Ley 97.\n2. Dejar que el cliente crea que M40 le da servicio médico (va por escrito).\n3. No advertir que 2 meses sin pagar lo dan de baja (va firmado).\n\n**Zona prohibida:** el tope de cotización y la pensión en **UMA contra salario mínimo** está en\nlitigio. **No proyectes ni prometas resultados en salarios mínimos.** Eso lo calcula el Director con\nel criterio vigente a la fecha.\n\n**Lo que dices a la embarazada que quiere M10 para el parto:** *\"El IMSS tiene 10 meses de espera\npara parto en esta modalidad. Si te inscribes hoy, el parto no te lo cubren. Te lo dejo por\nescrito.\"*\n"
  },
  {
@@ -467,6 +482,11 @@ export const MODULOS: Modulo[] = [
    "claude/fallecimiento-que-recupera-la-familia.md",
    "claude/viudez-y-concubinato.md"
   ],
+  "video": {
+   "archivo": "P1-04.mp4",
+   "duracion_seg": 178,
+   "titulo": "Lo que la familia puede recuperar y cómo no perderlo"
+  },
   "contenido": "**Regla de oro:** cuando muere un asegurado Ley 73, lo más valioso casi nunca es lo que tenía en la\nAfore: es la **pensión de viudez**, mensual y de por vida. Primero se revisa la pensión; después el\ndinero.\n\n**Lo que puede recuperar la familia:**\n\n| Qué | Ante quién | Tipo |\n|---|---|---|\n| Pensión de viudez (90%) y orfandad (20% c/u; 30% si es huérfano de ambos) | IMSS | Mensual |\n| Ramo de retiro (SAR 92 + Retiro 97) y voluntarias | Afore o Fondo de Pensiones para el Bienestar | Una exhibición |\n| Vivienda (Fondo de Ahorro 72-92, Vivienda 92 y 97) si nunca usó crédito | Infonavit o Fondo Bienestar | Una exhibición, **exenta** |\n| Ayuda de gastos de funeral (2 meses de salario mínimo) | IMSS | Una vez; piden la **factura original** de la funeraria |\n\n**Requisitos de la viudez Ley 73:** el finado tenía **150 semanas** o era pensionado, la muerte no\nfue riesgo de trabajo, **y** al morir seguía cotizando o estaba **dentro de su conservación de\nderechos**. Si había dejado de cotizar hace mucho sin pensionarse, puede no proceder → caso para el\nDirector y el abogado.\n\n**⏰ Urgencia:** el derecho a la pensión no prescribe, pero **solo se pagan las mensualidades de los\núltimos 12 meses** (art. 279). Cada mes sin solicitar es un mes que la viuda ya no cobra.\n\n**La trampa del matrimonio tardío (art. 154 LSS 1973):** no hay viudez si murió antes de 6 meses de\nmatrimonio; o si se casó después de los 55 años de él o ya pensionado, **salvo que haya pasado un\naño**. **Ninguna aplica si tuvieron hijos.**\n\n**Concubinato:** el IMSS **no acepta** cartas del ayudante municipal ni actas ante notario. Pide\n**sentencia de un Juzgado Familiar + el auto que la declara ejecutoriada** (pídanse juntas). Con el\ntitular **vivo** es un trámite de semanas y bajo costo; ya fallecido, es un juicio. **Con un hijo en\ncomún**, el acta de nacimiento sustituye la prueba de los 5 años.\n\n**Recomendación general (la decide el Director con el cliente):** con hijos en común → casarse. Sin\nhijos y sano → casarse. Sin hijos y enfermo grave → declaración judicial de concubinato ya, estando\nvivo.\n\n**Afore sin beneficiarios designados** → el dinero se reparte según el **art. 501 de la LFT**,\nmuchas veces con juicio. **Designar beneficiarios en la Afore es gratis, toma una hoja y es la\nacción de mayor valor que puedes recomendar a cualquier cliente.**\n\n**Finados que habrían cumplido 70:** su dinero de Afore y vivienda puede estar ya en el **Fondo de\nPensiones para el Bienestar**. No se pierde (imprescriptible), pero cambia la ventanilla. Verifica\nantes de prometer.\n\n**Lo que nunca dices:**\n\n- *\"Ya no piden los cinco años, lo dijo la Corte.\"* (El amparo AR 408/2025 viene de prensa y la\n  ventanilla sigue pidiéndolos. Lo correcto: *\"si se lo niegan por el tiempo, hay con qué pelearlo,\n  con abogado y con plazos\"*.)\n- *\"Su viudo no tiene derecho\"* a un viudo Ley 73: probablemente sí, por la vía de amparo. Es caso del\n  abogado.\n\n**Política de la firma:** el depósito siempre llega a la cuenta de la viuda; nunca se cobra porcentaje\nsobre la pensión mensual; lo que sea juicio lo lleva el abogado de la firma y se explica por\nseparado.\n\n**Fuente:** `claude/fallecimiento-que-recupera-la-familia.md`; `claude/viudez-y-concubinato.md`.\n\n\n**Guiones**\n\n**G-05 · Concubinato con el titular vivo**\n\n> *\"Usted y su señora no están casados. Si usted falta, ella tiene derecho al 90% de su pensión de por\n> vida, pero el IMSS le va a pedir una sentencia de juez, y usted ya no va a poder declarar a su\n> favor. Hoy, estando usted vivo, eso se resuelve más rápido y barato. Y si tuvieron hijos juntos,\n> tráigame las actas.\"*\n\n**G-07 · Beneficiarios**\n\n> *\"Una pregunta que le hago a todos: ¿ya designó beneficiarios en su Afore, y con qué porcentajes? Es\n> gratis, es una hoja, y le evita un juicio a su familia.\"*\n"
  },
  {
@@ -478,6 +498,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "P1-05.mp4",
+   "duracion_seg": 83,
+   "titulo": "Quién califica y lo que vendemos"
+  },
   "contenido": "**Gancho comercial:** *\"¿Ya se pensionó? ¿Nunca usó su crédito Infonavit? Entonces tiene dinero ahí,\nno caduca, y nadie se lo va a depositar si no lo pide.\"*\n\n- **Quién califica:** pensionado por el IMSS (vejez, cesantía o invalidez ≥ 50%), con saldo de\n  vivienda, **sin crédito Infonavit activo** y sin haber usado esos fondos.\n- **Tres bolsas distintas:** Fondo de Ahorro 1972-1992, Vivienda 92, Vivienda 97. Pedir las tres.\n- **Exenta de impuestos** (art. 36 Ley Infonavit). **Imprescriptible** (art. 37).\n- **Edad 70:** sin haberla reclamado (y sin relación laboral activa) pasa al Fondo de Pensiones para el\n  Bienestar, con mecanismo de devolución permanente y con intereses. **No se pierde.**\n- En Ley 73 se entrega en **una sola exhibición**.\n- **El trámite es gratuito y no requiere intermediarios.** Lo que vendemos es la **revisión\n  previa**: el 90% de los rechazos son porque NSS, CURP y RFC **no coinciden exactamente** entre IMSS,\n  Afore y banco, o porque el estado de cuenta bancario tiene **más de 2 meses**.\n\n\n**Guion**\n\n**G-06 · Gancho de vivienda**\n\n> *\"¿Ya se pensionó? ¿Nunca usó su crédito Infonavit? Entonces tiene dinero ahí, no caduca y no paga\n> impuestos, pero nadie se lo deposita si no lo pide.\"*\n"
  },
  {
@@ -489,6 +514,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "P1-06.mp4",
+   "duracion_seg": 91,
+   "titulo": "Detectar el caso y pasarlo al Director"
+  },
   "contenido": "- **Quien trabaja hoy en el gobierno no está desempleado:** no hay retiro por desempleo ni del IMSS ni\n  del ISSSTE. *\"Si alguien le ofrece sacar su Afore mientras trabaja en el gobierno, es un fraude.\"*\n- **Dos regímenes en el ISSSTE:** Décimo Transitorio (\"ley vieja\", no porta con el IMSS) y cuentas\n  individuales (sí porta). Quien eligió el Bono en 2008 está en cuentas individuales para siempre.\n- **Portabilidad:** se pueden sumar semanas IMSS y años ISSSTE al llegar a la edad de pensión\n  (1 año = 52 semanas). Los periodos **simultáneos no se suman**. **No es automática: se solicita.**\n- **Ojo (art. 144):** con 25 años **solo en el ISSSTE** le toca la garantizada del ISSSTE (más alta\n  para salarios bajos y medios). Si completa los 25 con semanas del IMSS, le toca la del IMSS. La\n  portabilidad es **red de seguridad**, no primera opción.\n- **Servicio médico del pensionado mixto:** requiere 15 años en una institución o 24 en conjunto.\n\n**Tu trabajo aquí:** detectar el caso y pasarlo al Director con la Hoja Única de Servicios y la\nconstancia del IMSS que **genere el propio cliente**.\n"
  },
  {
