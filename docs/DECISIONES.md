@@ -708,3 +708,7 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - **Proyección del gerente**: su pantalla muestra «Por cobrar» (lo verificado sin pagar, por ejemplo
   100 × $20 = $2,000), «En revisión» (lo que cobraría si se verifica lo pendiente) y el próximo miércoles de pago.
 - Si un gerente cambia de rol o se desactiva con dinero pendiente, sigue apareciendo en Pagos hasta que se le pague.
+- **Pago por día variable (13-nov)**: `CAMPO_PAGO_DIA` queda en $250 como valor base. Como el pago depende de la
+  ubicación, el Director escribe el monto de cada día al aprobar la foto; el campo trae la tarifa base. El analista
+  aprueba con la tarifa base. Mientras la semana no se pague, el Director puede corregir el monto de cada día aprobado
+  en Pagos de campo; la bitácora guarda el cambio. Lo que ya se pagó no se puede cambiar.

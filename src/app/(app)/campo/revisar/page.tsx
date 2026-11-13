@@ -92,7 +92,13 @@ export default async function RevisarCampo() {
                   <p className="font-medium text-ink">{j.gerente.nombre} · {dia(j.fecha)}</p>
                   <p className="text-ink-muted">{j.lugar}, {j.municipio}</p>
                   <div className="flex flex-wrap items-start gap-3">
-                    <FormularioAccion accion={revisarJornada.bind(null, j.id, true)} boton={`Aprobar día${tarifa.diaCent ? ` (${mxn(tarifa.diaCent / 100)})` : ""}`} className="grid gap-2"><span className="sr-only">Aprobar</span></FormularioAccion>
+                    {s.usuario.rol === "director" ? (
+                      <FormularioAccion accion={revisarJornada.bind(null, j.id, true)} boton="Aprobar día" etiquetas={{ monto: "Pago de este día" }} className="grid gap-2">
+                        <CampoTexto id="monto" etiqueta="Pago de este día (pesos)" inputMode="decimal" valor={(tarifa.diaCent / 100).toFixed(2)} />
+                      </FormularioAccion>
+                    ) : (
+                      <FormularioAccion accion={revisarJornada.bind(null, j.id, true)} boton={`Aprobar día${tarifa.diaCent ? ` (${mxn(tarifa.diaCent / 100)})` : ""}`} className="grid gap-2"><span className="sr-only">Aprobar</span></FormularioAccion>
+                    )}
                     <FormularioAccion accion={revisarJornada.bind(null, j.id, false)} boton="No cuenta" etiquetas={{ motivo: "Motivo" }} className="grid gap-2 [&_button]:bg-critico">
                       <CampoTexto id="motivo" etiqueta="Motivo" placeholder="No se ve el módulo" />
                     </FormularioAccion>

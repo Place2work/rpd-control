@@ -12,7 +12,7 @@ import { mxn } from "@/lib/formato";
 import { hoyCDMX } from "@/lib/tiempo";
 import { CampoTexto } from "../../casos/[id]/campos";
 import { FormularioAccion } from "../../casos/[id]/formulario-accion";
-import { pagarSemanaCampo } from "../acciones";
+import { ajustarPagoDia, pagarSemanaCampo } from "../acciones";
 
 const plural = (k: number, uno: string, varios: string) => `${k} ${k === 1 ? uno : varios}`;
 export const metadata: Metadata = { title: "Pagos de campo" };
@@ -36,6 +36,8 @@ export default async function PagosCampo() {
       gerentes: await Promise.all(gerentes.map(async (g) => ({
         ...g,
         liquidaciones: await liquidacionesDe(tx, g.id, tarifa.diasParaPago),
+        dias: await tx.campoJornada.findMany({ where: { gerente_id: g.id, estado: "aprobada", pago_id: null }, orderBy: { fecha: "asc" },
+          select: { id: true, fecha: true, municipio: true, lugar: true, monto_cent: true } }),
         pendientes: await tx.campoProspecto.count({ where: { gerente_id: g.id, estado: "pendiente", archivado_at: null } }),
         totales: await tx.campoProspecto.groupBy({ by: ["estado"], where: { gerente_id: g.id, archivado_at: null }, _count: { _all: true } }),
       }))),
@@ -77,6 +79,17 @@ export default async function PagosCampo() {
                           </FormularioAccion>
                         ) : <Badge tono="espera">Semana en curso</Badge>}
                       </div>
+                      {l.dias.length > 0 && (
+                        <div className="grid w-full gap-2 border-t border-borde pt-3">
+                          <p className="text-xs text-ink-muted">Pago por día (puedes cambiarlo según la ubicación antes de pagar):</p>
+                          {g.dias.filter((x) => l.dias.includes(x.id)).map((x) => (
+                            <FormularioAccion key={x.id} accion={ajustarPagoDia.bind(null, x.id)} boton="Guardar" etiquetas={{ monto: "Pago" }} className="flex flex-wrap items-end gap-2">
+                              <span className="min-w-48 self-center text-sm text-ink">{dia(isoDb(x.fecha))} · {x.lugar}, {x.municipio}</span>
+                              <CampoTexto id="monto" etiqueta="Pago (pesos)" inputMode="decimal" valor={(Number(x.monto_cent ?? 0) / 100).toFixed(2)} />
+                            </FormularioAccion>
+                          ))}
+                        </div>
+                      )}
                     </div>
                   );
                 })}

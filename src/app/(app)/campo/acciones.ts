@@ -9,7 +9,7 @@ import { conUsuario } from "@/lib/db/prisma";
 import { permisoDeOtro } from "@/lib/academia/permisos";
 import { prepararSubida, type Subida } from "@/lib/documentos/almacen";
 import { liquidacionesDe, tarifasCampo } from "@/lib/campo/datos";
-import { semanaCerrada, whatsappMx } from "@/lib/reglas/campo";
+import { centavos, semanaCerrada, whatsappMx } from "@/lib/reglas/campo";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "../casos/[id]/acciones";
 
@@ -17,6 +17,12 @@ const txt = (f: FormData, k: string) => String(f.get(k) ?? "").trim();
 const UUID = /^[0-9a-f-]{36}$/i;
 const fechaDb = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const revisores = new Set(["director", "asesor"]);
+/** Monto del día escrito por el Director (varía por ubicación). Vacío = usar la tarifa vigente. */
+function montoDia(form: FormData): { cent: number | null } | { error: string } {
+  const v = txt(form, "monto");
+  if (!v) return { cent: null };
+  try { return { cent: centavos(v) }; } catch { return { error: "Escribe el monto en pesos, por ejemplo 250 o 300.50" }; }
+}
 const refrescar = () => { revalidatePath("/campo"); revalidatePath("/campo/revisar"); revalidatePath("/campo/pagos"); };
 
 // ───────────── Gerente de campo ─────────────
@@ -145,9 +151,26 @@ export async function revisarJornada(id: string, aprobar: boolean, _p: Resultado
   const j = await conUsuario(s.claims, (tx) => tx.campoJornada.findUnique({ where: { id }, select: { estado: true, fecha: true } }), s.ip);
   if (!j || j.estado !== "pendiente") return { error: "Ese día ya se revisó." };
   const tarifa = await tarifasCampo(j.fecha.toISOString().slice(0, 10));
+  // El Director puede poner otro monto para ese día (depende de la ubicación); el analista aprueba con la tarifa vigente.
+  const m = aprobar && s.usuario.rol === "director" ? montoDia(form) : { cent: null };
+  if ("error" in m) return { errores: { monto: m.error } };
   await conUsuario(s.claims, (tx) => tx.campoJornada.update({ where: { id }, select: { id: true }, data: aprobar
-    ? { estado: "aprobada", revisada_por: s.usuario.id, revisada_at: new Date(), monto_cent: tarifa.diaCent }
+    ? { estado: "aprobada", revisada_por: s.usuario.id, revisada_at: new Date(), monto_cent: m.cent ?? tarifa.diaCent }
     : { estado: "rechazada", motivo, revisada_por: s.usuario.id, revisada_at: new Date() } }), s.ip);
+  refrescar();
+  return { ok: true };
+}
+
+/** El Director corrige el pago de un día ya aprobado mientras no se haya pagado (la bitácora guarda el cambio). */
+export async function ajustarPagoDia(id: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await obtenerSesion();
+  if (s.usuario.rol !== "director") return { error: "Solo el Director cambia el pago de un día." };
+  if (!UUID.test(id)) return { error: "Datos no válidos." };
+  const m = montoDia(form);
+  if ("error" in m) return { errores: { monto: m.error } };
+  if (m.cent === null) return { errores: { monto: "Escribe el monto" } };
+  const n = await conUsuario(s.claims, (tx) => tx.campoJornada.updateMany({ where: { id, estado: "aprobada", pago_id: null }, data: { monto_cent: m.cent } }), s.ip);
+  if (!n.count) return { error: "Ese día ya se pagó o no está aprobado." };
   refrescar();
   return { ok: true };
 }
