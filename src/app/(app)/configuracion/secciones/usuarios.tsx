@@ -10,7 +10,7 @@ import { verComo } from "../../acciones";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 
 // Llevan cuenta: Analista de expedientes, Asesor de pensiones y Director. El referidor no entra al sistema.
-const ROLES = [["asesor", "Analista de expedientes"], ["socio", "Asesor de pensiones"], ["director", "Director"]] as const;
+const ROLES = [["asesor", "Analista de expedientes"], ["socio", "Asesor de pensiones"], ["campo", "Gerente de campo"], ["director", "Director"]] as const;
 const QUE_VE: Record<string, string> = {
   director: "Todo, incluida Configuración, dinero y comisiones de todos.",
   asesor: "Todos los casos y el expediente completo; no ve márgenes ni Configuración.",

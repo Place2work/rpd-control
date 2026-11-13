@@ -18,18 +18,18 @@ const dirLocal = () => process.env.RPD_ALMACEN_LOCAL ?? path.join(tmpdir(), "rpd
 const firmaLocal = (ruta: string) => createHmac("sha256", process.env.HMAC_LLAVE ?? "demo").update(ruta).digest("hex").slice(0, 32);
 export const rutaLocalValida = (ruta: string) => /^[0-9a-f-]{36}\/[0-9a-f-]{36}\.[a-z]{3,4}$/.test(ruta);
 
-export async function prepararSubida(ruta: string): Promise<Subida> {
+export async function prepararSubida(ruta: string, bucket = BUCKET): Promise<Subida> {
   if (modoDemo()) return { modo: "local", ruta, url: `/api/demo/almacen?ruta=${encodeURIComponent(ruta)}&firma=${firmaLocal(ruta)}` };
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUploadUrl(ruta);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUploadUrl(ruta);
   if (error || !data) throw new Error(`No se pudo preparar la subida: ${error?.message}`);
   return { modo: "supabase", ruta: data.path, token: data.token };
 }
 
-export async function urlLectura(ruta: string): Promise<string> {
+export async function urlLectura(ruta: string, bucket = BUCKET): Promise<string> {
   if (modoDemo()) return `/api/demo/almacen?ruta=${encodeURIComponent(ruta)}&firma=${firmaLocal(ruta)}`;
   const supabase = await crearClienteServidor();
-  const { data, error } = await supabase.storage.from(BUCKET).createSignedUrl(ruta, MINUTOS_URL * 60);
+  const { data, error } = await supabase.storage.from(bucket).createSignedUrl(ruta, MINUTOS_URL * 60);
   if (error || !data) throw new Error(`No se pudo abrir el documento: ${error?.message}`);
   return data.signedUrl;
 }

@@ -6,6 +6,7 @@ import {
   GraduationCap,
   HandCoins,
   LayoutDashboard,
+  MapPin,
   type LucideIcon,
   BarChart3,
   Settings,
@@ -20,6 +21,7 @@ const TODOS: Rol[] = ["director", "asesor", "vendedor", "socio"];
 
 // Sección 10. En celular, la barra inferior lleva Hoy, Prospectos, Casos, Calendario y "Más".
 export const MODULOS: Modulo[] = [
+  { href: "/campo", titulo: "Campo", icono: MapPin, roles: ["campo"], movil: true },
   { href: "/hoy", titulo: "Hoy", icono: LayoutDashboard, roles: TODOS, movil: true },
   { href: "/prospectos", titulo: "Prospectos", icono: UserPlus, roles: TODOS, movil: true },
   { href: "/casos", titulo: "Casos", icono: FolderKanban, roles: TODOS, movil: true },
@@ -27,6 +29,7 @@ export const MODULOS: Modulo[] = [
   { href: "/clientes-cerrados", titulo: "Clientes cerrados", icono: CircleCheckBig, roles: TODOS },
   { href: "/dinero", titulo: "Dinero", icono: Banknote, roles: ["director", "asesor", "socio"] },
   { href: "/comisiones", titulo: "Comisiones", icono: HandCoins, roles: TODOS },
+  { href: "/campo/revisar", titulo: "Prospectos de campo", icono: MapPin, roles: ["director", "asesor"] },
   { href: "/asesores", titulo: "Asesores y referidores", icono: Users, roles: ["director", "asesor"] },
   { href: "/academia", titulo: "Academia", icono: GraduationCap, roles: ["director", "asesor", "socio"] },
   { href: "/reportes", titulo: "Reportes", icono: BarChart3, roles: ["director", "asesor"] },
@@ -38,4 +41,5 @@ export const ETIQUETA_ROL: Record<Rol, string> = {
   asesor: "Analista de expedientes",
   vendedor: "Vendedor",
   socio: "Asesor de pensiones",
+  campo: "Gerente de campo",
 };

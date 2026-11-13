@@ -25,6 +25,7 @@ export const GRUPOS: { titulo: string; prefijos: string[] }[] = [
   { titulo: "Plazos y alertas", prefijos: ["VIGENCIA_", "SLA_", "AFORE_", "HORA_", "AVISO_", "ARCO_", "RETENCION_"] },
   { titulo: "Dinero y comisiones", prefijos: ["IVA", "BASE_", "COSTO_ADMIN", "FALLEC_COMISION"] },
   { titulo: "Pensión y Modalidad 40", prefijos: ["M40_", "VENTANA_", "CONSERVACION_", "INFONAVIT_"] },
+  { titulo: "Gerente de campo", prefijos: ["CAMPO_"] },
   { titulo: "Contratos y prestador", prefijos: ["PRESTADOR_", "CONTRATO_", "FALLEC_HONORARIO", "FALLEC_REGIMEN", "PRIVACIDAD_"] },
 ];
 
@@ -48,6 +49,7 @@ export function validarValor(clave: string, tipo: TipoParametro, entrada: string
       n = Math.round((n / 100) * 1e6) / 1e6;
     }
     if (tipo === "entero" && !Number.isInteger(n)) return { ok: false, error: "Debe ser un número entero" };
+    if (clave.startsWith("CAMPO_PAGO")) n = Math.round(n * 100) / 100; // pesos con centavos
     return { ok: true, valor: String(n) };
   }
   if (tipo === "json") {

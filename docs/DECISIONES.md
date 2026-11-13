@@ -679,3 +679,32 @@ Los documentos de clientes no se guardan en el repositorio: se convirtieron en p
   (cualquier solicitud con más de `CAP_SOLICITUD_DIAS`, 3), CAP_ACTUALIZACION_PENDIENTE (días de
   `CAP_ACTUALIZACION_RECORDATORIOS`, 7,21,28; crítica el último), CAP_PREGUNTAS_REVISAR (Director) y CAP_METRICA_BAJA
   (una vez por semana). Si la parte de la Academia falla, las alertas de casos corren igual.
+
+## 13-nov-2026 · Gerente de campo
+
+Nuevo rol `campo` («Gerente de campo»): levanta prospectos en la calle (municipios, con módulo, banner y volantes).
+Respuestas del Director: 1A, 2A, 3A, 4A.
+
+- **Qué se paga (1A)**: solo los prospectos que el analista (rol asesor) o el Director **verifica**, es decir, datos
+  reales, sin repetir y que contestó. «No contestó» suma un intento y lo deja pendiente. «No cuenta» lo rechaza con
+  motivo y no se paga.
+- **Pago por día (2A)**: un día cuenta cuando el gerente sube la foto del módulo (lugar y municipio) y el analista o el
+  Director la aprueba. Hay una foto por día; si se la rechazan, puede subir otra ese mismo día. Las fotos van al bucket
+  privado `campo`, en la carpeta del gerente.
+- **Tarifa (3A)**: es la misma para todos los gerentes y se cambia en Configuración con vigencia. `CAMPO_PAGO_PROSPECTO`
+  empieza en $20 y `CAMPO_PAGO_DIA` en $0, hasta que el Director lo defina. El monto queda guardado al verificar o
+  aprobar, con la tarifa vigente el día en que se levantó el prospecto o se trabajó el día; si la tarifa cambia
+  después, lo ya verificado no cambia.
+- **Semana y pago (4A)**: la semana va de lunes a domingo y cuenta la fecha en que se **verificó o aprobó**. Se paga
+  `CAMPO_DIAS_PARA_PAGO` (3) días después del domingo, es decir, el miércoles. El Director marca la semana como
+  pagada en Prospectos de campo → Pagos, con referencia opcional, solo cuando la semana ya cerró. El pago guarda las
+  cantidades y los montos, y liga cada prospecto y día. Solo el Director puede ligar un pago.
+- **Separado de los clientes**: los prospectos del gerente viven en `campo_prospectos`. El gerente no ve clientes
+  (personas ni casos) ni datos sensibles: solo captura nombre, WhatsApp, municipio y, si quiere, lugar, servicio,
+  fecha de baja y notas. Al verificarlo, el analista crea la persona (origen `campo`) y el caso en «Prospecto», y puede
+  asignarlo a un asesor de pensiones. Para pensión se exige P1, como en el resto.
+- **Repetidos**: un WhatsApp que ya existe en clientes o en prospectos de campo vivos se rechaza al capturarlo, y otra
+  vez al verificarlo.
+- **Proyección del gerente**: su pantalla muestra «Por cobrar» (lo verificado sin pagar, por ejemplo
+  100 × $20 = $2,000), «En revisión» (lo que cobraría si se verifica lo pendiente) y el próximo miércoles de pago.
+- Si un gerente cambia de rol o se desactiva con dinero pendiente, sigue apareciendo en Pagos hasta que se le pague.

@@ -1,3 +1,4 @@
+import { redirect } from "next/navigation";
 import { CalendarClock, Filter, LineChart } from "lucide-react";
 import { GraficaBarras } from "@/components/rpd/grafica-barras";
 import { GraficaCascada, GraficaFlujo } from "@/components/rpd/grafica-finanzas";
@@ -35,6 +36,8 @@ const ANTES_DE_INGRESAR = new Set([...ETAPAS_PROSPECTO, "CONTRATO", "EXPEDIENTE"
 export default async function Hoy() {
   const sesion = await obtenerSesion();
   const { usuario } = sesion;
+  // El gerente de campo solo usa su módulo.
+  if (usuario.rol === "campo") redirect("/campo");
   const hoy = hoyCDMX();
   // El vendedor no ve dinero (10.6); para él la fila de indicadores solo lleva el embudo.
   const veDinero = usuario.rol !== "vendedor";

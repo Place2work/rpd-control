@@ -28,6 +28,7 @@ enum Rol {
   asesor
   vendedor
   socio
+  campo
 
   @@schema("public")
 }
@@ -41,6 +42,7 @@ enum Origen {
   facebook
   google
   otro
+  campo
 
   @@schema("public")
 }
@@ -304,6 +306,9 @@ model Usuario {
   cap_diagnosticos CapDiagnosticoValidado[] @relation("CapDiagnosticos")
   cap_entrevistas  CapEntrevista[]          @relation("CapEntrevistas")
   cap_incidencias  CapIncidencia[]          @relation("CapIncidencias")
+  campo_pagos      CampoPago[]              @relation("CampoPagos")
+  campo_prospectos CampoProspecto[]         @relation("CampoProspectos")
+  campo_jornadas   CampoJornada[]           @relation("CampoJornadas")
   cap_solicitudes  CapSolicitud[]           @relation("CapSolicitudes")
 
   @@index([socio_id])
@@ -558,6 +563,7 @@ model Caso {
   cap_shadowing    CapShadowing[]           @relation("CapShadowingCaso")
   cap_diagnosticos CapDiagnosticoValidado[] @relation("CapDiagnosticosCaso")
   cap_incidencias  CapIncidencia[]          @relation("CapIncidenciasCaso")
+  campo_prospectos CampoProspecto[]         @relation("CampoProspectoCaso")
 
   @@index([etapa])
   @@index([asignado_a])
@@ -1405,6 +1411,85 @@ model CapRepaso {
   archivado_at  DateTime? @db.Timestamptz(6)
 
   @@map("cap_repasos")
+  @@schema("public")
+}
+
+// Gerente de campo: prospectos levantados en la calle, días trabajados (foto del módulo) y pagos semanales.
+model CampoPago {
+  id                    String   @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gerente_id            String   @db.Uuid
+  semana_inicio         DateTime @db.Date
+  semana_fin            DateTime @db.Date
+  fecha_pago            DateTime @db.Date
+  prospectos            Int
+  dias                  Int
+  monto_prospectos_cent BigInt
+  monto_dias_cent       BigInt
+  total_cent            BigInt
+  referencia            String?
+  pagado_por            String   @db.Uuid
+  pagado_at             DateTime @default(now()) @db.Timestamptz(6)
+  created_at            DateTime @default(now()) @db.Timestamptz(6)
+
+  gerente            Usuario          @relation("CampoPagos", fields: [gerente_id], references: [id])
+  prospectos_pagados CampoProspecto[]
+  jornadas           CampoJornada[]
+
+  @@unique([gerente_id, semana_fin])
+  @@map("campo_pagos")
+  @@schema("public")
+}
+
+model CampoProspecto {
+  id                String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gerente_id        String    @default(dbgenerated("auth.uid()")) @db.Uuid
+  nombre            String
+  whatsapp          String
+  municipio         String
+  lugar             String?
+  tipo_servicio     String?
+  fecha_baja        DateTime? @db.Date
+  notas             String?
+  fecha_registro    DateTime  @default(dbgenerated("((now() AT TIME ZONE 'America/Mexico_City'::text))::date")) @db.Date
+  estado            String    @default(dbgenerated("'pendiente'::text")) // pendiente | verificado | rechazado
+  motivo_rechazo    String?
+  intentos          Int       @default(dbgenerated("0"))
+  ultimo_intento_at DateTime? @db.Timestamptz(6)
+  verificado_por    String?   @db.Uuid
+  verificado_at     DateTime? @db.Timestamptz(6)
+  monto_cent        BigInt?
+  caso_id           String?   @db.Uuid
+  pago_id           String?   @db.Uuid
+  created_at        DateTime  @default(dbgenerated("now()")) @db.Timestamptz(6)
+  archivado_at      DateTime? @db.Timestamptz(6)
+
+  gerente Usuario    @relation("CampoProspectos", fields: [gerente_id], references: [id])
+  caso    Caso?      @relation("CampoProspectoCaso", fields: [caso_id], references: [id])
+  pago    CampoPago? @relation(fields: [pago_id], references: [id])
+
+  @@map("campo_prospectos")
+  @@schema("public")
+}
+
+model CampoJornada {
+  id           String    @id @default(dbgenerated("gen_random_uuid()")) @db.Uuid
+  gerente_id   String    @default(dbgenerated("auth.uid()")) @db.Uuid
+  fecha        DateTime  @default(dbgenerated("((now() AT TIME ZONE 'America/Mexico_City'::text))::date")) @db.Date
+  municipio    String
+  lugar        String
+  foto_path    String
+  estado       String    @default(dbgenerated("'pendiente'::text")) // pendiente | aprobada | rechazada
+  motivo       String?
+  revisada_por String?   @db.Uuid
+  revisada_at  DateTime? @db.Timestamptz(6)
+  monto_cent   BigInt?
+  pago_id      String?   @db.Uuid
+  created_at   DateTime  @default(dbgenerated("now()")) @db.Timestamptz(6)
+
+  gerente Usuario    @relation("CampoJornadas", fields: [gerente_id], references: [id])
+  pago    CampoPago? @relation(fields: [pago_id], references: [id])
+
+  @@map("campo_jornadas")
   @@schema("public")
 }
 

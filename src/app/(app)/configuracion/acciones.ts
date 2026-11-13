@@ -98,7 +98,7 @@ export async function cambiarInhabil(fecha: string, activo: boolean): Promise<Re
 // ───────────── Usuarios ─────────────
 
 // Tres esquemas: Analista de expedientes (asesor), Asesor de pensiones (socio, con su ficha de reparto) y referidor (sin cuenta).
-const ROLES = ["director", "asesor", "socio"] as const;
+const ROLES = ["director", "asesor", "socio", "campo"] as const;
 const esquemaUsuario = z.object({
   nombre: z.string().min(3, "Escribe el nombre completo").max(120),
   rol: z.enum(ROLES, { message: "Elige el rol" }),

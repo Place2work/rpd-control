@@ -2,7 +2,7 @@
 // puede pasar a una etapa y, si no, qué le falta, en lenguaje para el asesor.
 import type { Candado } from "./fechas";
 
-export type Rol = "director" | "asesor" | "vendedor" | "socio";
+export type Rol = "director" | "asesor" | "vendedor" | "socio" | "campo";
 export type Embudo = "retiro" | "pension";
 
 export const ETAPAS_RETIRO = [
