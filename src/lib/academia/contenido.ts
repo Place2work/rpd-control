@@ -318,6 +318,11 @@ export const MODULOS: Modulo[] = [
   "version": 1,
   "parametros": [],
   "fuentes": [],
+  "video": {
+   "archivo": "R1-05.mp4",
+   "duracion_seg": 142,
+   "titulo": "Las 7 preguntas en orden y los 6 resultados"
+  },
   "contenido": "**Orden de preguntas en el primer contacto** (el asistente del CRM las hace en este orden):\n\n1. ¿Cuándo te dieron de baja? (fecha exacta)\n2. ¿Estás trabajando hoy, en una empresa o en el gobierno? ¿A qué institución te descuentan?\n3. ¿Ya has retirado de tu Afore antes? ¿Cuándo?\n4. ¿Empezaste a trabajar antes de julio de 1997? (régimen)\n5. ¿Qué edad tienes? (55+ y Ley 73 → probable desvío a pensión)\n6. ¿Tienes tu constancia de semanas y tu estado de cuenta de la Afore?\n7. ¿Tienes aportaciones voluntarias?\n\n**Los 6 resultados** (el sistema los evalúa en este orden; gana el primero que se cumple):\n\n| # | Resultado | Qué significa | Qué haces |\n|---|---|---|---|\n| 1 | `NO_ELEGIBLE_DEFINITIVO` | Constancia en ceros sin explicación, o cuenta que no llega a 3 años sin posibilidad de completarla | Explicas por qué, agradeces y archivas con motivo |\n| 2 | `NO_ELEGIBLE_DESVIO` | No califica al retiro pero sí a otro servicio (Ley 73 con 55+, NSS duplicado, voluntarias, M40/M10, Infonavit) | Ofreces el servicio sugerido; el sistema crea el caso |\n| 3 | `NO_TODAVIA` | Cotiza hoy, o el día 46 o el candado de 5 años están en el futuro, o le faltan meses para los 3 años | Le das **la fecha** y queda en espera con alerta |\n| 4 | `APTO_BLOQUEADO` | Todo cumple, pero falta verificar el último retiro, el IDE o la cuenta está \"asignada\" | Pides el documento o la cita que falta |\n| 5 | `CALIFICA_NO_CONVIENE` | Califica, pero las semanas que pierde ponen en riesgo su pensión | **Le dices que no le conviene** y ofreces asesoría de pensión |\n| 6 | `APTO` | Todo lo demás | Generas contrato |\n\n**No hay monto mínimo de retiro para tomar un caso.** (La regla anterior de \"no tomar si el retiro\nes menor al honorario\" ya no aplica.)\n"
  },
  {

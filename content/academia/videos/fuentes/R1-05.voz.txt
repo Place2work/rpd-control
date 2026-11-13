@@ -1,0 +1,12 @@
+Precalificación: las preguntas en orden y los seis resultados. El asistente del sistema las hace en este mismo orden; síguelo tal cual.
+Primero: ¿cuándo te dieron de baja?, con la fecha exacta. Segundo: ¿estás trabajando hoy, en una empresa o en el gobierno? Tercero: ¿ya has retirado de tu Afore antes, y cuándo?
+Cuarto: ¿empezaste a trabajar antes de julio de mil novecientos noventa y siete? Eso define el régimen. Quinto: ¿qué edad tienes? Cincuenta y cinco o más, con Ley setenta y tres, es un probable desvío a pensión.
+Sexto: ¿tienes tu constancia de semanas y tu estado de cuenta de la Afore? Y séptimo: ¿tienes aportaciones voluntarias?
+Con las respuestas, el sistema evalúa seis resultados en orden, y gana el primero que se cumple.
+Uno: no elegible definitivo. Constancia en ceros sin explicación, o una cuenta que no llega a tres años sin forma de completarlos. Explicas por qué, agradeces y archivas con motivo.
+Dos: no elegible, desvío. No califica al retiro, pero sí a otro servicio. Por ejemplo, Ley setenta y tres con cincuenta y cinco o más, NSS duplicado o aportaciones voluntarias. Ofreces el servicio sugerido y el sistema crea el caso.
+Tres: no todavía. Cotiza hoy, el día cuarenta y seis o el candado de cinco años están en el futuro, o le faltan meses para los tres años. Le das la fecha, y queda en espera con alerta.
+Cuatro: apto bloqueado. Todo cumple, pero falta verificar el último retiro o el IDE, o la cuenta está asignada. Pides el documento o la cita que falta.
+Cinco: califica, pero no conviene. Las semanas que pierde ponen en riesgo su pensión. Le dices que no le conviene, y ofreces asesoría de pensión.
+Seis: apto. Todo lo demás. Generas el contrato.
+Y recuerda: no hay monto mínimo de retiro para tomar un caso.
