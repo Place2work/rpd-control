@@ -1,0 +1,7 @@
+El sistema RPD Control: cómo operarlo desde el celular, del alta del prospecto a tu estado de cuenta.
+El alta rápida toma menos de treinta segundos: nombre, WhatsApp, servicio de interés, fecha de baja si la sabe, origen y referidor. El sistema te avisa si el teléfono, la CURP o el NSS ya existen.
+Las etapas del retiro: prospecto, precalificado, en espera si aplica, contrato firmado, armando expediente, ingresada a Afore, resolución, pagado por Afore y honorario cobrado. Bloqueado y perdido son estados aparte, siempre con motivo.
+Las alertas que te llegan: prospecto sin contacto, a las veinticuatro horas sin movimiento; prospecto frío, a los catorce días; y las del día cuarenta y seis, próximo y hoy. Cada una se atiende, se pospone o se descarta con motivo.
+Las plantillas de WhatsApp: bienvenida y aviso de privacidad, documentos pendientes, faltan tantos días, ya puedes retirar, y solicitud de referidos.
+Y tu estado de cuenta de comisiones te muestra las estimadas, las devengadas y las pagadas.
+Para practicar, haz un recorrido con un prospecto ficticio, desde el alta hasta la alerta del día cuarenta y seis.
