@@ -1,0 +1,9 @@
+Expediente, portal y plazos: lo que tumba un trámite, y los únicos plazos que le puedes decir al cliente.
+El expediente del retiro lleva cinco documentos: identificación oficial vigente y legible; comprobante de domicilio de máximo tres meses; estado de cuenta de la Afore; constancia de semanas; y estado de cuenta bancario de una cuenta nivel cuatro a nombre del cliente. Las cuentas solo digitales suelen fallar.
+Todas las fotos van a color, desde el celular, sin tachaduras ni enmendaduras. De preferencia de doscientos cincuenta y seis kilobytes o más; si pesa menos, el sistema la sube con aviso y quien valida revisa que se lea.
+Revisa en el estado de cuenta que la cuenta esté registrada y no asignada. Una cuenta asignada no puede retirar.
+La constancia de semanas la puedes pedir desde el caso, con el botón pedir constancia al IMSS, en el portal oficial y con el correo de constancias de la empresa. Llega sola a Documentos.
+El bloqueo más común es el expediente de identificación, el IDE. Sin biometría registrada, el portal no avanza y manda al cliente a cita presencial. La cita se agenda como expediente de identificación, no como retiro parcial por desempleo, o lo regresan.
+Los plazos que sí puedes decir: la firma ingresa la solicitud en máximo quince días hábiles desde que el expediente está completo, y la Afore tiene cinco días hábiles para resolver, según su acuse.
+El contrato vale ciento ochenta días naturales, y el conteo se suspende mientras falten documentos del cliente.
+Y nunca prometas plazos más largos, ni digas en treinta días te paga. Genera riesgo legal.

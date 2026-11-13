@@ -1,0 +1,214 @@
+<!doctype html>
+<html lang="es-MX">
+<head>
+<meta charset="utf-8">
+<!-- Fuente del video de la lección R1-06. Duraciones ajustadas a la voz (R1-06.voz.txt, una línea por escena).
+     Para regenerarlo: node scripts/academia-video.cjs R1-06 --voz <pista.wav> -->
+<title>R1-06 · Expediente, portal y plazos</title>
+<style>
+@font-face { font-family: Poppins; font-weight: 500; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-500-normal.woff) format("woff"); }
+@font-face { font-family: Poppins; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/poppins-latin-600-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 400; src: url(../../../../src/lib/pdf/fuentes/inter-latin-400-normal.woff) format("woff"); }
+@font-face { font-family: Inter; font-weight: 600; src: url(../../../../src/lib/pdf/fuentes/inter-latin-600-normal.woff) format("woff"); }
+:root { --azul: #004aad; --azul-osc: #00357d; --azul-tinte: #e8f0fb; --verde: #5e9e3a; --verde-txt: #3f7a24; --verde-tinte: #eef6e9;
+  --tinta: #0f172a; --gris: #64748b; --borde: #e2e8f0; --rojo: #b42318; --rojo-tinte: #fef3f2; --fondo: #f6f8fc; }
+* { box-sizing: border-box; margin: 0; }
+html, body { width: 1920px; height: 1080px; overflow: hidden; background: var(--fondo); font-family: Inter, sans-serif; color: var(--tinta); }
+.marco { position: absolute; inset: 0; }
+header { position: absolute; top: 0; left: 0; right: 0; height: 96px; display: flex; align-items: center; justify-content: space-between; padding: 0 72px; background: #fff; border-bottom: 1px solid var(--borde); }
+.marca { font-family: Poppins; color: var(--azul); line-height: 1; }
+.marca b { display: block; font-size: 34px; font-weight: 600; letter-spacing: -0.5px; }
+.marca span { font-size: 19px; font-weight: 600; } .marca small { font-size: 13px; font-weight: 500; } .marca i { font-style: normal; color: var(--verde); }
+.leccion { font-family: Poppins; font-weight: 500; font-size: 22px; color: var(--gris); }
+.leccion strong { color: var(--azul); font-weight: 600; }
+.escena { position: absolute; top: 96px; left: 0; right: 0; bottom: 150px; padding: 56px 120px; display: flex; flex-direction: column; justify-content: center; gap: 28px; opacity: 0; }
+.paso { font-family: Poppins; font-weight: 600; font-size: 24px; color: var(--azul); letter-spacing: 1px; text-transform: uppercase; }
+h1 { font-family: Poppins; font-weight: 600; font-size: 76px; line-height: 1.1; letter-spacing: -1px; }
+h2 { font-family: Poppins; font-weight: 600; font-size: 54px; line-height: 1.15; }
+p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
+.tarjetas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 28px; }
+.tarjeta { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 32px; }
+.tarjeta .et { font-size: 24px; color: var(--gris); }
+.tarjeta .v { font-family: Poppins; font-weight: 600; font-size: 50px; margin-top: 10px; }
+.formula { font-family: Poppins; font-weight: 600; font-size: 72px; display: flex; align-items: baseline; gap: 28px; flex-wrap: wrap; }
+.formula .op { color: var(--gris); font-weight: 500; }
+.formula .res { color: var(--azul); }
+.caja { background: #fff; border: 1px solid var(--borde); border-radius: 20px; padding: 36px 44px; font-size: 34px; line-height: 1.4; }
+.caja.ok { border-color: var(--verde); background: var(--verde-tinte); color: var(--verde-txt); }
+.caja.alerta { border-color: #f3c27a; background: #fff8eb; }
+.caja.mal { border-color: #f5b5ae; background: var(--rojo-tinte); }
+.caja b { font-family: Poppins; font-weight: 600; }
+.duo { display: grid; grid-template-columns: 1fr 1fr; gap: 36px; }
+.mod { background: #fff; border: 2px solid var(--borde); border-radius: 24px; padding: 40px; }
+.mod.gana { border-color: var(--verde); box-shadow: 0 0 0 6px var(--verde-tinte); }
+.mod .nom { font-family: Poppins; font-weight: 600; font-size: 30px; color: var(--gris); }
+.mod .monto { font-family: Poppins; font-weight: 600; font-size: 88px; margin-top: 8px; }
+.mod .nota { font-size: 26px; color: var(--gris); margin-top: 6px; }
+.barra { height: 64px; border-radius: 14px; background: var(--azul-tinte); position: relative; overflow: hidden; }
+.barra .relleno { position: absolute; left: 0; top: 0; bottom: 0; background: var(--azul); border-radius: 14px; }
+.lista { display: grid; gap: 22px; }
+.lista .caja { font-size: 30px; padding: 26px 36px; }
+.subtitulo { position: absolute; left: 0; right: 0; bottom: 0; height: 150px; background: var(--tinta); color: #fff; display: flex; align-items: center; justify-content: center; padding: 0 140px; text-align: center; font-size: 36px; line-height: 1.3; }
+.progreso { position: absolute; left: 0; bottom: 150px; height: 6px; background: var(--verde); }
+
+.linea { position: relative; height: 260px; margin-top: 10px; }
+.linea .eje { position: absolute; left: 0; right: 0; top: 120px; height: 8px; background: var(--borde); border-radius: 4px; }
+.linea .avance { position: absolute; left: 0; top: 120px; height: 8px; background: var(--azul); border-radius: 4px; }
+.hito { position: absolute; top: 0; width: 360px; margin-left: -180px; text-align: center; }
+.hito .punto { width: 34px; height: 34px; border-radius: 50%; background: #fff; border: 6px solid var(--azul); margin: 107px auto 18px; }
+.hito.verde .punto { border-color: var(--verde); }
+.hito .f { font-family: Poppins; font-weight: 600; font-size: 38px; }
+.hito .e { font-size: 24px; color: var(--gris); margin-top: 4px; }
+.hito .arriba { position: absolute; top: 20px; left: 0; right: 0; font-family: Poppins; font-weight: 600; font-size: 26px; color: var(--azul); }
+.num { display: inline-flex; width: 64px; height: 64px; border-radius: 50%; background: var(--azul); color: #fff; font-family: Poppins; font-weight: 600; font-size: 34px; align-items: center; justify-content: center; margin-right: 18px; vertical-align: middle; }
+table.mods { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--borde); border-radius: 20px; overflow: hidden; font-size: 28px; }
+table.mods th, table.mods td { padding: 22px 28px; text-align: left; border-bottom: 1px solid var(--borde); vertical-align: top; line-height: 1.35; }
+table.mods th { font-family: Poppins; font-weight: 600; font-size: 30px; background: var(--azul-tinte); color: var(--azul); }
+table.mods td:first-child { color: var(--gris); width: 220px; }
+table.mods tr:last-child td { border-bottom: 0; }
+.checks { display: grid; gap: 16px; font-size: 32px; }
+.checks div { background: #fff; border: 1px solid var(--borde); border-radius: 16px; padding: 18px 28px; }
+.checks b { color: var(--verde-txt); font-family: Poppins; }
+
+.semanas { position: relative; height: 90px; border-radius: 16px; background: var(--azul); overflow: hidden; }
+.semanas .pierde { position: absolute; right: 0; top: 0; bottom: 0; background: var(--rojo); opacity: .9; }
+.leyenda { display: flex; justify-content: space-between; font-family: Poppins; font-weight: 600; font-size: 32px; margin-top: 14px; }
+.leyenda .r { color: var(--rojo); }
+.cita { font-family: Poppins; font-weight: 500; font-size: 40px; line-height: 1.35; color: var(--azul); background: #fff; border-left: 10px solid var(--azul); border-radius: 0 20px 20px 0; padding: 30px 40px; }
+.nunca { display: grid; gap: 18px; }
+.nunca div { font-family: Poppins; font-weight: 600; font-size: 40px; color: var(--rojo); background: var(--rojo-tinte); border: 1px solid #f5b5ae; border-radius: 18px; padding: 22px 34px; text-decoration: line-through; text-decoration-thickness: 3px; }
+
+.anios { display: grid; grid-template-columns: repeat(6, 1fr); gap: 18px; }
+.anios > div { background: #fff; border: 1px solid var(--borde); border-radius: 18px; padding: 22px; text-align: center; }
+.anios .a { font-size: 26px; color: var(--gris); }
+.anios .s { font-family: Poppins; font-weight: 600; font-size: 46px; margin-top: 6px; color: var(--azul); }
+.regla { display: grid; grid-template-columns: 1fr 1fr; gap: 24px; }
+.cuentas { font-family: Poppins; font-weight: 600; font-size: 44px; line-height: 1.6; }
+.cuentas .g { color: var(--gris); font-weight: 500; }
+.grande { font-family: Poppins; font-weight: 600; font-size: 96px; }
+
+table.docs { width: 100%; border-collapse: separate; border-spacing: 0; background: #fff; border: 1px solid var(--borde); border-radius: 20px; overflow: hidden; font-size: 30px; }
+table.docs td { padding: 18px 28px; border-bottom: 1px solid var(--borde); line-height: 1.3; }
+table.docs td:first-child { font-family: Poppins; font-weight: 600; width: 46%; }
+table.docs td:last-child { color: var(--gris); }
+table.docs tr:last-child td { border-bottom: 0; }
+</style>
+</head>
+<body>
+<div class="marco">
+  <header>
+    <div class="marca"><b>retiro</b><span><small>por </small>desempleo<i>.com</i></span></div>
+    <div class="leccion">Academia · <strong>R1-06</strong> · Expediente, portal y plazos</div>
+  </header>
+
+  <section class="escena" data-dur="9">
+    <div class="paso" data-at="0">Ruta R1 · Asesor de retiro</div>
+    <h1 data-at="0.3">Expediente, portal<br>y plazos</h1>
+    <p class="sub" data-at="1">Lo que tumba un trámite y los únicos plazos que puedes decir.</p>
+  </section>
+  <section class="escena" data-dur="22">
+    <div class="paso" data-at="0">Checklist del retiro</div>
+    <table class="docs">
+      <tr data-at="1.5"><td>INE (o cédula, pasaporte, cartilla)</td><td>Vigente y legible</td></tr>
+      <tr data-at="4"><td>Comprobante de domicilio</td><td><b style="color:var(--tinta)">Máximo 3 meses</b></td></tr>
+      <tr data-at="6.5"><td>Estado de cuenta de la Afore</td><td>Para el candado y el saldo</td></tr>
+      <tr data-at="8.5"><td>Constancia de semanas</td><td>—</td></tr>
+      <tr data-at="10.5"><td>Estado de cuenta bancario</td><td>Cuenta <b style="color:var(--tinta)">nivel 4</b> a nombre del cliente; las solo digitales suelen fallar</td></tr>
+    </table>
+  </section>
+  <section class="escena" data-dur="17">
+    <div class="paso" data-at="0">Fotos</div>
+    <h2 data-at="0.2">A color, desde el celular, sin tachaduras</h2>
+    <div class="caja" data-at="6">De preferencia de <b>256 KB o más</b>. Si pesa menos, el sistema la sube <b>con aviso</b> y quien valida revisa que se lea.</div>
+  </section>
+  <section class="escena" data-dur="9">
+    <div class="paso" data-at="0">Cuenta en la Afore</div>
+    <div class="duo">
+      <div class="mod gana" data-at="1"><div class="nom">Registrada</div><div class="monto" style="font-size:56px;color:var(--verde-txt)">Sí puede retirar</div></div>
+      <div class="mod" data-at="3.5" style="border-color:#f5b5ae"><div class="nom">Asignada</div><div class="monto" style="font-size:56px;color:var(--rojo)">No puede retirar</div></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="14">
+    <div class="paso" data-at="0">Constancia de semanas</div>
+    <h2 data-at="0.2">«Pedir constancia al IMSS», desde el caso</h2>
+    <div class="caja ok" data-at="7">Portal oficial + correo de constancias de la empresa → <b>llega sola a Documentos</b>.</div>
+  </section>
+  <section class="escena" data-dur="18">
+    <div class="paso" data-at="0">El bloqueo más común</div>
+    <h2 data-at="0.2">El IDE: Expediente de Identificación</h2>
+    <div class="caja alerta" data-at="4">Sin biometría registrada, el portal no avanza y manda al cliente a <b>cita presencial</b>.</div>
+    <div class="duo" data-at="9.5">
+      <div class="caja ok">Agéndala como <b>«Expediente de Identificación (IDE)»</b></div>
+      <div class="caja mal">No como «Retiro parcial por desempleo»: <b>lo regresan</b></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="15">
+    <div class="paso" data-at="0">Los plazos que sí puedes decir</div>
+    <div class="linea" data-at="0.6">
+      <div class="eje"></div><div class="avance" data-ancho-linea="86" data-de="2"></div>
+      <div class="hito verde" style="left:12%"><div class="punto"></div><div class="f">Expediente completo</div></div>
+      <div class="hito" style="left:50%" data-at="3"><div class="arriba">Máx. 15 días hábiles</div><div class="punto"></div><div class="f">La firma ingresa</div></div>
+      <div class="hito" style="left:86%" data-at="8"><div class="arriba">5 días hábiles</div><div class="punto"></div><div class="f">Resuelve la Afore</div><div class="e">según su acuse</div></div>
+    </div>
+  </section>
+  <section class="escena" data-dur="9">
+    <div class="paso" data-at="0">Vigencia del contrato</div>
+    <h2 data-at="0.2">180 días naturales</h2>
+    <div class="caja" data-at="2.5">El conteo <b>se suspende</b> mientras falten documentos del cliente.</div>
+  </section>
+  <section class="escena" data-dur="8">
+    <div class="paso" data-at="0">Lo que nunca dices</div>
+    <div class="nunca">
+      <div data-at="0.8">Plazos más largos que estos.</div>
+      <div data-at="2.6">«En 30 días te paga.»</div>
+    </div>
+    <div class="caja alerta" data-at="4.2"><b>Genera riesgo legal.</b></div>
+  </section>
+
+  <div class="progreso"></div>
+  <div class="subtitulo"></div>
+</div>
+<script>
+// Subtítulos por escena, en tramos repartidos según la duración de la voz (AUDIO, en segundos; entra 0.6 s después).
+const SUBS = [["Expediente, portal y plazos:", "lo que tumba un trámite, y los únicos plazos que le puedes decir al cliente."], ["El expediente lleva cinco documentos: identificación oficial vigente y legible;", "comprobante de domicilio de máximo 3 meses; estado de cuenta de la Afore; constancia de semanas;", "y estado de cuenta bancario de una cuenta nivel 4 a nombre del cliente.", "Las cuentas solo digitales suelen fallar."], ["Todas las fotos van a color, desde el celular, sin tachaduras ni enmendaduras.", "De preferencia de 256 KB o más;", "si pesa menos, el sistema la sube con aviso y quien valida revisa que se lea."], ["Revisa en el estado de cuenta que la cuenta esté registrada y no asignada.", "Una cuenta asignada no puede retirar."], ["La constancia de semanas la puedes pedir desde el caso, con «Pedir constancia al IMSS»,", "en el portal oficial y con el correo de constancias de la empresa. Llega sola a Documentos."], ["El bloqueo más común es el Expediente de Identificación (IDE).", "Sin biometría registrada, el portal no avanza y manda al cliente a cita presencial.", "La cita se agenda como «Expediente de Identificación (IDE)», no como «Retiro parcial por desempleo», o lo regresan."], ["Los plazos que sí puedes decir: la firma ingresa la solicitud en máximo 15 días hábiles desde que el expediente está completo,", "y la Afore tiene 5 días hábiles para resolver, según su acuse."], ["El contrato vale 180 días naturales,", "y el conteo se suspende mientras falten documentos del cliente."], ["Nunca prometas plazos más largos, ni digas «en 30 días te paga».", "Genera riesgo legal."]];
+const AUDIO = [7.0, 19.62, 14.52, 6.98, 11.56, 16.46, 12.89, 6.78, 6.11];
+const escenas = [...document.querySelectorAll(".escena")];
+const inicios = []; let total = 0;
+for (const e of escenas) { inicios.push(total); total += Number(e.dataset.dur); }
+window.DURACION = total;
+const sube = (x) => Math.max(0, Math.min(1, x));
+const suave = (x) => 1 - Math.pow(1 - sube(x), 3);
+const pesos = (n) => "$" + Math.round(n).toLocaleString("en-US");
+window.render = (t) => {
+  let i = escenas.length - 1;
+  for (let k = 0; k < escenas.length; k++) if (t < inicios[k] + Number(escenas[k].dataset.dur)) { i = k; break; }
+  escenas.forEach((e, k) => {
+    const local = t - inicios[k], dur = Number(e.dataset.dur);
+    const entra = suave(local / 0.45), sale = k === escenas.length - 1 ? 1 : 1 - sube((local - (dur - 0.35)) / 0.35);
+    e.style.opacity = k === i ? Math.min(entra, sale) : 0;
+    if (k !== i) return;
+    e.querySelectorAll("[data-at]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.at)) / 0.5);
+      el.style.opacity = p; el.style.transform = `translateY(${(1 - p) * 28}px)`;
+    });
+    e.querySelectorAll("[data-cuenta]").forEach((el) => {
+      const p = suave((local - Number(el.dataset.de)) / 0.9);
+      el.textContent = pesos(Number(el.dataset.cuenta) * p);
+    });
+    e.querySelectorAll("[data-ancho-linea]").forEach((el) => { const d = Number(el.dataset.desde ?? 0); el.style.width = d + (Number(el.dataset.anchoLinea) - d) * suave((local - Number(el.dataset.de)) / 1.4) + "%"; });
+    e.querySelectorAll("[data-ancho]").forEach((el) => { el.style.width = Number(el.dataset.ancho) * suave((local - Number(el.dataset.de)) / 1.2) + "%"; });
+    e.querySelectorAll("[data-marca-gana]").forEach((el) => {
+      const de = Number(el.dataset.marcaGana);
+      el.classList.toggle("gana", de > 0 && local >= de);
+    });
+  });
+  const tramos = SUBS[i], local = t - inicios[i] - 0.6, total = tramos.join("").length;
+  let acum = 0, txt = tramos[0];
+  for (const tr of tramos) { if (local >= AUDIO[i] * acum / total) txt = tr; acum += tr.length; }
+  document.querySelector(".subtitulo").textContent = txt;
+  document.querySelector(".progreso").style.width = (t / total) * 100 + "%";
+};
+window.render(0);
+</script>
+</body>
+</html>

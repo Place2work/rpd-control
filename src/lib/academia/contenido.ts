@@ -333,6 +333,11 @@ export const MODULOS: Modulo[] = [
    "VIGENCIA_CONTRATO_DIAS"
   ],
   "fuentes": [],
+  "video": {
+   "archivo": "R1-06.mp4",
+   "duracion_seg": 121,
+   "titulo": "Documentos, IDE y los plazos que sí puedes decir"
+  },
   "contenido": "**Checklist del retiro** (Regla 32ª Circular CONSAR 31-10 + práctica del portal):\n\n| Documento | Lo que tumba el trámite |\n|---|---|\n| INE (o cédula, pasaporte, cartilla) | Vigente, legible |\n| Comprobante de domicilio | **Máximo 3 meses** |\n| Estado de cuenta de la Afore | Para el candado y el saldo |\n| Constancia de semanas | — |\n| Estado de cuenta bancario | Cuenta **nivel 4** a nombre del cliente. Las cuentas solo digitales (Nu, Mercado Pago) suelen fallar |\n| Todo | Fotos **a color** desde el celular, de preferencia de 256 KB o más (si pesa menos, el sistema la sube con aviso y quien valida revisa que se lea), sin tachaduras ni enmendaduras |\n\n**Cuenta registrada:** aunque el comprobante de registro ya no se pide, revisa en el estado de cuenta que la\ncuenta esté **registrada** y no «asignada»: una cuenta asignada no puede retirar.\n\n**Constancia de semanas:** puedes pedirla desde el caso con «Pedir constancia al IMSS» (portal oficial, con el\ncorreo de constancias de la empresa); llega sola a Documentos.\n\n**El bloqueo más común: el IDE (Expediente de Identificación).** Sin biometría registrada el portal\nno avanza y manda al cliente a cita presencial. La cita debe agendarse como **\"Expediente de\nIdentificación (IDE)\"**, no como \"Retiro parcial por desempleo\", o lo regresan.\n\n**Plazos que le puedes decir al cliente (y ninguno más):**\n\n- La firma ingresa la solicitud en un máximo de **15 días hábiles** desde que el expediente está\n  **completo**.\n- La Afore tiene **5 días hábiles** para resolver, según su acuse.\n- El contrato vale **180 días naturales**; el conteo se **suspende** mientras falten documentos del\n  cliente.\n- **Nunca** prometas plazos más largos ni \"en 30 días te paga\": genera riesgo legal.\n"
  },
  {
