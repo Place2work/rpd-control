@@ -270,7 +270,7 @@ export const MODULOS: Modulo[] = [
   ],
   "video": {
    "archivo": "R1-02.mp4",
-   "duracion_seg": 82,
+   "duracion_seg": 110,
    "titulo": "Cómo se calcula, paso a paso (ejemplo con valores 2026)"
   },
   "contenido": "**Orden de operaciones (el mismo que usa la calculadora del sistema):**\n\n1. Modalidad A: `30 × SBC último`.\n2. Aplicar tope de 10 UMA ($35,662.20). Se activa con SBC mayor a **$1,188.74 diarios**: arriba de\n   eso, ganar más no aumenta el retiro.\n3. Comparar contra el saldo RCV y pagar el menor.\n4. Modalidad B: `menor(90 × SBC promedio 250 semanas, 11.5% × saldo RCV sin SAR 92)`.\n5. Dividir el monto entre el saldo RCV → porcentaje que se retira → semanas que se pierden (R1-03).\n\n**Trampas frecuentes**\n\n- La **Circular CONSAR 31-10** (enero 2009) dice 75 días y 10%. **Está desactualizada**: la LSS se\n  reformó en mayo de 2009 y dice **90 días y 11.5%**. Manda la ley.\n- El **SBC promedio** no lo inventamos: sale de los movimientos de salario de la constancia de semanas (o de\n  la Certificación de baja del IMSS, si el cliente la tiene). Si no hay dato, la modalidad B queda como estimado.\n- **Salario alto con saldo bajo** casi siempre significa poco tiempo en el sistema formal: suele caer\n  en B por el 11.5% y cobra mucho menos de lo que espera. Adviértelo antes.\n- Puede haber **retención de ISR**: nunca prometas el neto exacto.\n\n**Fuente:** reglas de la calculadora acordadas, tal como están en `docs/ESPECIFICACION.md`\nsección 7.2.\n"

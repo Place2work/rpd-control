@@ -48,7 +48,7 @@ export default async function LeccionPagina({ params }: Props) {
             <figure className="grid gap-2">
               <video controls preload="metadata" playsInline className="aspect-video w-full rounded-[var(--radius-tarjeta)] border border-borde bg-ink"
                 src={`/api/academia/video/${m.clave}`} aria-label={m.video.titulo} />
-              <figcaption className="flex items-center gap-1.5 text-xs text-ink-muted"><PlayCircle className="size-4" aria-hidden /> {m.video.titulo} · {Math.floor(m.video.duracion_seg / 60)}:{String(m.video.duracion_seg % 60).padStart(2, "0")} min · con subtítulos</figcaption>
+              <figcaption className="flex items-center gap-1.5 text-xs text-ink-muted"><PlayCircle className="size-4" aria-hidden /> {m.video.titulo} · {Math.floor(m.video.duracion_seg / 60)}:{String(m.video.duracion_seg % 60).padStart(2, "0")} min · con voz y subtítulos</figcaption>
             </figure>
           )}
           <Card><CardContent className="pt-5"><Leccion bloques={bloquesMarkdown(m.contenido)} /></CardContent></Card>

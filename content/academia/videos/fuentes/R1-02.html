@@ -1,7 +1,8 @@
 <!doctype html>
 <html lang="es-MX">
 <head>
-<!-- Fuente del video de la lección R1-02. Para regenerarlo (p. ej. si cambia la UMA): node scripts/academia-video.cjs R1-02 -->
+<!-- Fuente del video de la lección R1-02. Las duraciones de escena están ajustadas a la voz (R1-02.voz.txt, una línea por escena).
+     Para regenerarlo (p. ej. si cambia la UMA): node scripts/academia-video.cjs R1-02 --voz <pista.wav> -->
 <meta charset="utf-8">
 <title>R1-02 · Cómo se calcula</title>
 <style>
@@ -59,14 +60,14 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </header>
 
   <!-- 1. Título -->
-  <section class="escena" data-dur="5">
+  <section class="escena" data-dur="10">
     <div class="paso" data-at="0">Ruta R1 · Asesor de retiro</div>
     <h1 data-at="0.3">Cómo se calcula el retiro<br>por desempleo</h1>
     <p class="sub" data-at="0.9">En el mismo orden que usa la calculadora del sistema.</p>
   </section>
 
   <!-- 2. Datos del cliente -->
-  <section class="escena" data-dur="7">
+  <section class="escena" data-dur="12">
     <div class="paso" data-at="0">El ejemplo</div>
     <h2 data-at="0.2">Un cliente con estos datos de su constancia</h2>
     <div class="tarjetas">
@@ -78,14 +79,14 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </section>
 
   <!-- 3. A paso 1 -->
-  <section class="escena" data-dur="7">
+  <section class="escena" data-dur="9">
     <div class="paso" data-at="0">Modalidad A · paso 1</div>
     <h2 data-at="0.2">30 días del último salario</h2>
     <div class="formula" data-at="0.8"><span>30</span><span class="op">×</span><span>$500</span><span class="op">=</span><span class="res" data-cuenta="15000" data-de="1.4">$15,000</span></div>
   </section>
 
   <!-- 4. A paso 2: tope -->
-  <section class="escena" data-dur="9">
+  <section class="escena" data-dur="14">
     <div class="paso" data-at="0">Modalidad A · paso 2</div>
     <h2 data-at="0.2">Se topa en 10 UMA mensuales: $35,662.20</h2>
     <div class="caja ok" data-at="1.2"><b>$15,000 queda debajo del tope:</b> no aplica, sigue igual.</div>
@@ -93,7 +94,7 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </section>
 
   <!-- 5. A paso 3: saldo -->
-  <section class="escena" data-dur="7">
+  <section class="escena" data-dur="9">
     <div class="paso" data-at="0">Modalidad A · paso 3</div>
     <h2 data-at="0.2">Se compara contra el saldo y se paga el menor</h2>
     <div class="duo">
@@ -104,7 +105,7 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </section>
 
   <!-- 6. Modalidad B -->
-  <section class="escena" data-dur="10">
+  <section class="escena" data-dur="15">
     <div class="paso" data-at="0">Modalidad B</div>
     <h2 data-at="0.2">El menor de dos cálculos</h2>
     <div class="duo">
@@ -115,7 +116,7 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </section>
 
   <!-- 7. Comparación -->
-  <section class="escena" data-dur="7">
+  <section class="escena" data-dur="8">
     <div class="paso" data-at="0">¿Cuál le conviene?</div>
     <h2 data-at="0.2">El sistema propone la de mayor monto</h2>
     <div class="duo">
@@ -125,7 +126,7 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </section>
 
   <!-- 8. Semanas -->
-  <section class="escena" data-dur="10">
+  <section class="escena" data-dur="11">
     <div class="paso" data-at="0">El costo real</div>
     <h2 data-at="0.2">Lo que retira se descuenta de sus semanas</h2>
     <div class="formula" data-at="1" style="font-size:60px"><span>$15,000</span><span class="op">÷</span><span>$100,000</span><span class="op">=</span><span class="res">15% del saldo</span></div>
@@ -145,7 +146,7 @@ p.sub { font-size: 34px; color: var(--gris); line-height: 1.35; }
   </section>
 
   <!-- 10. Cierre -->
-  <section class="escena" data-dur="7">
+  <section class="escena" data-dur="9">
     <div class="paso" data-at="0">Lo que dices</div>
     <h2 data-at="0.3" style="color:var(--azul)">«Es un estimado con los valores vigentes;<br>el monto final lo determina la Afore.»</h2>
     <p class="sub" data-at="1.6">Valores 2026: UMA mensual $3,566.22 · tope de A 10 UMA · B: 90 días u 11.5%.</p>

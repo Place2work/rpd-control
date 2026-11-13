@@ -1,0 +1,10 @@
+Así se calcula el retiro por desempleo, paso a paso, en el mismo orden que usa la calculadora del sistema.
+Tomemos un cliente con último salario de quinientos pesos diarios, promedio de cuatrocientos cincuenta, saldo de cien mil pesos y mil semanas cotizadas.
+Modalidad A, paso uno: treinta días de su último salario. Treinta por quinientos son quince mil pesos.
+Paso dos: la modalidad A se topa en diez UMAs mensuales. Quince mil está debajo, así que no aplica. El tope solo pega con salarios mayores a mil ciento ochenta y ocho pesos diarios.
+Paso tres: se compara contra el saldo de su cuenta y se paga el menor. Modalidad A: quince mil pesos.
+La modalidad B es el menor de dos cálculos: noventa días del salario promedio, cuarenta mil quinientos, o el once punto cinco por ciento del saldo, once mil quinientos. Gana el menor: once mil quinientos.
+Entre las dos, el sistema propone la de mayor monto: la modalidad A, con quince mil pesos.
+Pero tiene un costo: quince mil es el quince por ciento de su saldo, y eso le descuenta el quince por ciento de sus semanas. Ciento cincuenta semanas.
+Cuidado con estas trampas: la circular vieja de la CONSAR, inventar el salario promedio, el salario alto con saldo bajo, y prometer el neto exacto.
+Y siempre dilo así: es un estimado con los valores vigentes; el monto final lo determina la Afore.
