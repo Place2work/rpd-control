@@ -765,3 +765,11 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   asesor de pensiones o cambia de asesor, venga de donde venga la asignación. Se borra si el caso se queda sin asesor.
   Se ve en el resumen del caso («Asignado al asesor el …») y en los recientes de Prospectos de campo. A los casos que
   ya tenían asesor se les puso su fecha de alta.
+
+## 14-nov-2026 · Asesores y referidores: gerentes de campo y «Ver como»
+
+- La página Asesores y referidores tiene una sección **Gerentes de campo**: prospectos de la semana y del mes, por
+  verificar, verificados, los que no cuentan, lo que se le debe y su próximo pago, con ligas a sus prospectos y a sus
+  pagos. Usa el mismo cálculo que el panel financiero.
+- El Director tiene **«Ver la pantalla de…»** en cada asesor de pensiones con cuenta y en cada gerente de campo: es el
+  mismo «Ver como», de solo lectura y con bitácora.

@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronDown, Pencil } from "lucide-react";
+import { ChevronDown, Eye, MapPin, Pencil } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
@@ -14,6 +14,10 @@ import { NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { Casilla, CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
 import { editarProspecto } from "./acciones";
+import { verComo } from "../acciones";
+import { liquidacionesDe, tarifasCampo } from "@/lib/campo/datos";
+import { panelFinanciero } from "@/lib/reglas/campo";
+import { hoyCDMX } from "@/lib/tiempo";
 import { guardarReferencia, quitarReferencia } from "../casos/[id]/acciones-referencias";
 import { Desplegable } from "./desplegable";
 
@@ -40,6 +44,7 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
         select: { id: true, nombre: true, porcentaje_socio: true, usuarios: { where: { activo: true }, select: { id: true } } } }),
       referidores: await tx.referidor.findMany({ where: { archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, telefono: true } }),
       servicios: await tx.tipoServicio.findMany({ select: { clave: true, nombre: true } }),
+      gerentes: await tx.usuario.findMany({ where: { rol: "campo", archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, activo: true } }),
       casos: await tx.caso.findMany({ where: { archivado_at: null, etapa: { not: "PERDIDO" } }, orderBy: { created_at: "desc" },
         select: { id: true, persona_id: true, folio: true, etapa: true, tipo_servicio: true, socio_id: true, referidor_id: true, monto_afore_esperado: true,
           datos_afore: { select: { afore: true } },
@@ -48,6 +53,22 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
     }), sesion.ip),
     comisionesProyectadas(sesion),
   ]);
+
+  // Gerentes de campo: sus prospectos y lo que se les debe (mismo cálculo que el panel financiero de Pagos de campo).
+  const esDirector = sesion.usuario.rol === "director";
+  const hoy = hoyCDMX();
+  const tarifa = await tarifasCampo(hoy);
+  const gerentes = await conUsuario(sesion.claims, (tx) => Promise.all(d.gerentes.map(async (g) => {
+    const [ps, js, liq] = await Promise.all([
+      tx.campoProspecto.findMany({ where: { gerente_id: g.id, archivado_at: null }, select: { estado: true, monto_cent: true, pago_id: true, fecha_registro: true } }),
+      tx.campoJornada.findMany({ where: { gerente_id: g.id }, select: { estado: true, monto_cent: true, pago_id: true } }),
+      liquidacionesDe(tx, g.id, tarifa.diasParaPago),
+    ]);
+    return { ...g, panel: panelFinanciero(
+      ps.map((p) => ({ estado: p.estado, montoCent: p.monto_cent === null ? null : Number(p.monto_cent), pagada: !!p.pago_id, fechaRegistro: p.fecha_registro.toISOString().slice(0, 10) })),
+      js.map((j) => ({ estado: j.estado, montoCent: j.monto_cent === null ? null : Number(j.monto_cent), pagada: !!j.pago_id })),
+      [], liq, tarifa, hoy) };
+  })), sesion.ip);
 
   const servicio = new Map(d.servicios.map((s) => [s.clave, s.nombre]));
   const casos: CasoPanel[] = d.casos.map((c) => ({
@@ -63,10 +84,16 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
   const opcionesReferidor = d.referidores.map((r) => [r.id, r.nombre] as const);
   const sinAsignar = casos.filter((c) => !c.socio_id && !c.referidor_id && c.etapa !== "CERRADO");
 
-  const grupo = (clave: string, titulo: string, detalle: string, lista: CasoPanel[]) => (
+  const grupo = (clave: string, titulo: string, detalle: string, lista: CasoPanel[], acciones?: React.ReactNode) => (
     <Grupo key={clave} clave={clave} abierto={abierto === clave} titulo={titulo} detalle={detalle} casos={lista} comision={comision} total={totalDe(clave)}
-      opcionesSocio={opcionesSocio} opcionesReferidor={opcionesReferidor} />
+      opcionesSocio={opcionesSocio} opcionesReferidor={opcionesReferidor} acciones={acciones} />
   );
+  const accionesAsesor = (usuarioId: string | undefined, nombre: string) => esDirector && usuarioId ? (
+    <div className="flex flex-wrap items-center gap-3 bg-brand-tint px-4 py-2 text-sm">
+      <BotonVerComo usuarioId={usuarioId} texto={`Ver la pantalla de ${nombre.split(" ")[0]}`} />
+      <span className="text-xs text-ink-muted">Solo lectura: ves lo que ve, sus prospectos, sus casos y sus comisiones y pagos.</span>
+    </div>
+  ) : undefined;
 
   return (
     <>
@@ -82,7 +109,34 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
           <CardContent className="grid gap-2">
             {d.socios.length === 0 && <p className="text-sm text-ink-muted">Todavía no hay asesores de pensiones.</p>}
             {d.socios.map((s) => grupo(`socio:${s.id}`, s.nombre,
-              `${Math.round(Number(s.porcentaje_socio) * 100)}% · ${s.usuarios.length ? "con cuenta" : "sin cuenta"}`, casos.filter((c) => c.socio_id === s.id)))}
+              `${Math.round(Number(s.porcentaje_socio) * 100)}% · ${s.usuarios.length ? "con cuenta" : "sin cuenta"}`, casos.filter((c) => c.socio_id === s.id),
+              accionesAsesor(s.usuarios[0]?.id, s.nombre)))}
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="size-5 text-brand" aria-hidden /> Gerentes de campo</CardTitle><span className="text-sm text-ink-muted">{gerentes.length}</span></CardHeader>
+          <CardContent className="grid gap-2">
+            {gerentes.length === 0 && <p className="text-sm text-ink-muted">Todavía no hay gerentes de campo. Dalos de alta en Configuración → Usuarios con el rol «Gerente de campo».</p>}
+            {gerentes.map((g) => (
+              <div key={g.id} className="flex flex-wrap items-center gap-x-4 gap-y-2 rounded-[var(--radius-boton)] border border-borde px-4 py-3">
+                <span className="min-w-0 flex-1">
+                  <span className="font-medium text-ink">{g.nombre}</span>
+                  <span className="block text-xs text-ink-muted">{g.activo ? "con cuenta" : "sin acceso"} · {g.panel.prospectos.semana} esta semana · {g.panel.prospectos.mes} este mes</span>
+                </span>
+                <span className="flex flex-wrap gap-2 text-xs">
+                  <Badge tono="espera">{g.panel.prospectos.pendientes} por verificar</Badge>
+                  <Badge tono="pagado">{g.panel.prospectos.verificados} {g.panel.prospectos.verificados === 1 ? "verificado" : "verificados"}</Badge>
+                  <Badge tono="critico">{g.panel.prospectos.rechazados} no cuentan</Badge>
+                </span>
+                <span className="cifra w-full text-right text-sm text-ink sm:w-36">{mxn(g.panel.porPagar.cent / 100)}<span className="block text-xs text-ink-muted">por pagar</span></span>
+                <span className="flex w-full flex-wrap items-center gap-3 border-t border-borde pt-2 text-sm">
+                  {esDirector && g.activo && <BotonVerComo usuarioId={g.id} texto={`Ver la pantalla de ${g.nombre.split(" ")[0].toLowerCase().replace(/^./, (c) => c.toUpperCase())}`} />}
+                  <Link href="/campo/revisar" className="text-brand underline">Sus prospectos por verificar</Link>
+                  {esDirector && <Link href="/campo/pagos" className="text-brand underline">Sus pagos</Link>}
+                  {g.panel.proximoPago && <span className="text-xs text-ink-muted">Próximo pago: {mxn(g.panel.proximoPago.cent / 100)} el {g.panel.proximoPago.fecha.split("-").reverse().join("/")}</span>}
+                </span>
+              </div>
+            ))}
           </CardContent>
         </Card>
         <Card>
@@ -106,9 +160,20 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
   );
 }
 
-function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcionesSocio, opcionesReferidor }: {
+/** «Ver como» (Director, solo lectura): abre el sistema tal como lo ve esa persona. */
+function BotonVerComo({ usuarioId, texto }: { usuarioId: string; texto: string }) {
+  return (
+    <form action={verComo.bind(null, usuarioId)}>
+      <button type="submit" className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-boton)] border border-brand bg-surface px-3 text-sm font-medium text-brand hover:bg-brand-tint">
+        <Eye className="size-4" aria-hidden /> {texto}
+      </button>
+    </form>
+  );
+}
+
+function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcionesSocio, opcionesReferidor, acciones }: {
   clave: string; abierto: boolean; titulo: string; detalle: string; casos: CasoPanel[]; comision: Map<string, number>; total: number;
-  opcionesSocio: (readonly [string, string])[]; opcionesReferidor: (readonly [string, string])[];
+  opcionesSocio: (readonly [string, string])[]; opcionesReferidor: (readonly [string, string])[]; acciones?: React.ReactNode;
 }) {
   const prospectos = casos.filter((c) => PROSPECTO.has(c.etapa)).length;
   const cerrados = casos.filter((c) => c.etapa === "CERRADO").length;
@@ -129,6 +194,7 @@ function Grupo({ clave, abierto, titulo, detalle, casos, comision, total, opcion
         {clave !== "sin" && <span className="cifra w-full text-right text-sm text-ink sm:w-36">{mxn(total)}<span className="block text-xs text-ink-muted">comisión por pagar</span></span>}
       </summary>
       <div className="border-t border-borde">
+        {acciones}
         {casos.length === 0 ? (
           <p className="px-4 py-3 text-sm text-ink-muted">Sin prospectos ni casos todavía.</p>
         ) : (
