@@ -784,3 +784,16 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - **Corrección**: la CURP obligatoria del formulario pasó de CHECK a un disparador que se revisa solo al crear. El
   CHECK, aunque fuera NOT VALID, también frenaba actualizar registros anteriores sin CURP (verificarlos, rechazarlos o
   ligarlos a un pago).
+
+## 16-nov-2026 · Prospectos de campo capturados en oficina y gerente asignado después
+
+- En Prospectos de campo, el Director o el analista capturan un prospecto («Agregar prospecto de campo»): nombre,
+  WhatsApp, CURP (obligatoria, cifrada), municipio y, si quieren, lugar, servicio, notas y gerente. El origen
+  `oficina` lo pone la base.
+- **Gerente opcional**: el prospecto puede quedar sin gerente y asignarse o cambiarse después, desde «Por verificar» o
+  desde los verificados que aún no se pagan. La base valida que sea un gerente de campo, guarda la fecha de asignación
+  (`gerente_asignado_at`) e impide cambiarlo si ya se pagó.
+- **Pago**: sigue el mismo flujo (solo si se verifica). La semana de pago se cuenta con la fecha más tardía entre la
+  verificación y la asignación al gerente, para que un prospecto asignado tarde nunca caiga en una semana ya pagada.
+  Mientras no tenga gerente no se le paga a nadie.
+- El gerente no ve los prospectos sin gerente ni los de otros, y no puede capturar a nombre de otro ni escribir la CURP.

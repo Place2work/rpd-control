@@ -39,7 +39,7 @@ describe("prospectos de campo", () => {
   it("el gerente da de alta y ve solo los suyos; no puede darse por verificado", async () => {
     p1 = (await como<{ id: string }>(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, lugar) VALUES ('Juan Pérez', $1, 'Jiutepec', 'Plaza') RETURNING id", [W1]))[0].id;
     await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, estado) VALUES ('X Y', $1, 'Cuautla', 'verificado')", [tel()])).rejects.toThrow(/permission denied/);
-    await expect(como(G1, "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES ($1, 'X Y', $2, 'Cuautla')", [G2, tel()])).rejects.toThrow(/permission denied/);
+    await expect(como(G1, "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES ($1, 'X Y', $2, 'Cuautla')", [G2, tel()])).rejects.toThrow(/permission denied|row-level security/);
     expect(await como(G1, "SELECT id FROM campo_prospectos WHERE id = $1", [p1])).toHaveLength(1);
     expect(await como(G2, "SELECT id FROM campo_prospectos WHERE id = $1", [p1])).toHaveLength(0);
     expect(await como(G1, "UPDATE campo_prospectos SET estado = 'rechazado', motivo_rechazo = 'xxx' WHERE id = $1 RETURNING id", [p1])).toHaveLength(0);
@@ -110,7 +110,7 @@ describe("formulario público del gerente de campo (QR)", () => {
     await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at, curp_hash) VALUES ($1, 'Media', $2, 'Cuautla', 'formulario', now(), 'abc')", [G1, tel()])).rejects.toThrow(/curp/);
     const [r] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at, curp_cifrada, curp_hash, curp_parcial) VALUES ($1, 'Completa', $2, 'Cuautla', 'formulario', now(), '\\x00', 'h1', 'PELJ••••06') RETURNING curp_parcial", [G1, tel()])).rows;
     expect(r.curp_parcial).toBe("PELJ••••06");
-    await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, curp_hash) VALUES ('X', $1, 'Cuautla', 'h2')", [tel()])).rejects.toThrow(/permission denied/);
+    await expect(como(G1, "INSERT INTO campo_prospectos (nombre, whatsapp, municipio, curp_cifrada, curp_hash, curp_parcial) VALUES ('X', $1, 'Cuautla', '\\\\x00', 'h2', 'P')", [tel()])).rejects.toThrow(/row-level security/);
   });
 });
 
@@ -148,5 +148,31 @@ describe("fecha de asignación al asesor y CURP obligatoria (13-nov-2026)", () =
     const [viejo] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Viejo', $2, 'Cuautla', 'formulario', now()) RETURNING id", [G1, tel()])).rows;
     await db.query("ALTER TABLE campo_prospectos ENABLE TRIGGER tg_campo_formulario_curp");
     expect(await como(A, "UPDATE campo_prospectos SET estado = 'verificado', verificado_at = now(), monto_cent = 2000 WHERE id = $1 RETURNING id", [viejo.id])).toHaveLength(1);
+  });
+});
+
+describe("prospectos de campo capturados en oficina (16-nov-2026)", () => {
+  it("el Director o el analista capturan con o sin gerente; el origen lo pone la base", async () => {
+    const [sin] = await como<{ origen: string; gerente_id: string | null; gerente_asignado_at: Date | null }>(A,
+      "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES (NULL, 'Oficina sin', $1, 'Cuautla') RETURNING origen, gerente_id, gerente_asignado_at", [tel()]);
+    expect(sin).toMatchObject({ origen: "oficina", gerente_id: null, gerente_asignado_at: null });
+    const [con] = await como<{ origen: string; gerente_asignado_at: Date | null }>(D,
+      "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES ($1, 'Oficina con', $2, 'Cuautla') RETURNING origen, gerente_asignado_at", [G2, tel()]);
+    expect(con.origen).toBe("oficina");
+    expect(con.gerente_asignado_at).not.toBeNull();
+  });
+  it("solo se asigna a un gerente de campo; se puede asignar después; ya pagado no cambia de gerente", async () => {
+    await expect(como(A, "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES ($1, 'No es gerente', $2, 'Cuautla')", [A, tel()])).rejects.toThrow(/gerente de campo/);
+    const [p] = await como<{ id: string }>(A, "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES (NULL, 'Después', $1, 'Cuautla') RETURNING id", [tel()]);
+    const [asig] = await como<{ gerente_asignado_at: Date | null }>(A, "UPDATE campo_prospectos SET gerente_id = $2 WHERE id = $1 RETURNING gerente_asignado_at", [p.id, G1]);
+    expect(asig.gerente_asignado_at).not.toBeNull();
+    await como(A, "UPDATE campo_prospectos SET estado = 'verificado', verificado_at = now(), monto_cent = 2000 WHERE id = $1", [p.id]);
+    const [pago] = await como<{ id: string }>(D, "INSERT INTO campo_pagos (gerente_id, semana_inicio, semana_fin, fecha_pago, prospectos, dias, monto_prospectos_cent, monto_dias_cent, total_cent) VALUES ($1, '2026-11-23', '2026-11-29', '2026-12-02', 1, 0, 2000, 0, 2000) RETURNING id", [G1]);
+    await como(D, "UPDATE campo_prospectos SET pago_id = $2 WHERE id = $1", [p.id, pago.id]);
+    await expect(como(D, "UPDATE campo_prospectos SET gerente_id = $2 WHERE id = $1", [p.id, G2])).rejects.toThrow(/ya se pagó/);
+  });
+  it("el gerente no captura a nombre de otro ni ve los prospectos sin gerente", async () => {
+    await expect(como(G1, "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES ($1, 'Ajeno', $2, 'Cuautla')", [G2, tel()])).rejects.toThrow(/row-level security/);
+    expect(await como(G1, "SELECT id FROM campo_prospectos WHERE gerente_id IS NULL")).toHaveLength(0);
   });
 });

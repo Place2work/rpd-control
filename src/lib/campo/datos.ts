@@ -17,10 +17,12 @@ const dia = (d: Date) => hoyCDMX(d);
 /** Lo verificado y aprobado sin pagar de un gerente, agrupado por semana de pago. Con la sesión de quien consulta. */
 export async function liquidacionesDe(tx: Tx, gerenteId: string, diasParaPago: number): Promise<Liquidacion[]> {
   const [ps, js] = await Promise.all([
-    tx.campoProspecto.findMany({ where: { gerente_id: gerenteId, estado: "verificado", pago_id: null, archivado_at: null }, select: { id: true, verificado_at: true, monto_cent: true } }),
+    tx.campoProspecto.findMany({ where: { gerente_id: gerenteId, estado: "verificado", pago_id: null, archivado_at: null }, select: { id: true, verificado_at: true, gerente_asignado_at: true, monto_cent: true } }),
     tx.campoJornada.findMany({ where: { gerente_id: gerenteId, estado: "aprobada", pago_id: null }, select: { id: true, revisada_at: true, monto_cent: true } }),
   ]);
-  const piezasP: Pieza[] = ps.map((p) => ({ id: p.id, fecha: dia(p.verificado_at!), montoCent: Number(p.monto_cent ?? 0), pagada: false }));
+  // Cuenta la fecha más tardía entre la verificación y la asignación al gerente (prospectos de oficina asignados después).
+  const fechaPago = (v: Date, g: Date | null) => dia(g && g > v ? g : v);
+  const piezasP: Pieza[] = ps.map((p) => ({ id: p.id, fecha: fechaPago(p.verificado_at!, p.gerente_asignado_at), montoCent: Number(p.monto_cent ?? 0), pagada: false }));
   const piezasD: Pieza[] = js.map((j) => ({ id: j.id, fecha: dia(j.revisada_at!), montoCent: Number(j.monto_cent ?? 0), pagada: false }));
   return porPagar(piezasP, piezasD, diasParaPago);
 }

@@ -10,6 +10,8 @@ import { permisoDeOtro } from "@/lib/academia/permisos";
 import { prepararSubida, type Subida } from "@/lib/documentos/almacen";
 import { liquidacionesDe, tarifasCampo } from "@/lib/campo/datos";
 import { centavos, semanaCerrada, whatsappMx } from "@/lib/reglas/campo";
+import { cifrar, hashIdentificador } from "@/lib/cripto";
+import { curpParcial, validarCurp } from "@/lib/reglas/identificadores";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "../casos/[id]/acciones";
 
@@ -74,6 +76,57 @@ export async function registrarJornada(ruta: string, municipio: string, lugar: s
   }
   refrescar();
   return { ok: true };
+}
+
+// ───────────── Analista y Director: alta desde oficina y gerente asignado ─────────────
+
+/**
+ * Prospecto de campo capturado por el Director o el analista. Puede quedar con un gerente de campo desde ya o sin
+ * gerente (se le asigna después). Sigue el mismo flujo: verificar, asignar y pago semanal al gerente.
+ */
+export async function altaOficinaCampo(_p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await obtenerSesion();
+  if (!revisores.has(s.usuario.rol)) return { error: "Solo el analista o el Director." };
+  const nombre = txt(form, "nombre"), municipio = txt(form, "municipio"), lugar = txt(form, "lugar"), servicio = txt(form, "tipo_servicio");
+  const whatsapp = whatsappMx(txt(form, "whatsapp")), gerenteId = txt(form, "gerente_id") || null;
+  const curpTexto = txt(form, "curp"), curp = curpTexto ? validarCurp(curpTexto) : null;
+  const errores: Record<string, string> = {};
+  if (nombre.length < 2) errores.nombre = "Escribe el nombre";
+  if (!whatsapp) errores.whatsapp = "Escribe 10 dígitos";
+  if (!curp) errores.curp = "Escribe la CURP (18 caracteres)";
+  else if (!curp.valido) errores.curp = curp.error;
+  if (municipio.length < 2) errores.municipio = "Escribe el municipio";
+  if (gerenteId && !UUID.test(gerenteId)) errores.gerente_id = "Gerente no válido";
+  if (Object.keys(errores).length || !curp?.valido) return { errores };
+  const curpHash = hashIdentificador("curp", curp.valor);
+  const r = await conUsuario(s.claims, async (tx) => {
+    const [dup] = await tx.$queryRaw<{ r: boolean }[]>`SELECT app.telefono_registrado(${whatsapp}) AS r`;
+    if (dup?.r) return "repetido";
+    const [dupCurp] = await tx.$queryRaw<{ n: number }[]>`SELECT count(*)::int AS n FROM app.buscar_duplicados(NULL, ${curpHash}, NULL)`;
+    const curpCampo = await tx.campoProspecto.findFirst({ where: { curp_hash: curpHash, estado: { not: "rechazado" }, archivado_at: null }, select: { id: true } });
+    if (dupCurp?.n || curpCampo) return "repetido";
+    const valido = servicio ? await tx.tipoServicio.findFirst({ where: { clave: servicio, activo: true }, select: { clave: true } }) : null;
+    await tx.campoProspecto.create({ select: { id: true }, data: {
+      gerente_id: gerenteId, nombre, whatsapp: whatsapp!, municipio, lugar: lugar || null, tipo_servicio: valido?.clave ?? null, notas: txt(form, "notas") || null,
+      curp_cifrada: cifrar(curp.valor), curp_hash: curpHash, curp_parcial: curpParcial(curp.valor),
+    } });
+    return "ok";
+  }, s.ip);
+  if (r === "repetido") return { errores: { whatsapp: "Ese WhatsApp o esa CURP ya están registrados" } };
+  refrescar();
+  return { ok: true, mensaje: `Listo: ${nombre} quedó por verificar${gerenteId ? "" : ", sin gerente por ahora"}.` };
+}
+
+/** Asigna (o cambia) el gerente de campo de un prospecto mientras no se le haya pagado. Vacío = sin gerente. */
+export async function asignarGerenteCampo(id: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await obtenerSesion();
+  if (!revisores.has(s.usuario.rol)) return { error: "Solo el analista o el Director." };
+  const gerenteId = txt(form, "gerente_id") || null;
+  if (!UUID.test(id) || (gerenteId && !UUID.test(gerenteId))) return { error: "Datos no válidos." };
+  const n = await conUsuario(s.claims, (tx) => tx.campoProspecto.updateMany({ where: { id, pago_id: null, estado: { not: "rechazado" } }, data: { gerente_id: gerenteId } }), s.ip);
+  if (!n.count) return { error: "Ya se pagó o no cuenta: no se puede cambiar de gerente." };
+  refrescar();
+  return { ok: true, mensaje: gerenteId ? "Gerente asignado." : "Quedó sin gerente." };
 }
 
 // ───────────── Analista y Director: verificación ─────────────
