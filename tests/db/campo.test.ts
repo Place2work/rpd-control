@@ -132,7 +132,21 @@ describe("fecha de asignación al asesor y CURP obligatoria (13-nov-2026)", () =
     await db.query("UPDATE casos SET socio_id = NULL WHERE id = $1", [caso]);
     expect(await fecha()).toBeNull();
   });
-  it("lo que llega por el formulario trae CURP", async () => {
-    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Sin CURP', $2, 'Cuautla', 'formulario', now())", [G1, tel()])).rejects.toThrow(/curp/);
+  it("la fecha del vendedor también la pone la base al asignarlo y se borra al quitarlo", async () => {
+    const [per, caso] = [randomUUID(), randomUUID()];
+    await db.query("INSERT INTO personas (id, nombre, telefono, origen, owner_id, updated_at) VALUES ($1, 'Cliente Vend', $2, 'campo', $3, now())", [per, tel(), D]);
+    await db.query("INSERT INTO casos (id, persona_id, tipo_servicio, owner_id, asignado_a, vendedor_id, updated_at) VALUES ($1, $2, 'RETIRO_DESEMPLEO', $3, $3, $4, now())", [caso, per, D, A]);
+    const f = async () => (await db.query("SELECT vendedor_asignado_at AS f FROM casos WHERE id = $1", [caso])).rows[0].f as Date | null;
+    expect(await f()).not.toBeNull();
+    await db.query("UPDATE casos SET vendedor_id = NULL WHERE id = $1", [caso]);
+    expect(await f()).toBeNull();
+  });
+  it("lo que llega por el formulario trae CURP; los registros anteriores sin CURP se pueden verificar y pagar", async () => {
+    await expect(db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Sin CURP', $2, 'Cuautla', 'formulario', now())", [G1, tel()])).rejects.toThrow(/CURP/);
+    // Un registro viejo sin CURP (antes de la regla): se simula apagando el disparador solo para crearlo.
+    await db.query("ALTER TABLE campo_prospectos DISABLE TRIGGER tg_campo_formulario_curp");
+    const [viejo] = (await db.query("INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio, origen, privacidad_aceptada_at) VALUES ($1, 'Viejo', $2, 'Cuautla', 'formulario', now()) RETURNING id", [G1, tel()])).rows;
+    await db.query("ALTER TABLE campo_prospectos ENABLE TRIGGER tg_campo_formulario_curp");
+    expect(await como(A, "UPDATE campo_prospectos SET estado = 'verificado', verificado_at = now(), monto_cent = 2000 WHERE id = $1 RETURNING id", [viejo.id])).toHaveLength(1);
   });
 });

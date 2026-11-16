@@ -78,19 +78,22 @@ export async function registrarJornada(ruta: string, municipio: string, lugar: s
 
 // ───────────── Analista y Director: verificación ─────────────
 
-/** Verificado: se crea el prospecto normal (persona + caso, origen campo) y, si se elige, se asigna al asesor de pensiones. */
+/** Verificado: se crea el prospecto normal (persona + caso, origen campo) y, si se elige, se asigna al asesor de pensiones y/o a un vendedor. */
 export async function verificarCampo(id: string, _p: Resultado, form: FormData): Promise<Resultado> {
   const s = await obtenerSesion();
   if (!revisores.has(s.usuario.rol)) return { error: "Solo el analista o el Director verifican." };
   if (!UUID.test(id)) return { error: "Prospecto no válido." };
-  const servicio = txt(form, "tipo_servicio"), socioId = txt(form, "socio_id") || null;
+  const servicio = txt(form, "tipo_servicio"), socioId = txt(form, "socio_id") || null, vendedorId = txt(form, "vendedor_id") || null;
   if (!servicio) return { errores: { tipo_servicio: "Elige el servicio" } };
   if (socioId && !UUID.test(socioId)) return { errores: { socio_id: "Asesor no válido" } };
+  if (vendedorId && !UUID.test(vendedorId)) return { errores: { vendedor_id: "Vendedor no válido" } };
   const previo = await conUsuario(s.claims, async (tx) => ({
     p: await tx.campoProspecto.findUnique({ where: { id }, select: { estado: true, nombre: true, whatsapp: true, municipio: true, fecha_baja: true, fecha_registro: true, gerente_id: true, curp_cifrada: true, curp_hash: true, curp_parcial: true } }),
     servicio: await tx.tipoServicio.findFirst({ where: { clave: servicio, activo: true }, select: { clave: true, embudo: true } }),
     cuenta: socioId ? await tx.usuario.findFirst({ where: { socio_id: socioId, activo: true, archivado_at: null }, select: { id: true, nombre: true } }) : null,
+    vendedor: vendedorId ? await tx.usuario.findFirst({ where: { id: vendedorId, rol: "vendedor", activo: true, archivado_at: null }, select: { id: true, nombre: true } }) : null,
   }), s.ip);
+  if (vendedorId && !previo.vendedor) return { errores: { vendedor_id: "Ese vendedor ya no está activo" } };
   if (!previo.p || previo.p.estado !== "pendiente") return { error: "Ese prospecto ya se revisó." };
   if (!previo.servicio) return { errores: { tipo_servicio: "Elige el servicio" } };
   if (socioId && previo.servicio.embudo === "pension" && previo.cuenta && (await permisoDeOtro(s, previo.cuenta.id, "prospecto.pension.recibir")) === false) {
@@ -110,13 +113,13 @@ export async function verificarCampo(id: string, _p: Resultado, form: FormData):
       ...(p.curp_hash ? { curp_cifrada: p.curp_cifrada, curp_hash: p.curp_hash, curp_parcial: p.curp_parcial } : {}),
     } });
     const caso = await tx.caso.create({ select: { id: true }, data: {
-      persona_id: persona.id, tipo_servicio: servicio, owner_id: s.usuario.id, socio_id: socioId,
+      persona_id: persona.id, tipo_servicio: servicio, owner_id: s.usuario.id, socio_id: socioId, vendedor_id: previo.vendedor?.id ?? null,
       asignado_a: s.usuario.rol === "asesor" ? s.usuario.id : undefined, fecha_primer_contacto: fechaDb(hoyCDMX()),
     } });
     if (p.fecha_baja) await tx.datosImss.create({ data: { caso_id: caso.id, fecha_baja: p.fecha_baja } });
     await tx.historialEtapa.create({ data: { caso_id: caso.id, etapa_nueva: "PROSPECTO", usuario_id: s.usuario.id } });
     await tx.evento.create({ data: { caso_id: caso.id, tipo: "sistema", usuario_id: s.usuario.id, datos: { origen: "campo" },
-      texto: `Alta desde campo (${p.municipio}), verificado por teléfono${previo.cuenta ? ` · asignado a ${previo.cuenta.nombre}` : ""}.` } });
+      texto: `Alta desde campo (${p.municipio}), verificado por teléfono${previo.cuenta ? ` · asesor de pensiones: ${previo.cuenta.nombre}` : ""}${previo.vendedor ? ` · vendedor: ${previo.vendedor.nombre}` : ""}.` } });
     await tx.campoProspecto.update({ where: { id }, select: { id: true }, data: {
       estado: "verificado", verificado_por: s.usuario.id, verificado_at: new Date(), monto_cent: tarifa.prospectoCent, caso_id: caso.id,
     } });

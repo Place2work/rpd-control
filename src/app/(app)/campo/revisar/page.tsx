@@ -30,16 +30,17 @@ export default async function RevisarCampo() {
     jornadas: await tx.campoJornada.findMany({ where: { estado: "pendiente" }, orderBy: { fecha: "asc" },
       select: { id: true, fecha: true, municipio: true, lugar: true, foto_path: true, gerente: { select: { nombre: true } } } }),
     recientes: await tx.campoProspecto.findMany({ where: { estado: { not: "pendiente" } }, orderBy: { verificado_at: "desc" }, take: 15,
-      select: { id: true, nombre: true, estado: true, motivo_rechazo: true, caso_id: true, municipio: true, gerente: { select: { nombre: true } }, caso: { select: { socio_asignado_at: true, socio: { select: { nombre: true } } } } } }),
+      select: { id: true, nombre: true, estado: true, motivo_rechazo: true, caso_id: true, municipio: true, gerente: { select: { nombre: true } }, caso: { select: { socio_asignado_at: true, socio: { select: { nombre: true } }, vendedor_asignado_at: true, vendedor: { select: { nombre: true } } } } } }),
     servicios: await tx.tipoServicio.findMany({ where: { activo: true }, orderBy: { orden: "asc" }, select: { clave: true, nombre: true } }),
     socios: await tx.socio.findMany({ where: { archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true } }),
+    vendedores: await tx.usuario.findMany({ where: { rol: "vendedor", activo: true, archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true } }),
   }), s.ip);
   const fotos = await Promise.all(d.jornadas.map((j) => urlLectura(j.foto_path, "campo").catch(() => null)));
   const wa = (n: string) => `https://wa.me/${n.replace(/\D/g, "")}`;
 
   return (
     <>
-      <Encabezado titulo="Prospectos de campo" descripcion={`Llama a cada uno: si es real, verifícalo y asígnalo; si no, recházalo con motivo. Cada verificado se le paga al gerente de campo (${mxn(tarifa.prospectoCent / 100)}).`}>
+      <Encabezado titulo="Prospectos de campo" descripcion={`Llama a cada uno: si es real, verifícalo y asígnalo a un asesor de pensiones o a un vendedor; si no, recházalo con motivo. Cada verificado se le paga al gerente de campo (${mxn(tarifa.prospectoCent / 100)}).`}>
         {s.usuario.rol === "director" && <Link href="/campo/pagos" className="text-sm text-brand underline">Pagos del gerente de campo</Link>}
       </Encabezado>
       <div className="grid gap-4">
@@ -61,10 +62,11 @@ export default async function RevisarCampo() {
                   </div>
                 </div>
                 <div className="grid gap-3 lg:grid-cols-[2fr_1fr]">
-                  <FormularioAccion accion={verificarCampo.bind(null, p.id)} boton="Verificar y dar de alta" etiquetas={{ tipo_servicio: "Servicio", socio_id: "Asesor de pensiones" }} className="grid gap-2 rounded-[var(--radius-boton)] bg-exito-tint p-3">
-                    <div className="grid gap-2 sm:grid-cols-2">
+                  <FormularioAccion accion={verificarCampo.bind(null, p.id)} boton="Verificar y dar de alta" etiquetas={{ tipo_servicio: "Servicio", socio_id: "Asesor de pensiones", vendedor_id: "Vendedor" }} className="grid gap-2 rounded-[var(--radius-boton)] bg-exito-tint p-3">
+                    <div className="grid gap-2 sm:grid-cols-3">
                       <Seleccion id="tipo_servicio" etiqueta="Servicio" valor={p.tipo_servicio} vacia="Elige…" opciones={d.servicios.map((x) => [x.clave, x.nombre.split(" (")[0]] as const)} />
-                      <Seleccion id="socio_id" etiqueta="Asignar a (opcional)" vacia="Sin asignar todavía" opciones={d.socios.map((x) => [x.id, x.nombre] as const)} />
+                      <Seleccion id="socio_id" etiqueta="Asesor de pensiones (opcional)" vacia="Sin asignar todavía" opciones={d.socios.map((x) => [x.id, x.nombre] as const)} />
+                      <Seleccion id="vendedor_id" etiqueta="Vendedor (opcional)" vacia={d.vendedores.length ? "Sin vendedor" : "No hay vendedores activos"} opciones={d.vendedores.map((x) => [x.id, x.nombre] as const)} />
                     </div>
                   </FormularioAccion>
                   <div className="grid content-start gap-2">
@@ -117,7 +119,8 @@ export default async function RevisarCampo() {
                 {d.recientes.map((p) => (
                   <li key={p.id} className="flex flex-wrap items-center justify-between gap-2 py-2">
                     <span><span className="font-medium text-ink">{p.nombre}</span> <span className="text-xs text-ink-muted">· {p.municipio} · {p.gerente.nombre}</span></span>
-                    {p.estado === "verificado" && p.caso_id ? <span className="text-xs text-ink-muted">{p.caso?.socio && p.caso.socio_asignado_at ? `Asignado a ${p.caso.socio.nombre} el ${cuando(p.caso.socio_asignado_at)} · ` : "Sin asesor todavía · "}<Link href={`/casos/${p.caso_id}`} className="text-brand underline">abrir caso</Link></span>
+                    {p.estado === "verificado" && p.caso_id ? <span className="text-xs text-ink-muted">{[p.caso?.socio && p.caso.socio_asignado_at ? `Asesor: ${p.caso.socio.nombre} (${cuando(p.caso.socio_asignado_at)})` : null,
+                      p.caso?.vendedor && p.caso.vendedor_asignado_at ? `Vendedor: ${p.caso.vendedor.nombre} (${cuando(p.caso.vendedor_asignado_at)})` : null].filter(Boolean).join(" · ") || "Sin asignar todavía"} · <Link href={`/casos/${p.caso_id}`} className="text-brand underline">abrir caso</Link></span>
                       : <span className="text-xs text-critico">No cuenta · {p.motivo_rechazo}</span>}
                   </li>
                 ))}

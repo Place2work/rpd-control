@@ -773,3 +773,14 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   pagos. Usa el mismo cálculo que el panel financiero.
 - El Director tiene **«Ver la pantalla de…»** en cada asesor de pensiones con cuenta y en cada gerente de campo: es el
   mismo «Ver como», de solo lectura y con bitácora.
+
+## 16-nov-2026 · Asignar a vendedor al verificar un prospecto de campo
+
+- Al verificar un prospecto de campo hay dos listas opcionales: **Asesor de pensiones** y **Vendedor** (usuarios
+  activos con rol vendedor). Se puede elegir uno, los dos o ninguno. El vendedor ve el caso (RLS por `vendedor_id`)
+  y cobra comisión con su porcentaje, como en cualquier otro caso.
+- **Fecha de asignación del vendedor** (`casos.vendedor_asignado_at`): la pone el mismo disparador que la del asesor.
+  Se ve en el resumen del caso y en los recientes de Prospectos de campo.
+- **Corrección**: la CURP obligatoria del formulario pasó de CHECK a un disparador que se revisa solo al crear. El
+  CHECK, aunque fuera NOT VALID, también frenaba actualizar registros anteriores sin CURP (verificarlos, rechazarlos o
+  ligarlos a un pago).

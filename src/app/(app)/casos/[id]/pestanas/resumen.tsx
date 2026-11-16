@@ -132,6 +132,7 @@ export async function PestanaResumen({ caso, sesion }: { caso: CasoDetalle; sesi
             <Dato titulo="Origen" valor={ETIQUETA_ORIGEN[caso.persona.origen] ?? caso.persona.origen} />
             <Dato titulo="Asesor de pensiones · referidor" valor={`${caso.socio?.nombre ?? "—"} · ${caso.referidor?.nombre ?? "—"}`} />
             {caso.socio && caso.socio_asignado_at && <Dato titulo="Asignado al asesor el" valor={fechaHora(caso.socio_asignado_at)} />}
+            {caso.vendedor && caso.vendedor_asignado_at && <Dato titulo={`Vendedor · asignado el`} valor={`${caso.vendedor.nombre} · ${fechaHora(caso.vendedor_asignado_at)}`} />}
           </dl>
           <p className="mt-4 text-xs text-ink-muted">Todas las fechas y montos son estimados hasta que se verifican con los documentos y la Afore paga.</p>
         </CardContent>
