@@ -26,6 +26,9 @@ import { ETAPAS_PROSPECTO, listarCasos, nombreCompleto } from "@/lib/prospectos/
 import { diasEntre, fechasRetiroDesempleo } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import { Bandeja } from "./bandeja";
+import { TarjetaPremio } from "@/components/rpd/premio";
+import { cierresRetiroPorSocio, premiosVigentes } from "@/lib/premios/datos";
+import { progresoPremio } from "@/lib/reglas/premios";
 
 export const metadata: Metadata = { title: "Hoy" };
 
@@ -51,6 +54,11 @@ export default async function Hoy() {
     ? await conUsuario(sesion.claims, (tx) => tx.correoEntrante.count({ where: { estado: "sin_caso", archivado_at: null } }), sesion.ip).catch(() => 0) : 0;
   // Academia: obligatoria para el asesor de pensiones; se le recuerda hasta que termine la Inducción (N0).
   const sinInduccion = usuario.rol === "socio" ? !(await avanceDe(usuario.id).then((a) => a.certificadas.has("N0")).catch(() => true)) : false;
+  // Premios (16-nov-2026): el asesor de pensiones ve cuánto lleva hacia cada premio vigente.
+  const premios = usuario.rol === "socio" && usuario.socio_id ? await conUsuario(sesion.claims, async (tx) => {
+    const [ps, cierres] = await Promise.all([premiosVigentes(tx), cierresRetiroPorSocio(tx)]);
+    return ps.map((pr) => ({ ...pr, progreso: progresoPremio(pr, cierres.get(usuario.socio_id!) ?? []) }));
+  }, sesion.ip).catch(() => []) : [];
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
   // Total de todas las altas (cada una con el costo vigente el día de su alta); no baja aunque el cliente pague.
   const costoTotal = costos ? costoAdministrativo(costos.altas, costos.vigencias) : null;
@@ -153,6 +161,7 @@ export default async function Hoy() {
           <span><span className="font-semibold">Tu capacitación:</span> termina la Inducción (N0) en la Academia. Son 4 lecciones y un examen corto.</span><span aria-hidden>→</span>
         </Link>
       )}
+      {premios.map((pr) => <TarjetaPremio key={pr.id} nombre={pr.nombre} descripcion={pr.descripcion} meta={pr.meta} progreso={pr.progreso} />)}
       {correosImss > 0 && (
         <Link href="/correos-imss" className="mb-4 flex items-center justify-between gap-2 rounded-[var(--radius-tarjeta)] border border-aviso/30 bg-aviso-tint px-4 py-3 text-sm text-aviso hover:underline">
           <span><span className="font-semibold">{correosImss} {correosImss === 1 ? "correo del IMSS" : "correos del IMSS"}</span> por asignar a un caso</span><span aria-hidden>→</span>

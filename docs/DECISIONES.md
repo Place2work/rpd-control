@@ -797,3 +797,16 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   verificación y la asignación al gerente, para que un prospecto asignado tarde nunca caiga en una semana ya pagada.
   Mientras no tenga gerente no se le paga a nadie.
 - El gerente no ve los prospectos sin gerente ni los de otros, y no puede capturar a nombre de otro ni escribir la CURP.
+
+## 16-nov-2026 · Quitar prospectos de campo y premios del equipo
+
+- **Quitar un prospecto de campo** (pruebas o errores): solo el Director, desde Prospectos de campo, con motivo. No se
+  borra: se archiva (`archivado_at` + `archivo_motivo`) y deja de contar para el pago del gerente. Si ya estaba
+  verificado, también puede archivar el caso que se creó (con su motivo, y queda en Seguimiento). Lo ya pagado no se
+  puede quitar.
+- **Premios** (`premios`): meta visible para el equipo. El primero es una **pantalla TCL de 65 pulgadas** para el asesor
+  de pensiones que llegue a **30 clientes de retiro con honorario cobrado** (el caso llega a «Honorario cobrado»;
+  cuenta la fecha de ese cierre), contados desde el 16-nov-2026 y sin fecha límite. Puede haber más de un ganador.
+  - El asesor ve su avance en «Hoy» (barra, cuántos lleva y cuántos le faltan).
+  - El Director ve el avance de todos en Asesores y referidores, y puede cambiar el nombre, la meta y la descripción,
+    o apagar el premio. Lo ven todos; solo el Director lo cambia (RLS) y nadie lo borra.

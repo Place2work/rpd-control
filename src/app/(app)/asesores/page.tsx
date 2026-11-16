@@ -1,6 +1,6 @@
 import type { Metadata } from "next";
 import Link from "next/link";
-import { ChevronDown, Eye, MapPin, Pencil } from "lucide-react";
+import { ChevronDown, Eye, MapPin, Pencil, Trophy } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Encabezado } from "@/components/rpd/encabezado";
@@ -13,7 +13,9 @@ import { NOMBRE_PARENTESCO, PARENTESCOS } from "@/lib/prospectos/referencias";
 import { NOMBRE_ETAPA } from "@/lib/reglas/etapas";
 import { Casilla, CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
-import { editarProspecto } from "./acciones";
+import { editarProspecto, guardarPremio } from "./acciones";
+import { cierresRetiroPorSocio, premiosVigentes } from "@/lib/premios/datos";
+import { tablaPremio } from "@/lib/reglas/premios";
 import { verComo } from "../acciones";
 import { liquidacionesDe, tarifasCampo } from "@/lib/campo/datos";
 import { panelFinanciero } from "@/lib/reglas/campo";
@@ -70,6 +72,17 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
       [], liq, tarifa, hoy) };
   })), sesion.ip);
 
+  // Premios: avance de cada asesor de pensiones hacia cada premio (y los apagados, para que el Director los vea).
+  const premios = await conUsuario(sesion.claims, async (tx) => {
+    const [vigentes, todos, cierres] = await Promise.all([premiosVigentes(tx),
+      tx.premio.findMany({ where: { archivado_at: null }, orderBy: { created_at: "asc" }, select: { id: true, nombre: true, descripcion: true, meta: true, activo: true } }),
+      cierresRetiroPorSocio(tx)]);
+    return todos.map((p) => {
+      const v = vigentes.find((x) => x.id === p.id);
+      return { ...p, vigente: v ?? null, tabla: v ? tablaPremio(v, d.socios.map((s) => ({ id: s.id, nombre: s.nombre, cierres: cierres.get(s.id) ?? [] }))) : [] };
+    });
+  }, sesion.ip);
+
   const servicio = new Map(d.servicios.map((s) => [s.clave, s.nombre]));
   const casos: CasoPanel[] = d.casos.map((c) => ({
     id: c.id, persona_id: c.persona_id, folio: c.folio, etapa: c.etapa, servicio: servicio.get(c.tipo_servicio) ?? c.tipo_servicio, afore: c.datos_afore?.afore ?? null,
@@ -113,6 +126,34 @@ export default async function Asesores({ searchParams }: { searchParams: Promise
               accionesAsesor(s.usuarios[0]?.id, s.nombre)))}
           </CardContent>
         </Card>
+        {premios.map((pr) => (
+          <Card key={pr.id}>
+            <CardHeader><CardTitle className="flex items-center gap-2"><Trophy className="size-5 text-exito-texto" aria-hidden /> Premio: {pr.nombre}</CardTitle>
+              <span className="text-sm text-ink-muted">{pr.activo ? `meta: ${pr.meta} clientes de retiro con honorario cobrado` : "apagado"}</span></CardHeader>
+            <CardContent className="grid gap-3 text-sm">
+              {pr.vigente && pr.tabla.map((x) => (
+                <div key={x.id} className="grid gap-1">
+                  <div className="flex items-center justify-between gap-2"><span className="text-ink">{x.nombre}{x.ganado && <Badge tono="pagado" className="ml-2">¡Lo ganó!</Badge>}</span><span className="cifra text-ink">{x.logrados} de {pr.meta}</span></div>
+                  <div className="h-2 overflow-hidden rounded-full bg-slate-100"><div className="h-full rounded-full bg-exito" style={{ width: `${x.pct}%` }} /></div>
+                </div>
+              ))}
+              {pr.vigente && <p className="text-xs text-ink-muted">Cuenta cada caso de retiro que llega a «Honorario cobrado» desde el {pr.vigente.desde.split("-").reverse().join("/")}{pr.vigente.hasta ? ` hasta el ${pr.vigente.hasta.split("-").reverse().join("/")}` : ", sin fecha límite"}. Cada asesor ve su avance en «Hoy».</p>}
+              {esDirector && (
+                <details>
+                  <summary className="cursor-pointer text-brand underline">Cambiar el premio</summary>
+                  <FormularioAccion accion={guardarPremio.bind(null, pr.id)} boton="Guardar premio" etiquetas={{ nombre: "Premio", meta: "Meta" }} className="mt-2 grid gap-3">
+                    <div className="grid gap-3 sm:grid-cols-3">
+                      <CampoTexto id="nombre" etiqueta="Premio" valor={pr.nombre} className="sm:col-span-2" required />
+                      <CampoTexto id="meta" etiqueta="Meta (clientes)" valor={pr.meta} inputMode="numeric" required />
+                      <CampoTexto id="descripcion" etiqueta="Descripción (la ve el asesor)" valor={pr.descripcion} className="sm:col-span-3" />
+                    </div>
+                    <Casilla id="activo" etiqueta="Premio activo (visible para los asesores)" marcada={pr.activo} />
+                  </FormularioAccion>
+                </details>
+              )}
+            </CardContent>
+          </Card>
+        ))}
         <Card>
           <CardHeader><CardTitle className="flex items-center gap-2"><MapPin className="size-5 text-brand" aria-hidden /> Gerentes de campo</CardTitle><span className="text-sm text-ink-muted">{gerentes.length}</span></CardHeader>
           <CardContent className="grid gap-2">

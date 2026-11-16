@@ -91,3 +91,20 @@ async function asesorSinP1(s: Awaited<ReturnType<typeof obtenerSesion>>, casoId:
     ? `${datos.cuenta.nombre} todavía no tiene la certificación P1 (Detección de pensiones) para recibir casos de pensión. Puedes darle una excepción temporal en Academia → Avance del equipo.`
     : null;
 }
+
+/** Director: cambia el premio (nombre, meta, descripción) o lo apaga. La bitácora guarda cada cambio. */
+export async function guardarPremio(id: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await obtenerSesion();
+  if (s.usuario.rol !== "director") return { error: "Solo el Director cambia los premios." };
+  if (!/^[0-9a-f-]{36}$/i.test(id)) return { error: "Premio no válido." };
+  const nombre = txt(form, "nombre"), meta = Number(txt(form, "meta"));
+  const errores: Record<string, string> = {};
+  if (!nombre || nombre.length < 3) errores.nombre = "Escribe el premio";
+  if (!Number.isInteger(meta) || meta < 1) errores.meta = "Escribe un número entero de clientes";
+  if (Object.keys(errores).length) return { errores };
+  await conUsuario(s.claims, (tx) => tx.premio.update({ where: { id }, select: { id: true },
+    data: { nombre: nombre!, meta, descripcion: txt(form, "descripcion"), activo: form.get("activo") === "si" } }), s.ip);
+  revalidatePath("/asesores");
+  revalidatePath("/hoy");
+  return { ok: true, mensaje: "Premio guardado." };
+}

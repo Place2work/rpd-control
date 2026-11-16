@@ -129,6 +129,36 @@ export async function asignarGerenteCampo(id: string, _p: Resultado, form: FormD
   return { ok: true, mensaje: gerenteId ? "Gerente asignado." : "Quedó sin gerente." };
 }
 
+/**
+ * Director: quita un prospecto de campo (una prueba o un error). No se borra: se archiva con motivo y deja de contar
+ * para el pago del gerente. Si ya se verificó, también puede archivar el caso que se creó. Lo pagado no se toca.
+ */
+export async function quitarCampo(id: string, _p: Resultado, form: FormData): Promise<Resultado> {
+  const s = await obtenerSesion();
+  if (s.usuario.rol !== "director") return { error: "Solo el Director quita prospectos de campo." };
+  const motivo = txt(form, "motivo");
+  if (!UUID.test(id)) return { error: "Prospecto no válido." };
+  if (motivo.length < 3) return { errores: { motivo: "Escribe el motivo" } };
+  const conCaso = form.get("archivar_caso") === "si";
+  const r = await conUsuario(s.claims, async (tx) => {
+    const p = await tx.campoProspecto.findUnique({ where: { id }, select: { pago_id: true, caso_id: true, archivado_at: true, nombre: true } });
+    if (!p || p.archivado_at) return "no";
+    if (p.pago_id) return "pagado";
+    await tx.campoProspecto.update({ where: { id }, select: { id: true }, data: { archivado_at: new Date(), archivo_motivo: motivo } });
+    if (conCaso && p.caso_id) {
+      await tx.caso.update({ where: { id: p.caso_id }, select: { id: true }, data: { archivado_at: new Date(), motivo_archivo: `Prospecto de campo quitado: ${motivo}` } });
+      await tx.evento.create({ data: { caso_id: p.caso_id, tipo: "sistema", usuario_id: s.usuario.id, texto: `Caso archivado al quitar el prospecto de campo: ${motivo}` } });
+    }
+    return "ok";
+  }, s.ip);
+  if (r === "no") return { error: "Ese prospecto ya no está." };
+  if (r === "pagado") return { error: "Ya se le pagó al gerente: no se puede quitar." };
+  refrescar();
+  revalidatePath("/casos");
+  revalidatePath("/prospectos");
+  return { ok: true, mensaje: "Listo: se quitó y ya no cuenta para el pago." };
+}
+
 // ───────────── Analista y Director: verificación ─────────────
 
 /** Verificado: se crea el prospecto normal (persona + caso, origen campo) y, si se elige, se asigna al asesor de pensiones y/o a un vendedor. */

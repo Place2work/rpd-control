@@ -176,3 +176,21 @@ describe("prospectos de campo capturados en oficina (16-nov-2026)", () => {
     expect(await como(G1, "SELECT id FROM campo_prospectos WHERE gerente_id IS NULL")).toHaveLength(0);
   });
 });
+
+describe("quitar prospectos de campo y premios (16-nov-2026)", () => {
+  it("quitar = archivar con motivo; sin motivo no se puede; nadie borra", async () => {
+    const [p] = await como<{ id: string }>(A, "INSERT INTO campo_prospectos (gerente_id, nombre, whatsapp, municipio) VALUES ($1, 'Prueba quitar', $2, 'Cuautla') RETURNING id", [G1, tel()]);
+    await expect(como(D, "UPDATE campo_prospectos SET archivado_at = now() WHERE id = $1", [p.id])).rejects.toThrow(/archivo_motivo/);
+    expect(await como(D, "UPDATE campo_prospectos SET archivado_at = now(), archivo_motivo = 'Fue una prueba' WHERE id = $1 RETURNING id", [p.id])).toHaveLength(1);
+    await expect(como(D, "DELETE FROM campo_prospectos WHERE id = $1", [p.id])).rejects.toThrow(/permission denied/);
+  });
+  it("los premios los ve todo el equipo y solo el Director los cambia", async () => {
+    const [pr] = (await db.query("SELECT id FROM premios WHERE nombre = 'Pantalla TCL de 65 pulgadas'")).rows;
+    expect(pr).toBeTruthy();
+    expect(await como(G1, "SELECT id FROM premios WHERE id = $1", [pr.id])).toHaveLength(1);
+    expect(await como(A, "UPDATE premios SET meta = 1 WHERE id = $1 RETURNING id", [pr.id])).toHaveLength(0);
+    await expect(como(A, "INSERT INTO premios (nombre, meta, desde) VALUES ('Otro', 5, '2026-11-16')")).rejects.toThrow(/row-level security/);
+    expect(await como(D, "UPDATE premios SET meta = 30 WHERE id = $1 RETURNING id", [pr.id])).toHaveLength(1);
+    await expect(como(D, "DELETE FROM premios WHERE id = $1", [pr.id])).rejects.toThrow(/permission denied/);
+  });
+});
