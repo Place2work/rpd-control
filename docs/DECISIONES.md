@@ -810,3 +810,9 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   - El asesor ve su avance en «Hoy» (barra, cuántos lleva y cuántos le faltan).
   - El Director ve el avance de todos en Asesores y referidores, y puede cambiar el nombre, la meta y la descripción,
     o apagar el premio. Lo ven todos; solo el Director lo cambia (RLS) y nadie lo borra.
+
+## 16-nov-2026 · Next.js 16.4.6
+
+- Se actualizó Next.js de 16.4.3 a 16.4.6 (y `eslint-config-next`), versión exacta. Corrige una vulnerabilidad
+  moderada (16.3.0–16.4.4): fuga de información entre parámetros de ruta al llamar una función `'use cache'` desde
+  `unstable_cache()`. Sin cambios de código; pasan tipos, lint, pruebas de reglas y de base, y la compilación.
