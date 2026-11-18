@@ -816,3 +816,16 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - Se actualizó Next.js de 16.4.3 a 16.4.6 (y `eslint-config-next`), versión exacta. Corrige una vulnerabilidad
   moderada (16.3.0–16.4.4): fuga de información entre parámetros de ruta al llamar una función `'use cache'` desde
   `unstable_cache()`. Sin cambios de código; pasan tipos, lint, pruebas de reglas y de base, y la compilación.
+
+## 18-nov-2026 · Equipo en vivo (oficina 3D)
+
+- Nueva pantalla **Equipo en vivo** (`/equipo`, solo Director): una oficina en 3D (three.js, figuras propias, sin
+  modelos externos) con los departamentos actuales: Dirección, Análisis y verificación (analistas), Asesores de
+  pensiones (las fichas sin cuenta aparecen en gris con «sin cuenta»), Vendedores y Calle · cambaceo (gerentes de
+  campo caminando junto a su módulo, banner y sombrilla). Los departamentos sin nadie muestran «Puesto vacante».
+- **En vivo**: se refresca cada 20 segundos (se puede pausar) con la actividad del día en hora de la CDMX:
+  prospectos registrados, prospectos de calle (con municipio), verificados, casos que avanzan de etapa, honorarios
+  cobrados y módulos instalados. Cada acción nueva sale como burbuja sobre el avatar (y confeti al verificar o
+  cobrar), suma a los contadores y aparece en «Lo que va pasando hoy».
+- **Privacidad**: no muestra nombres, teléfonos ni datos de clientes; solo quién del equipo hizo qué. Consulta con
+  la sesión del Director (RLS). «Activo hoy» significa que hizo algo hoy, no que esté conectado en este momento.

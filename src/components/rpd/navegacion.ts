@@ -12,6 +12,7 @@ import {
   Settings,
   UserPlus,
   Users,
+  Box,
 } from "lucide-react";
 import type { Rol } from "@/generated/prisma/enums";
 
@@ -31,6 +32,7 @@ export const MODULOS: Modulo[] = [
   { href: "/comisiones", titulo: "Comisiones", icono: HandCoins, roles: TODOS },
   { href: "/campo/revisar", titulo: "Prospectos de campo", icono: MapPin, roles: ["director", "asesor"] },
   { href: "/asesores", titulo: "Asesores y referidores", icono: Users, roles: ["director", "asesor"] },
+  { href: "/equipo", titulo: "Equipo en vivo", icono: Box, roles: ["director"] },
   { href: "/academia", titulo: "Academia", icono: GraduationCap, roles: ["director", "asesor", "socio"] },
   { href: "/reportes", titulo: "Reportes", icono: BarChart3, roles: ["director", "asesor"] },
   { href: "/configuracion", titulo: "Configuración", icono: Settings, roles: ["director"] },
