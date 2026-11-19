@@ -49,7 +49,7 @@ export function EquipoEnVivo({ inicial }: { inicial: FotoEquipo }) {
       </div>
 
       <div className="relative">
-        <Oficina3D personas={personas} actividades={foto.actividades} autoGiro={giro} />
+        <Oficina3D personas={personas} actividades={foto.actividades} autoGiro={giro} premio={foto.premio} />
         <div className="absolute right-3 top-3 flex flex-wrap gap-2">
           <button type="button" onClick={() => setEnVivo((v) => !v)} className="inline-flex h-9 items-center gap-1.5 rounded-[var(--radius-boton)] bg-surface/90 px-3 text-sm font-medium text-ink shadow">
             {enVivo ? <><span className="size-2 animate-pulse rounded-full bg-critico" aria-hidden /> En vivo <Pause className="size-4" aria-hidden /></> : <>Pausado <Play className="size-4" aria-hidden /></>}

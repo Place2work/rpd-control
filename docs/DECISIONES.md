@@ -835,3 +835,9 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   la CDMX. Día y noche según la hora real (de noche se encienden lámparas, monitores y faros). Calle viva con coches
   en los dos carriles y peatones. Corona sobre quien lleva más acciones hoy. Ficha al pasar el cursor (o tocar) sobre
   cualquier persona con su detalle del día.
+- **Peatones y más detalles (19-nov-2026)**: cuando entra un prospecto real de calle, el peatón libre más cercano
+  camina al módulo de ese gerente, dice «¡Me interesa!» y recibe un volante mientras el gerente se detiene a atenderlo;
+  luego regresa a la banqueta. Solo pasa con prospectos reales. Además: ventanales, sala de juntas en Dirección,
+  archiveros, impresora, botes de basura, perrito dormido junto al sillón y pizarrón con el premio vigente (lo toma de
+  `premios`). En la calle: bicicleta del gerente con volantes, paso de cebra, semáforo (los coches se detienen en rojo)
+  y puesto de tacos con su taquero. En el cielo, nubes de día y estrellas de noche.

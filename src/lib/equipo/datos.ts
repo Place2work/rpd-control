@@ -4,14 +4,15 @@ import "server-only";
 import type { Tx } from "@/lib/db/prisma";
 import { NOMBRE_ETAPA, type Etapa } from "@/lib/reglas/etapas";
 import { hoyCDMX, inicioDiaCDMX } from "@/lib/tiempo";
+import { premiosVigentes } from "@/lib/premios/datos";
 import { DEPARTAMENTO_DE_ROL, type Actividad, type Departamento } from "./actividad";
 
 export type Persona = { id: string; nombre: string; departamento: Departamento; conCuenta: boolean };
-export type FotoEquipo = { personas: Persona[]; actividades: Actividad[]; hora: string };
+export type FotoEquipo = { personas: Persona[]; actividades: Actividad[]; hora: string; premio: { nombre: string; meta: number } | null };
 
 export async function fotoEquipo(tx: Tx): Promise<FotoEquipo> {
   const desde = inicioDiaCDMX(hoyCDMX());
-  const [usuarios, fichasSinCuenta, casos, campo, verificados, etapas, jornadas] = await Promise.all([
+  const [usuarios, fichasSinCuenta, casos, campo, verificados, etapas, jornadas, premios] = await Promise.all([
     tx.usuario.findMany({ where: { activo: true, archivado_at: null }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true, rol: true } }),
     tx.socio.findMany({ where: { archivado_at: null, usuarios: { none: { activo: true } } }, orderBy: { nombre: "asc" }, select: { id: true, nombre: true } }),
     tx.caso.findMany({ where: { created_at: { gte: desde } }, select: { id: true, owner_id: true, created_at: true } }),
@@ -19,6 +20,7 @@ export async function fotoEquipo(tx: Tx): Promise<FotoEquipo> {
     tx.campoProspecto.findMany({ where: { verificado_at: { gte: desde }, estado: "verificado", verificado_por: { not: null } }, select: { id: true, verificado_por: true, verificado_at: true } }),
     tx.historialEtapa.findMany({ where: { fecha: { gte: desde }, usuario_id: { not: null }, etapa_antes: { not: null } }, select: { id: true, usuario_id: true, fecha: true, etapa_nueva: true } }),
     tx.campoJornada.findMany({ where: { created_at: { gte: desde } }, select: { id: true, gerente_id: true, created_at: true, municipio: true } }),
+    premiosVigentes(tx),
   ]);
   const personas: Persona[] = [
     ...usuarios.filter((u) => DEPARTAMENTO_DE_ROL[u.rol]).map((u) => ({ id: u.id, nombre: u.nombre, departamento: DEPARTAMENTO_DE_ROL[u.rol], conCuenta: true })),
@@ -32,5 +34,5 @@ export async function fotoEquipo(tx: Tx): Promise<FotoEquipo> {
       detalle: NOMBRE_ETAPA[h.etapa_nueva as Etapa] ?? null })),
     ...jornadas.map((j) => ({ id: `j:${j.id}`, tipo: "jornada" as const, usuarioId: j.gerente_id, at: j.created_at.toISOString(), detalle: j.municipio })),
   ].sort((a, b) => (a.at < b.at ? 1 : -1));
-  return { personas, actividades, hora: new Date().toISOString() };
+  return { personas, actividades, hora: new Date().toISOString(), premio: premios[0] ? { nombre: premios[0].nombre, meta: premios[0].meta } : null };
 }

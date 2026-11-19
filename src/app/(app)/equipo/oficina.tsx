@@ -26,8 +26,10 @@ const primerNombre = (n: string) => n.split(/\s+/)[0].toLowerCase().replace(/^./
 type Avatar = {
   persona: PersonaVista; grupo: THREE.Group; brazoI: THREE.Object3D; brazoD: THREE.Object3D; cabeza: THREE.Object3D;
   piernaI: THREE.Object3D; piernaD: THREE.Object3D; etiqueta: THREE.Sprite; pantalla?: THREE.MeshStandardMaterial;
-  base: THREE.Vector3; camina: boolean; fase: number; ruta?: THREE.Vector3[]; tramo: number;
+  base: THREE.Vector3; camina: boolean; fase: number; ruta?: THREE.Vector3[]; tramo: number; atiende?: THREE.Vector3 | null;
 };
+type Peaton = ReturnType<typeof crearAvatar> & { sube: boolean; vel: number; fase: number; carril: number;
+  modo: "paseo" | "va" | "espera" | "regresa"; destino: THREE.Vector3 | null; hasta: number; gerente: string | null };
 type Efecto = { obj: THREE.Object3D; nace: number; vida: number; tipo: "burbuja" | "confeti"; vel?: THREE.Vector3[] };
 
 function texturaTexto(lineas: { texto: string; color: string; tamano: number; negrita?: boolean }[], fondo: string | null) {
@@ -121,6 +123,7 @@ function escritorio(x: number, z: number, vacante: boolean, nombre?: string) {
     const cafe = new THREE.Mesh(new THREE.CircleGeometry(0.035, 12), mat(0x6b3e26)); cafe.rotation.x = -Math.PI / 2; cafe.position.set(-0.5, 0.881, 0.05); g.add(cafe);
     const papeles = new THREE.Mesh(new THREE.BoxGeometry(0.22, 0.04, 0.3), mat(0xf8fafc)); papeles.position.set(0.52, 0.81, -0.12); papeles.rotation.y = 0.2; g.add(papeles);
     const lapiz = new THREE.Mesh(new THREE.CylinderGeometry(0.008, 0.008, 0.18, 6), mat(0xfacc15)); lapiz.rotation.z = Math.PI / 2; lapiz.position.set(0.5, 0.84, 0.05); g.add(lapiz);
+    const bote = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.11, 0.32, 12, 1, true), mat(0x475569, { side: THREE.DoubleSide })); bote.position.set(0.95, 0.16, 0.2); g.add(bote);
     if (nombre) {
       const placa = sprite([{ texto: nombre, color: "#ffffff", tamano: 44, negrita: true }], "#1e293b", 0.12);
       placa.position.set(0, 0.92, -0.37); g.add(placa);
@@ -296,6 +299,107 @@ function luzDelDia() {
   return 0;
 }
 
+function mesaJuntas(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const cubierta = new THREE.Mesh(new THREE.CylinderGeometry(0.75, 0.75, 0.05, 24), mat(0xe7d7c1)); cubierta.position.y = 0.76; cubierta.castShadow = true; g.add(cubierta);
+  const pie = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.25, 0.74, 12), mat(0x64748b)); pie.position.y = 0.37; g.add(pie);
+  for (let i = 0; i < 4; i++) {
+    const a = (i / 4) * Math.PI * 2 + Math.PI / 4;
+    const silla = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.06, 0.42), mat(0x334155)); silla.position.set(Math.sin(a) * 1.05, 0.46, Math.cos(a) * 1.05); g.add(silla);
+    const resp = new THREE.Mesh(new THREE.BoxGeometry(0.42, 0.45, 0.05), mat(0x334155)); resp.position.set(Math.sin(a) * 1.27, 0.72, Math.cos(a) * 1.27); resp.rotation.y = a; g.add(resp);
+  }
+  const carpeta = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.02, 0.22), mat(0x004aad)); carpeta.position.set(0.15, 0.8, 0.1); carpeta.rotation.y = 0.3; g.add(carpeta);
+  const titulo = sprite([{ texto: "Sala de juntas", color: "#ffffff", tamano: 46, negrita: true }], "#1e293b", 0.28); titulo.position.y = 1.7; g.add(titulo);
+  return g;
+}
+
+function archivero(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.5, 1.3, 0.6), mat(0x94a3b8, { metalness: 0.3, roughness: 0.5 })); cuerpo.position.y = 0.65; cuerpo.castShadow = true; g.add(cuerpo);
+  for (let i = 0; i < 4; i++) { const jalador = new THREE.Mesh(new THREE.BoxGeometry(0.16, 0.03, 0.03), mat(0x334155)); jalador.position.set(0, 0.25 + i * 0.3, 0.31); g.add(jalador); }
+  return g;
+}
+
+function impresora(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const mueble = new THREE.Mesh(new THREE.BoxGeometry(0.8, 0.7, 0.6), mat(0xe2e8f0)); mueble.position.y = 0.35; g.add(mueble);
+  const equipo = new THREE.Mesh(new THREE.BoxGeometry(0.7, 0.4, 0.55), mat(0xf8fafc)); equipo.position.y = 0.9; equipo.castShadow = true; g.add(equipo);
+  const hoja = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.01, 0.22), mat(0xffffff)); hoja.position.set(0, 1.11, 0.15); g.add(hoja);
+  const luz = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.05, 0.02), mat(0x22c55e, { emissive: new THREE.Color(0x22c55e), emissiveIntensity: 1 })); luz.position.set(0.25, 1.0, 0.28); g.add(luz);
+  return g;
+}
+
+function perrito(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = -0.6;
+  const cama = new THREE.Mesh(new THREE.CylinderGeometry(0.45, 0.45, 0.12, 20), mat(0xd97706)); cama.position.y = 0.06; g.add(cama);
+  const pelaje = mat(0xc08a5b);
+  const cuerpo = new THREE.Mesh(new THREE.SphereGeometry(0.22, 12, 10), pelaje); cuerpo.scale.set(1.3, 0.75, 0.9); cuerpo.position.y = 0.24; cuerpo.castShadow = true; g.add(cuerpo);
+  const cabeza = new THREE.Mesh(new THREE.SphereGeometry(0.12, 12, 10), pelaje); cabeza.position.set(0.3, 0.24, 0.05); g.add(cabeza);
+  for (const dz of [-0.06, 0.12]) { const oreja = new THREE.Mesh(new THREE.ConeGeometry(0.04, 0.09, 6), mat(0x8b5e3c)); oreja.position.set(0.32, 0.36, dz); g.add(oreja); }
+  const cola = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.015, 0.22, 6), pelaje); cola.position.set(-0.32, 0.25, 0); cola.rotation.z = 1.1; g.add(cola);
+  return { g, cuerpo, cola };
+}
+
+function bicicleta(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = 0.4;
+  const metal = mat(0x16a34a, { metalness: 0.4, roughness: 0.4 });
+  for (const dz of [-0.45, 0.45]) { const rueda = new THREE.Mesh(new THREE.TorusGeometry(0.3, 0.03, 8, 20), mat(0x111111)); rueda.rotation.y = Math.PI / 2; rueda.position.set(0, 0.32, dz); g.add(rueda); }
+  const cuadro = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.04, 0.9), metal); cuadro.position.set(0, 0.55, 0); g.add(cuadro);
+  const tubo = new THREE.Mesh(new THREE.BoxGeometry(0.04, 0.45, 0.04), metal); tubo.position.set(0, 0.55, -0.1); tubo.rotation.x = 0.3; g.add(tubo);
+  const asiento = new THREE.Mesh(new THREE.BoxGeometry(0.1, 0.04, 0.2), mat(0x111111)); asiento.position.set(0, 0.8, -0.15); g.add(asiento);
+  const manubrio = new THREE.Mesh(new THREE.BoxGeometry(0.45, 0.04, 0.04), mat(0x111111)); manubrio.position.set(0, 0.85, 0.42); g.add(manubrio);
+  const canasta = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.18, 0.22), mat(0x92400e)); canasta.position.set(0, 0.85, 0.6); g.add(canasta);
+  const volantes = new THREE.Mesh(new THREE.BoxGeometry(0.24, 0.06, 0.16), mat(0xffffff)); volantes.position.set(0, 0.96, 0.6); g.add(volantes);
+  return g;
+}
+
+function puestoTacos(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = -Math.PI / 2;
+  const carro = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.95, 0.8), mat(0xdc2626)); carro.position.y = 0.6; carro.castShadow = true; g.add(carro);
+  for (const dx of [-0.6, 0.6]) { const r = new THREE.Mesh(new THREE.CylinderGeometry(0.15, 0.15, 0.1, 12), mat(0x111111)); r.rotation.x = Math.PI / 2; r.position.set(dx, 0.15, 0.42); g.add(r); }
+  const plancha = new THREE.Mesh(new THREE.BoxGeometry(1.2, 0.05, 0.6), mat(0x9ca3af, { metalness: 0.6 })); plancha.position.y = 1.1; g.add(plancha);
+  const toldo = new THREE.Mesh(new THREE.BoxGeometry(2.1, 0.06, 1.2), mat(0xfacc15)); toldo.position.y = 2.15; toldo.castShadow = true; g.add(toldo);
+  for (const dx of [-0.95, 0.95]) { const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.1, 6), mat(0x9ca3af)); poste.position.set(dx, 1.6, 0); g.add(poste); }
+  const letrero = sprite([{ texto: "Tacos", color: "#ffffff", tamano: 60, negrita: true }], "#dc2626", 0.38); letrero.position.y = 2.6; g.add(letrero);
+  const taquero: PersonaVista = { id: "taquero", nombre: "", departamento: "calle", conCuenta: true, resumen: null };
+  const t = crearAvatar(taquero, 0xffffff); t.grupo.position.set(0, 0, -0.75); t.brazoD.rotation.x = -1.2; t.brazoI.rotation.x = -1.2; g.add(t.grupo);
+  return { g, taquero: t };
+}
+
+function semaforo(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const poste = new THREE.Mesh(new THREE.CylinderGeometry(0.06, 0.08, 3, 8), mat(0x374151)); poste.position.y = 1.5; g.add(poste);
+  const caja = new THREE.Mesh(new THREE.BoxGeometry(0.3, 0.8, 0.25), mat(0x111827)); caja.position.y = 3.1; g.add(caja);
+  const luces = [0xef4444, 0xfacc15, 0x22c55e].map((c, i) => {
+    const m = new THREE.MeshStandardMaterial({ color: 0x1f2937, emissive: new THREE.Color(c), emissiveIntensity: 0 });
+    const l = new THREE.Mesh(new THREE.SphereGeometry(0.08, 10, 8), m); l.position.set(0, 3.35 - i * 0.25, 0.13); g.add(l); return m;
+  });
+  return { g, luces };
+}
+
+function pizarronPremio(premio: { nombre: string; meta: number } | null) {
+  const g = new THREE.Group();
+  const marco = new THREE.Mesh(new THREE.BoxGeometry(2.2, 1.3, 0.06), mat(0x94a3b8)); marco.position.y = 1.5; marco.castShadow = true; g.add(marco);
+  const lineas = premio
+    ? [{ texto: "PREMIO", color: "#3F7A24", tamano: 56, negrita: true }, { texto: premio.nombre, color: "#0f172a", tamano: 44, negrita: true },
+      { texto: `Meta: ${premio.meta} clientes de retiro cobrados`, color: "#334155", tamano: 34 }, { texto: "¡Vamos por ella!", color: "#004AAD", tamano: 40, negrita: true }]
+    : [{ texto: "Pizarrón del equipo", color: "#0f172a", tamano: 50, negrita: true }, { texto: "¡A darle con todo hoy!", color: "#004AAD", tamano: 40, negrita: true }];
+  const texto = sprite(lineas, "#ffffff", 1.05);
+  // El texto mira siempre a la cámara: se dibuja encima del marco para que nunca quede tapado.
+  texto.material.depthTest = false; texto.renderOrder = 5;
+  texto.position.set(0, 1.5, 0.05); g.add(texto);
+  for (const dx of [-0.9, 0.9]) { const pata = new THREE.Mesh(new THREE.BoxGeometry(0.05, 0.9, 0.05), mat(0x64748b)); pata.position.set(dx, 0.45, 0); g.add(pata); }
+  return g;
+}
+
+/** Nubes de día que cruzan despacio. */
+function nube() {
+  const g = new THREE.Group();
+  const blanco = new THREE.MeshStandardMaterial({ color: 0xffffff, roughness: 1, transparent: true, opacity: 0.92 });
+  for (let i = 0; i < 4; i++) { const b = new THREE.Mesh(new THREE.SphereGeometry(0.9 + (i % 2) * 0.4, 10, 8), blanco); b.position.set(i * 0.9 - 1.3, (i % 2) * 0.3, (i % 3) * 0.3); g.add(b); }
+  return { g, blanco };
+}
+
 /** Posiciones de escritorio dentro de una zona (en filas). */
 function puestos(z: Zona, n: number) {
   const cols = Math.min(z.columnas, Math.max(1, n));
@@ -304,12 +408,12 @@ function puestos(z: Zona, n: number) {
   return Array.from({ length: n }, (_, i) => new THREE.Vector3(z.cx + (i % cols - (cols - 1) / 2) * dx, 0, z.cz + (Math.floor(i / cols) - (filas - 1) / 2) * dz - 0.3));
 }
 
-export function Oficina3D({ personas, actividades, autoGiro }: { personas: PersonaVista[]; actividades: Actividad[]; autoGiro: boolean }) {
+export function Oficina3D({ personas, actividades, autoGiro, premio }: { personas: PersonaVista[]; actividades: Actividad[]; autoGiro: boolean; premio: { nombre: string; meta: number } | null }) {
   const contenedor = useRef<HTMLDivElement>(null);
   const estado = useRef<{ avatares: Map<string, Avatar>; efectos: Efecto[]; escena: THREE.Scene; controles: OrbitControls; vistas: Set<string>; listo: boolean;
-    tablero: (d: Parameters<ReturnType<typeof crearTablero>["dibujar"]>[0]) => void; corona: THREE.Group } | null>(null);
+    tablero: (d: Parameters<ReturnType<typeof crearTablero>["dibujar"]>[0]) => void; corona: THREE.Group; llamarPeaton: (gerenteId: string) => void } | null>(null);
   const [ficha, setFicha] = useState<{ x: number; y: number; ancho: number; p: PersonaVista } | null>(null);
-  const clavePersonas = personas.map((p) => `${p.id}:${p.departamento}:${p.conCuenta}`).join("|");
+  const clavePersonas = personas.map((p) => `${p.id}:${p.departamento}:${p.conCuenta}`).join("|") + `|premio:${premio?.nombre ?? ""}:${premio?.meta ?? ""}`;
 
   // Escena: se arma una vez por plantilla de personas.
   useEffect(() => {
@@ -362,6 +466,35 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
     const lamparas = [[-15.8, -2.8], [-7, 0.2], [3.5, 0.2], [7.5, 6.8]].map(([x, z]) => { const l = lampara(x, z); escena.add(l.g); return l; });
     const tablero = crearTablero(); tablero.g.position.set(3.2, 0, -10.3); tablero.g.scale.setScalar(1.35); escena.add(tablero.g);
     const relojPie = crearReloj(); relojPie.g.position.set(7.4, 0, -3.4); escena.add(relojPie.g); relojPie.dibujar();
+    escena.add(mesaJuntas(-14.9, -4.3), archivero(-5.7, -10.4), archivero(-5.1, -10.4), archivero(-4.5, -10.4), impresora(1.2, -10.3));
+    const perro = perrito(5.1, 3.1); escena.add(perro.g);
+    const pizarron = pizarronPremio(premio); pizarron.position.set(-3.2, 0, 8.9); escena.add(pizarron);
+    // Ventanales sobre los muros del fondo y la izquierda.
+    const vidrio = new THREE.MeshStandardMaterial({ color: 0xbfdbfe, transparent: true, opacity: 0.22, roughness: 0.05, metalness: 0.1, side: THREE.DoubleSide });
+    const marcoV = mat(0x94a3b8);
+    for (let x = -16.4; x <= 8.4; x += 2.6) {
+      const v = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.5), vidrio); v.position.set(x + 1.3, 1.65, -11); escena.add(v);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.06, 1.5, 0.1), marcoV); m.position.set(x, 1.65, -11); escena.add(m);
+    }
+    for (let z = -10.6; z <= 9.4; z += 2.6) {
+      const v = new THREE.Mesh(new THREE.PlaneGeometry(2.5, 1.5), vidrio); v.rotation.y = Math.PI / 2; v.position.set(-17, 1.65, z + 1.3); escena.add(v);
+      const m = new THREE.Mesh(new THREE.BoxGeometry(0.1, 1.5, 0.06), marcoV); m.position.set(-17, 1.65, z); escena.add(m);
+    }
+    const travesano = new THREE.Mesh(new THREE.BoxGeometry(26, 0.08, 0.12), marcoV); travesano.position.set(-4, 2.42, -11); escena.add(travesano);
+    const travesanoI = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.08, 21), marcoV); travesanoI.position.set(-17, 2.42, -0.5); escena.add(travesanoI);
+
+    // Calle: paso de cebra frente a la entrada, semáforo, puesto de tacos enfrente.
+    for (let x = 13.4; x <= 20.6; x += 0.7) { const r = new THREE.Mesh(new THREE.PlaneGeometry(0.4, 2.2), mat(0xf8fafc)); r.rotation.x = -Math.PI / 2; r.position.set(x, 0.012, 0); escena.add(r); }
+    const sem = semaforo(13.1, -1.6); escena.add(sem.g);
+    const tacos = puestoTacos(22.7, 4); escena.add(tacos.g);
+
+    // Cielo: nubes de día, estrellas de noche.
+    const nubes = Array.from({ length: 7 }, (_, i) => { const n = nube(); n.g.position.set(-30 + i * 9, 13 + (i % 3) * 1.5, -22 + (i % 4) * 9); n.g.scale.setScalar(1 + (i % 2) * 0.5); escena.add(n.g); return n; });
+    const posEstrellas = new Float32Array(600 * 3);
+    for (let i = 0; i < 600; i++) { const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * 40; posEstrellas.set([Math.cos(a) * r, 18 + Math.random() * 25, Math.sin(a) * r - 10], i * 3); }
+    const geoEstrellas = new THREE.BufferGeometry(); geoEstrellas.setAttribute("position", new THREE.BufferAttribute(posEstrellas, 3));
+    const matEstrellas = new THREE.PointsMaterial({ color: 0xffffff, size: 0.18, transparent: true, opacity: 0 });
+    escena.add(new THREE.Points(geoEstrellas, matEstrellas));
 
     // Calle viva: coches en los dos carriles y peatones en la banqueta.
     const coches = [0xef4444, 0xffffff, 0x2563eb, 0x111827, 0xfacc15].map((color, i) => {
@@ -372,13 +505,24 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
     const peatones = [0, 1, 2, 3].map((i) => {
       const persona: PersonaVista = { id: `peaton-${i}`, nombre: "", departamento: "calle", conCuenta: true, resumen: null };
       const partes = crearAvatar(persona, [0x0ea5e9, 0xf43f5e, 0x84cc16, 0xa855f7][i]);
-      partes.grupo.position.set(i % 2 ? 10.3 : 11.8, 0, -9 + i * 5); partes.grupo.scale.setScalar(0.95); escena.add(partes.grupo);
-      return { ...partes, sube: i % 2 === 0, vel: 0.7 + i * 0.12, fase: i * 1.7 };
+      const carril = i % 2 ? 10.3 : 11.8;
+      partes.grupo.position.set(carril, 0, -9 + i * 5); partes.grupo.scale.setScalar(0.95); escena.add(partes.grupo);
+      return { ...partes, sube: i % 2 === 0, vel: 0.7 + i * 0.12, fase: i * 1.7, carril, modo: "paseo", destino: null, hasta: 0, gerente: null } as Peaton;
     });
+    // Un prospecto real de calle: el peatón libre más cercano se acerca al módulo de ese gerente.
+    const llamarPeaton = (gerenteId: string) => {
+      const m = modulos.get(gerenteId);
+      if (!m) return;
+      const libres = peatones.filter((w) => w.modo === "paseo");
+      if (!libres.length) return;
+      const w = libres.sort((a, b) => a.grupo.position.distanceTo(m) - b.grupo.position.distanceTo(m))[0];
+      w.modo = "va"; w.gerente = gerenteId; w.destino = new THREE.Vector3(m.x + 0.4, 0, m.z + 1.25);
+    };
     const coronaLider = corona(); coronaLider.visible = false; escena.add(coronaLider);
 
     // Zonas, escritorios y avatares.
     const avatares = new Map<string, Avatar>();
+    const modulos = new Map<string, THREE.Vector3>();
     (Object.keys(ZONAS) as Departamento[]).forEach((dep) => {
       const z = ZONAS[dep];
       if (dep !== "calle") {
@@ -392,7 +536,8 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
       if (dep === "calle") {
         gente.forEach((p, i) => {
           const centro = new THREE.Vector3(z.cx - 1.5, 0, z.cz - 3 + i * 5);
-          escena.add(moduloCalle(centro.x, centro.z));
+          escena.add(moduloCalle(centro.x, centro.z), bicicleta(centro.x - 1.8, centro.z - 0.9));
+          modulos.set(p.id, centro.clone());
           const partes = crearAvatar(p, z.color);
           const ruta = [new THREE.Vector3(centro.x + 0.2, 0, centro.z + 1.4), new THREE.Vector3(centro.x - 0.4, 0, centro.z + 3.2), new THREE.Vector3(centro.x + 1.6, 0, centro.z + 2.6)];
           partes.grupo.position.copy(ruta[0]);
@@ -429,7 +574,7 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
     });
 
     const efectos: Efecto[] = [];
-    estado.current = { avatares, efectos, escena, controles, vistas: new Set(), listo: false, tablero: tablero.dibujar, corona: coronaLider };
+    estado.current = { avatares, efectos, escena, controles, vistas: new Set(), listo: false, tablero: tablero.dibujar, corona: coronaLider, llamarPeaton };
 
     // Día y noche con la hora real de la CDMX: cielo, sol, lámparas, monitores y faros.
     const hemi = escena.children.find((o): o is THREE.HemisphereLight => o instanceof THREE.HemisphereLight)!;
@@ -440,6 +585,8 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
       hemi.intensity = 0.35 + 0.75 * k; sol.intensity = 0.15 + 1.45 * k;
       lamparas.forEach((l) => { l.luz.intensity = (1 - k) * 6; l.foco.emissiveIntensity = (1 - k) * 1.2; });
       coches.forEach((c) => { c.faros.emissiveIntensity = 0.2 + (1 - k) * 1.5; });
+      nubes.forEach((n) => { n.blanco.opacity = 0.15 + 0.77 * k; });
+      matEstrellas.opacity = Math.max(0, 1 - k * 1.6);
     };
     aplicarHora();
     const intervaloHora = setInterval(aplicarHora, 60_000);
@@ -478,7 +625,11 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
       for (const a of avatares.values()) {
         const activo = (a.persona.resumen?.total ?? 0) > 0;
         const f = t * vel + a.fase;
-        if (a.camina && a.ruta) {
+        if (a.camina && a.atiende) {
+          // Atiende al peatón que se acercó: se detiene, lo voltea a ver y le entrega un volante.
+          const v = a.atiende.clone().sub(a.grupo.position); a.grupo.rotation.y = Math.atan2(v.x, v.z);
+          a.piernaI.rotation.x = a.piernaD.rotation.x = 0; a.brazoI.rotation.x = 0; a.brazoD.rotation.x = -1.2 + Math.sin(f * 2) * 0.1;
+        } else if (a.camina && a.ruta) {
           const destino = a.ruta[(a.tramo + 1) % a.ruta.length];
           const dir = destino.clone().sub(a.grupo.position); dir.y = 0;
           const d = dir.length();
@@ -501,19 +652,50 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
           if (a.pantalla) a.pantalla.emissiveIntensity = activo ? 0.7 + Math.sin(f * 2) * 0.15 : 0.25;
         }
       }
+      // Semáforo: verde 9 s, amarillo 2 s, rojo 5 s. En rojo los coches esperan antes del paso de cebra.
+      const ciclo = (t * vel) % 16, luz = ciclo < 9 ? 2 : ciclo < 11 ? 1 : 0;
+      sem.luces.forEach((m, i) => { m.emissiveIntensity = i === luz ? 1.4 : 0; });
       for (const c of coches) {
-        c.g.position.z += (c.sube ? -1 : 1) * c.vel * dt * vel;
+        const z = c.g.position.z;
+        const espera = luz === 0 && (c.sube ? z > 1.3 && z < 2.8 : z < -1.3 && z > -2.8);
+        if (!espera) c.g.position.z += (c.sube ? -1 : 1) * c.vel * dt * vel;
         if (c.g.position.z < -11.5) c.g.position.z = 10.5;
         if (c.g.position.z > 10.5) c.g.position.z = -11.5;
       }
+      const ahora = performance.now();
+      for (const a of avatares.values()) a.atiende = null;
       for (const w of peatones) {
-        w.grupo.position.z += (w.sube ? -1 : 1) * w.vel * dt * vel;
-        if (w.grupo.position.z < -10.5) w.grupo.position.z = 9.5;
-        if (w.grupo.position.z > 9.5) w.grupo.position.z = -10.5;
-        w.grupo.rotation.y = w.sube ? Math.PI : 0;
         const s = Math.sin((t * vel + w.fase) * 6);
-        w.piernaI.rotation.x = s * 0.5; w.piernaD.rotation.x = -s * 0.5; w.brazoI.rotation.x = -s * 0.4; w.brazoD.rotation.x = s * 0.4;
+        const caminar = () => { w.piernaI.rotation.x = s * 0.5; w.piernaD.rotation.x = -s * 0.5; w.brazoI.rotation.x = -s * 0.4; w.brazoD.rotation.x = s * 0.4; };
+        if (w.modo === "paseo") {
+          w.grupo.position.z += (w.sube ? -1 : 1) * w.vel * dt * vel;
+          if (w.grupo.position.z < -10.5) w.grupo.position.z = 9.5;
+          if (w.grupo.position.z > 9.5) w.grupo.position.z = -10.5;
+          w.grupo.rotation.y = w.sube ? Math.PI : 0; caminar();
+        } else if ((w.modo === "va" || w.modo === "regresa") && w.destino) {
+          const dir = w.destino.clone().sub(w.grupo.position); dir.y = 0;
+          const d = dir.length();
+          if (d < 0.08) {
+            if (w.modo === "va") {
+              w.modo = "espera"; w.hasta = ahora + 5500;
+              const b = sprite([{ texto: "¡Me interesa!", color: "#ffffff", tamano: 56, negrita: true }], "#5E9E3A", 0.5); b.position.y = 2.6; w.grupo.add(b);
+              efectos.push({ obj: b, nace: ahora, vida: 5, tipo: "burbuja" });
+            } else { w.modo = "paseo"; w.destino = null; w.gerente = null; }
+          } else {
+            w.grupo.position.addScaledVector(dir.normalize(), Math.min(d, dt * 1.1 * vel));
+            w.grupo.rotation.y = Math.atan2(dir.x, dir.z); caminar();
+          }
+        } else if (w.modo === "espera") {
+          w.piernaI.rotation.x = w.piernaD.rotation.x = 0; w.brazoI.rotation.x = 0; w.brazoD.rotation.x = -0.6 + Math.sin(t * 3) * 0.1; // recibe el volante
+          const g = w.gerente ? avatares.get(w.gerente) : null;
+          if (g) { g.atiende = w.grupo.position.clone(); const v = g.grupo.position.clone().sub(w.grupo.position); w.grupo.rotation.y = Math.atan2(v.x, v.z); }
+          if (ahora > w.hasta) { w.modo = "regresa"; w.destino = new THREE.Vector3(w.carril, 0, w.grupo.position.z + (w.sube ? -1.5 : 1.5)); }
+        }
       }
+      // El perrito respira y mueve la cola; el taquero voltea la carne.
+      perro.cuerpo.scale.y = 0.75 + Math.sin(t * 1.6) * 0.03; perro.cola.rotation.x = Math.sin(t * 5) * 0.4;
+      tacos.taquero.brazoD.rotation.x = -1.2 + Math.sin(t * 4) * 0.25;
+      for (const n of nubes) { n.g.position.x += dt * 0.35 * vel; if (n.g.position.x > 35) n.g.position.x = -35; }
       if (coronaLider.visible && coronaLider.userData.personaId) {
         const a = avatares.get(coronaLider.userData.personaId);
         if (a) { a.cabeza.getWorldPosition(coronaLider.position); coronaLider.position.y += 0.28; coronaLider.rotation.y += dt; }
@@ -586,6 +768,7 @@ export function Oficina3D({ personas, actividades, autoGiro }: { personas: Perso
         const b = sprite([{ texto: burbuja(act), color: "#ffffff", tamano: 56, negrita: true }], act.tipo === "cierre" ? "#3F7A24" : "#004AAD", 0.55);
         b.position.y = 2.6; a.grupo.add(b);
         s.efectos.push({ obj: b, nace: performance.now(), vida: 6, tipo: "burbuja" });
+        if (act.tipo === "campo") s.llamarPeaton(act.usuarioId);
         if (act.tipo === "cierre" || act.tipo === "verificacion") {
           const lluvia = new THREE.Group(); lluvia.position.set(0, 2.4, 0);
           const vel: THREE.Vector3[] = [];
