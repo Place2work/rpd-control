@@ -400,6 +400,114 @@ function nube() {
   return { g, blanco };
 }
 
+/** Ventanas de un edificio. De día: fachada clara con vidrios azulados. De noche: solo brillan las ventanas encendidas. */
+function texturasVentanas(columnas: number, pisos: number, semilla: number) {
+  const dia = document.createElement("canvas"), noche = document.createElement("canvas");
+  for (const l of [dia, noche]) { l.width = columnas * 32; l.height = pisos * 40; }
+  const cd = dia.getContext("2d")!, cn = noche.getContext("2d")!;
+  cd.fillStyle = "#ffffff"; cd.fillRect(0, 0, dia.width, dia.height);
+  cn.fillStyle = "#000000"; cn.fillRect(0, 0, noche.width, noche.height);
+  let r = semilla;
+  const azar = () => { r = (r * 1103515245 + 12345) % 2147483648; return r / 2147483648; };
+  for (let y = 0; y < pisos; y++) for (let x = 0; x < columnas; x++) {
+    cd.fillStyle = "#5b7a99"; cd.fillRect(x * 32 + 6, y * 40 + 8, 20, 24);
+    if (azar() > 0.35) { cn.fillStyle = "#ffe9a8"; cn.fillRect(x * 32 + 6, y * 40 + 8, 20, 24); }
+  }
+  const tex = (l: HTMLCanvasElement) => { const t = new THREE.CanvasTexture(l); t.colorSpace = THREE.SRGBColorSpace; t.magFilter = THREE.NearestFilter; return t; };
+  return { mapa: tex(dia), luces: tex(noche) };
+}
+
+function edificio(x: number, z: number, ancho: number, alto: number, fondo: number, color: number, semilla: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const { mapa, luces } = texturasVentanas(Math.max(2, Math.round(ancho * 1.2)), Math.max(2, Math.round(alto / 1.4)), semilla);
+  const lado = new THREE.MeshStandardMaterial({ color, roughness: 0.8, map: mapa, emissive: new THREE.Color(0xffffff), emissiveMap: luces, emissiveIntensity: 0 });
+  const techo = mat(new THREE.Color(color).multiplyScalar(0.8).getHex());
+  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(ancho, alto, fondo), [lado, lado, techo, techo, lado, lado]);
+  cuerpo.position.y = alto / 2; cuerpo.castShadow = true; cuerpo.receiveShadow = true; g.add(cuerpo);
+  const cornisa = new THREE.Mesh(new THREE.BoxGeometry(ancho + 0.2, 0.2, fondo + 0.2), techo); cornisa.position.y = alto + 0.1; g.add(cornisa);
+  if (alto > 8) { // tinaco y antena en la azotea
+    const tinaco = new THREE.Mesh(new THREE.CylinderGeometry(0.4, 0.4, 0.7, 12), mat(0x1f2937)); tinaco.position.set(ancho * 0.25, alto + 0.55, 0); g.add(tinaco);
+    const antena = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.6, 6), mat(0x9ca3af)); antena.position.set(-ancho * 0.25, alto + 0.9, 0); g.add(antena);
+  }
+  lado.userData.base = color;
+  return { g, ventanas: lado };
+}
+
+function local(x: number, z: number, nombre: string, color: number, rot: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(3.4, 3.2, 3), mat(color)); cuerpo.position.y = 1.6; cuerpo.castShadow = true; cuerpo.receiveShadow = true; g.add(cuerpo);
+  const cortina = new THREE.Mesh(new THREE.BoxGeometry(2.6, 2, 0.05), mat(0x93c5fd, { roughness: 0.2, metalness: 0.2, emissive: new THREE.Color(0xfde68a), emissiveIntensity: 0 }));
+  cortina.position.set(0, 1.1, 1.51); g.add(cortina);
+  const toldo = new THREE.Mesh(new THREE.BoxGeometry(3.4, 0.08, 0.8), mat(new THREE.Color(color).multiplyScalar(0.7).getHex())); toldo.position.set(0, 2.35, 1.8); toldo.rotation.x = 0.25; g.add(toldo);
+  const letrero = sprite([{ texto: nombre, color: "#ffffff", tamano: 60, negrita: true }], `#${new THREE.Color(color).multiplyScalar(0.55).getHexString()}`, 0.42);
+  letrero.position.set(0, 2.85, 1.6); g.add(letrero);
+  return { g, aparador: cortina.material as THREE.MeshStandardMaterial };
+}
+
+function poste(x: number, z: number, rot: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+  const tubo = new THREE.Mesh(new THREE.CylinderGeometry(0.05, 0.07, 4, 8), mat(0x4b5563)); tubo.position.y = 2; g.add(tubo);
+  const brazo = new THREE.Mesh(new THREE.BoxGeometry(0.9, 0.06, 0.06), mat(0x4b5563)); brazo.position.set(0.42, 3.95, 0); g.add(brazo);
+  const foco = new THREE.MeshStandardMaterial({ color: 0xfefce8, emissive: new THREE.Color(0xfde68a), emissiveIntensity: 0 });
+  const cabeza = new THREE.Mesh(new THREE.BoxGeometry(0.4, 0.1, 0.22), foco); cabeza.position.set(0.85, 3.88, 0); g.add(cabeza);
+  return { g, foco };
+}
+
+function paradaCamion(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = -Math.PI / 2;
+  const techo = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.08, 1), mat(0x004aad)); techo.position.y = 2.3; techo.castShadow = true; g.add(techo);
+  for (const dx of [-1.1, 1.1]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 2.3, 0.06), mat(0x9ca3af)); p.position.set(dx, 1.15, -0.4); g.add(p); }
+  const fondo = new THREE.Mesh(new THREE.PlaneGeometry(2.3, 1.6), new THREE.MeshStandardMaterial({ color: 0xbfdbfe, transparent: true, opacity: 0.35, side: THREE.DoubleSide })); fondo.position.set(0, 1.4, -0.45); g.add(fondo);
+  const banca = new THREE.Mesh(new THREE.BoxGeometry(1.8, 0.08, 0.4), mat(0x78350f)); banca.position.set(0, 0.45, -0.2); g.add(banca);
+  const letrero = sprite([{ texto: "Parada", color: "#ffffff", tamano: 54, negrita: true }], "#004AAD", 0.3); letrero.position.set(0, 2.7, 0); g.add(letrero);
+  return g;
+}
+
+function pingPong(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const mesa = new THREE.Mesh(new THREE.BoxGeometry(2.4, 0.05, 1.3), mat(0x15803d)); mesa.position.y = 0.76; mesa.castShadow = true; g.add(mesa);
+  const linea = new THREE.Mesh(new THREE.PlaneGeometry(2.4, 0.03), mat(0xffffff)); linea.rotation.x = -Math.PI / 2; linea.position.y = 0.79; g.add(linea);
+  const red = new THREE.Mesh(new THREE.PlaneGeometry(0.02, 1.3), mat(0xffffff)); red.position.y = 0.86; g.add(red);
+  const malla = new THREE.Mesh(new THREE.BoxGeometry(0.02, 0.14, 1.3), new THREE.MeshStandardMaterial({ color: 0xffffff, transparent: true, opacity: 0.6 })); malla.position.y = 0.85; g.add(malla);
+  for (const [dx, dz] of [[-1.05, -0.55], [1.05, -0.55], [-1.05, 0.55], [1.05, 0.55]]) { const p = new THREE.Mesh(new THREE.BoxGeometry(0.06, 0.74, 0.06), mat(0x334155)); p.position.set(dx, 0.37, dz); g.add(p); }
+  for (const [dx, c] of [[-0.8, 0xef4444], [0.8, 0x111827]] as const) { const raqueta = new THREE.Mesh(new THREE.CylinderGeometry(0.08, 0.08, 0.02, 16), mat(c)); raqueta.position.set(dx, 0.8, 0.3); g.add(raqueta); }
+  const pelota = new THREE.Mesh(new THREE.SphereGeometry(0.03, 8, 6), mat(0xffffff)); pelota.position.set(0, 0.95, 0); g.add(pelota);
+  return { g, pelota };
+}
+
+function maquinaBotanas(x: number, z: number, rot: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z); g.rotation.y = rot;
+  const cuerpo = new THREE.Mesh(new THREE.BoxGeometry(0.9, 1.9, 0.7), mat(0xdc2626)); cuerpo.position.y = 0.95; cuerpo.castShadow = true; g.add(cuerpo);
+  const vitrina = new THREE.Mesh(new THREE.PlaneGeometry(0.6, 1.2), new THREE.MeshStandardMaterial({ color: 0xfef3c7, emissive: new THREE.Color(0xfef3c7), emissiveIntensity: 0.5 }));
+  vitrina.position.set(-0.08, 1.15, 0.36); g.add(vitrina);
+  for (let f = 0; f < 4; f++) for (let i = 0; i < 3; i++) {
+    const b = new THREE.Mesh(new THREE.BoxGeometry(0.12, 0.16, 0.04), mat([0xfacc15, 0x2563eb, 0x16a34a, 0xf97316][(f + i) % 4])); b.position.set(-0.25 + i * 0.17, 0.7 + f * 0.27, 0.38); g.add(b);
+  }
+  return g;
+}
+
+function repisaTrofeos(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const mueble = new THREE.Mesh(new THREE.BoxGeometry(1.6, 1.1, 0.4), mat(0xe7d7c1)); mueble.position.y = 0.55; mueble.castShadow = true; g.add(mueble);
+  const oro = mat(0xfacc15, { metalness: 0.7, roughness: 0.25 });
+  [-0.5, 0, 0.5].forEach((dx, i) => {
+    const base = new THREE.Mesh(new THREE.BoxGeometry(0.18, 0.08, 0.18), mat(0x111827)); base.position.set(dx, 1.14, 0); g.add(base);
+    const copa = new THREE.Mesh(new THREE.CylinderGeometry(0.1 + i * 0.02, 0.04, 0.22 + i * 0.05, 12), oro); copa.position.set(dx, 1.32 + i * 0.02, 0); copa.castShadow = true; g.add(copa);
+  });
+  const titulo = sprite([{ texto: "Logros del equipo", color: "#ffffff", tamano: 44, negrita: true }], "#3F7A24", 0.24); titulo.position.y = 1.85; g.add(titulo);
+  return g;
+}
+
+function perchero(x: number, z: number) {
+  const g = new THREE.Group(); g.position.set(x, 0, z);
+  const palo = new THREE.Mesh(new THREE.CylinderGeometry(0.03, 0.03, 1.8, 8), mat(0x78350f)); palo.position.y = 0.9; g.add(palo);
+  const base = new THREE.Mesh(new THREE.CylinderGeometry(0.22, 0.25, 0.05, 12), mat(0x78350f)); base.position.y = 0.03; g.add(base);
+  const saco = new THREE.Mesh(new THREE.BoxGeometry(0.35, 0.6, 0.12), mat(0x1e3a8a)); saco.position.set(0.12, 1.4, 0); g.add(saco);
+  const paraguero = new THREE.Mesh(new THREE.CylinderGeometry(0.13, 0.13, 0.45, 12, 1, true), mat(0x334155, { side: THREE.DoubleSide })); paraguero.position.set(0.45, 0.23, 0); g.add(paraguero);
+  const paraguas = new THREE.Mesh(new THREE.CylinderGeometry(0.025, 0.025, 0.85, 6), mat(0x5e9e3a)); paraguas.position.set(0.45, 0.5, 0); paraguas.rotation.z = 0.15; g.add(paraguas);
+  return g;
+}
+
 /** Posiciones de escritorio dentro de una zona (en filas). */
 function puestos(z: Zona, n: number) {
   const cols = Math.min(z.columnas, Math.max(1, n));
@@ -443,9 +551,9 @@ export function Oficina3D({ personas, actividades, autoGiro, premio }: { persona
 
     // Piso de la oficina y la calle.
     const piso = new THREE.Mesh(new THREE.PlaneGeometry(26, 21), mat(0xf8fafc)); piso.rotation.x = -Math.PI / 2; piso.position.set(-4, 0, -0.5); piso.receiveShadow = true; escena.add(piso);
-    const banqueta = new THREE.Mesh(new THREE.PlaneGeometry(4, 21), mat(0xd6d3d1)); banqueta.rotation.x = -Math.PI / 2; banqueta.position.set(11, 0.005, -0.5); banqueta.receiveShadow = true; escena.add(banqueta);
-    const asfalto = new THREE.Mesh(new THREE.PlaneGeometry(8, 21), mat(0x4b5563)); asfalto.rotation.x = -Math.PI / 2; asfalto.position.set(17, 0, -0.5); asfalto.receiveShadow = true; escena.add(asfalto);
-    for (let z = -10; z < 10; z += 2.5) {
+    const banqueta = new THREE.Mesh(new THREE.PlaneGeometry(4, 64), mat(0xd6d3d1)); banqueta.rotation.x = -Math.PI / 2; banqueta.position.set(11, 0.005, -0.5); banqueta.receiveShadow = true; escena.add(banqueta);
+    const asfalto = new THREE.Mesh(new THREE.PlaneGeometry(8, 64), mat(0x4b5563)); asfalto.rotation.x = -Math.PI / 2; asfalto.position.set(17, 0, -0.5); asfalto.receiveShadow = true; escena.add(asfalto);
+    for (let z = -31; z < 32; z += 2.5) {
       const raya = new THREE.Mesh(new THREE.PlaneGeometry(0.15, 1.2), mat(0xfacc15)); raya.rotation.x = -Math.PI / 2; raya.position.set(17, 0.01, z); escena.add(raya);
     }
     const pasto = new THREE.Mesh(new THREE.PlaneGeometry(120, 120), mat(0xbbf7d0)); pasto.rotation.x = -Math.PI / 2; pasto.position.y = -0.02; pasto.receiveShadow = true; escena.add(pasto);
@@ -488,8 +596,28 @@ export function Oficina3D({ personas, actividades, autoGiro, premio }: { persona
     const sem = semaforo(13.1, -1.6); escena.add(sem.g);
     const tacos = puestoTacos(22.7, 4); escena.add(tacos.g);
 
+    // Ciudad alrededor: torres al fondo y a la izquierda, locales del otro lado de la calle, postes de luz y parada.
+    const torres = ([
+      [-14, -24, 7, 14, 6, 0x94a3b8], [-5, -26, 6, 20, 6, 0xcbd5e1], [4, -23, 5, 11, 5, 0xfde68a], [12, -26, 7, 17, 6, 0x9ca3af],
+      [22, -22, 6, 9, 5, 0xfca5a5], [-30, -14, 6, 12, 7, 0xa5b4fc], [-31, -2, 6, 16, 6, 0xd6d3d1], [-30, 9, 6, 10, 7, 0xbbf7d0],
+      [31, -12, 6, 13, 6, 0xe2e8f0], [33, 12, 7, 19, 6, 0xc7d2fe], [-20, -33, 8, 24, 7, 0x64748b], [26, -33, 8, 22, 7, 0x475569],
+    ] as const).map(([x, z, w, h, d, c], i) => { const e = edificio(x, z, w, h, d, c, 17 + i * 31); escena.add(e.g); return e; });
+    const espectacular = sprite([{ texto: "RetiroPorDesempleo.com", color: "#ffffff", tamano: 64, negrita: true }, { texto: "¿Te quedaste sin trabajo? Te ayudamos", color: "#d9f99d", tamano: 40 }], "#004AAD", 1.6);
+    espectacular.position.set(-5, 22.6, -26); escena.add(espectacular);
+    const locales = ([["Farmacia", 0x16a34a, -8], ["Papelería", 0x2563eb, -3.8], ["Panadería", 0xd97706, 8.4], ["Lavandería", 0x0891b2, 12.6], ["Abarrotes", 0xbe123c, -12.4]] as const)
+      .map(([n, c, z]) => { const l = local(24.2, z, n, c, -Math.PI / 2); escena.add(l.g); return l; });
+    const banquetaEnfrente = new THREE.Mesh(new THREE.PlaneGeometry(1.8, 64), mat(0xd6d3d1)); banquetaEnfrente.rotation.x = -Math.PI / 2; banquetaEnfrente.position.set(21.9, 0.006, 0); banquetaEnfrente.receiveShadow = true; escena.add(banquetaEnfrente);
+    const postes = [[9.6, -8], [9.6, -2.8], [9.6, 4.5], [9.6, 9.5], [21.6, -6], [21.6, 7]].map(([x, z]) => { const p = poste(x, z, x < 15 ? 0 : Math.PI); escena.add(p.g); return p; });
+    escena.add(paradaCamion(12.6, -6.8));
+
+    // Más detalles adentro: ping-pong y botanas en la zona de descanso, trofeos, perchero y alfombra de la sala.
+    const ping = pingPong(6.2, 6.4); escena.add(ping.g);
+    escena.add(maquinaBotanas(-13.5, 9.4, Math.PI), repisaTrofeos(0.8, -10.45), perchero(8.3, -2.9));
+    const alfombra = new THREE.Mesh(new THREE.CircleGeometry(1.4, 28), mat(0xfde68a)); alfombra.rotation.x = -Math.PI / 2; alfombra.position.set(5.6, 0.013, 1.6); alfombra.receiveShadow = true; escena.add(alfombra);
+    const descanso = sprite([{ texto: "Zona de descanso", color: "#ffffff", tamano: 44, negrita: true }], "#0891b2", 0.28); descanso.position.set(6.2, 1.9, 6.4); escena.add(descanso);
+
     // Cielo: nubes de día, estrellas de noche.
-    const nubes = Array.from({ length: 7 }, (_, i) => { const n = nube(); n.g.position.set(-30 + i * 9, 13 + (i % 3) * 1.5, -22 + (i % 4) * 9); n.g.scale.setScalar(1 + (i % 2) * 0.5); escena.add(n.g); return n; });
+    const nubes = Array.from({ length: 7 }, (_, i) => { const n = nube(); n.g.position.set(-45 + i * 14, 27 + (i % 3) * 2, -55 + (i % 3) * 6); n.g.scale.setScalar(1.8 + (i % 2) * 0.8); escena.add(n.g); return n; });
     const posEstrellas = new Float32Array(600 * 3);
     for (let i = 0; i < 600; i++) { const a = Math.random() * Math.PI * 2, r = 30 + Math.random() * 40; posEstrellas.set([Math.cos(a) * r, 18 + Math.random() * 25, Math.sin(a) * r - 10], i * 3); }
     const geoEstrellas = new THREE.BufferGeometry(); geoEstrellas.setAttribute("position", new THREE.BufferAttribute(posEstrellas, 3));
@@ -499,7 +627,7 @@ export function Oficina3D({ personas, actividades, autoGiro, premio }: { persona
     // Calle viva: coches en los dos carriles y peatones en la banqueta.
     const coches = [0xef4444, 0xffffff, 0x2563eb, 0x111827, 0xfacc15].map((color, i) => {
       const c = coche(color); const sube = i % 2 === 0;
-      c.g.position.set(sube ? 15.6 : 18.4, 0, -10 + i * 4.5); c.g.rotation.y = sube ? Math.PI : 0; escena.add(c.g);
+      c.g.position.set(sube ? 15.6 : 18.4, 0, -26 + i * 12); c.g.rotation.y = sube ? Math.PI : 0; escena.add(c.g);
       return { ...c, sube, vel: 2.2 + (i % 3) * 0.8 };
     });
     const peatones = [0, 1, 2, 3].map((i) => {
@@ -587,6 +715,9 @@ export function Oficina3D({ personas, actividades, autoGiro, premio }: { persona
       coches.forEach((c) => { c.faros.emissiveIntensity = 0.2 + (1 - k) * 1.5; });
       nubes.forEach((n) => { n.blanco.opacity = 0.15 + 0.77 * k; });
       matEstrellas.opacity = Math.max(0, 1 - k * 1.6);
+      torres.forEach((e) => { e.ventanas.emissiveIntensity = (1 - k) * 1.1; e.ventanas.color.setScalar(0.35 + 0.65 * k).multiply(new THREE.Color(e.ventanas.userData.base ?? 0xffffff)); });
+      locales.forEach((l) => { l.aparador.emissiveIntensity = (1 - k) * 0.8; });
+      postes.forEach((p) => { p.foco.emissiveIntensity = (1 - k) * 2; });
     };
     aplicarHora();
     const intervaloHora = setInterval(aplicarHora, 60_000);
@@ -659,8 +790,8 @@ export function Oficina3D({ personas, actividades, autoGiro, premio }: { persona
         const z = c.g.position.z;
         const espera = luz === 0 && (c.sube ? z > 1.3 && z < 2.8 : z < -1.3 && z > -2.8);
         if (!espera) c.g.position.z += (c.sube ? -1 : 1) * c.vel * dt * vel;
-        if (c.g.position.z < -11.5) c.g.position.z = 10.5;
-        if (c.g.position.z > 10.5) c.g.position.z = -11.5;
+        if (c.g.position.z < -30) c.g.position.z = 30;
+        if (c.g.position.z > 30) c.g.position.z = -30;
       }
       const ahora = performance.now();
       for (const a of avatares.values()) a.atiende = null;
@@ -695,7 +826,8 @@ export function Oficina3D({ personas, actividades, autoGiro, premio }: { persona
       // El perrito respira y mueve la cola; el taquero voltea la carne.
       perro.cuerpo.scale.y = 0.75 + Math.sin(t * 1.6) * 0.03; perro.cola.rotation.x = Math.sin(t * 5) * 0.4;
       tacos.taquero.brazoD.rotation.x = -1.2 + Math.sin(t * 4) * 0.25;
-      for (const n of nubes) { n.g.position.x += dt * 0.35 * vel; if (n.g.position.x > 35) n.g.position.x = -35; }
+      ping.pelota.position.x = Math.sin(t * 2.2 * vel) * 0.95; ping.pelota.position.y = 0.82 + Math.abs(Math.cos(t * 4.4 * vel)) * 0.22;
+      for (const n of nubes) { n.g.position.x += dt * 0.35 * vel; if (n.g.position.x > 55) n.g.position.x = -55; }
       if (coronaLider.visible && coronaLider.userData.personaId) {
         const a = avatares.get(coronaLider.userData.personaId);
         if (a) { a.cabeza.getWorldPosition(coronaLider.position); coronaLider.position.y += 0.28; coronaLider.rotation.y += dt; }

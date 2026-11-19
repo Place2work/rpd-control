@@ -841,3 +841,9 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   archiveros, impresora, botes de basura, perrito dormido junto al sillón y pizarrón con el premio vigente (lo toma de
   `premios`). En la calle: bicicleta del gerente con volantes, paso de cebra, semáforo (los coches se detienen en rojo)
   y puesto de tacos con su taquero. En el cielo, nubes de día y estrellas de noche.
+- **Ciudad alrededor (19-nov-2026)**: torres de distintas alturas y colores al fondo y a los lados (ventanas de
+  vidrio de día; de noche se encienden algunas), tinacos y antenas en las azoteas y un espectacular con la marca.
+  Del otro lado de la calle, locales comerciales genéricos (Farmacia, Papelería, Panadería, Lavandería, Abarrotes)
+  con aparador encendido de noche. Postes de luz, parada de camión y calle más larga. Adentro: zona de descanso con
+  mesa de ping-pong (la pelota rebota), máquina de botanas, repisa de trofeos, perchero con paragüero y alfombra en
+  la sala de espera.
