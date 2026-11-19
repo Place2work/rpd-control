@@ -829,3 +829,9 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   cobrar), suma a los contadores y aparece en «Lo que va pasando hoy».
 - **Privacidad**: no muestra nombres, teléfonos ni datos de clientes; solo quién del equipo hizo qué. Consulta con
   la sesión del Director (RLS). «Activo hoy» significa que hizo algo hoy, no que esté conectado en este momento.
+- **Más detalles (19-nov-2026)**: recepción con tapete de bienvenida en la entrada, sala de espera (sillón, mesa de
+  centro, librero), cafetería, garrafones, plantas y lámparas de pie. Escritorios con teclado, ratón, taza de café,
+  papeles y placa con el nombre. Pantalla grande con los contadores del día y el líder del día, y reloj con la hora de
+  la CDMX. Día y noche según la hora real (de noche se encienden lámparas, monitores y faros). Calle viva con coches
+  en los dos carriles y peatones. Corona sobre quien lleva más acciones hoy. Ficha al pasar el cursor (o tocar) sobre
+  cualquier persona con su detalle del día.
