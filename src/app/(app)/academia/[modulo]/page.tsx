@@ -20,7 +20,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
 }
 
 export default async function LeccionPagina({ params }: Props) {
-  const sesion = await exigirRol("director", "asesor", "socio");
+  const sesion = await exigirRol("director", "asesor", "socio", "campo");
   const { modulo } = await params;
   const m = MODULOS.find((x) => x.clave === modulo);
   if (!m) notFound();

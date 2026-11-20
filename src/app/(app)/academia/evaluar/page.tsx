@@ -11,7 +11,7 @@ export const metadata: Metadata = { title: "Evaluación · Academia" };
 type Props = { searchParams: Promise<{ tipo?: string; objetivo?: string }> };
 
 export default async function Evaluar({ searchParams }: Props) {
-  await exigirRol("director", "asesor", "socio");
+  await exigirRol("director", "asesor", "socio", "campo");
   const { tipo, objetivo = "" } = await searchParams;
   if (tipo !== "quiz_modulo" && tipo !== "examen_ruta" && tipo !== "recertificacion" && tipo !== "actualizacion") notFound();
   const modulo = MODULOS.find((m) => m.clave === objetivo);

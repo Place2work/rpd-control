@@ -20,12 +20,13 @@ export const metadata: Metadata = { title: "Academia" };
 const fecha = (iso: string) => new Intl.DateTimeFormat("es-MX", { dateStyle: "medium", timeStyle: "short", timeZone: "America/Mexico_City" }).format(new Date(iso));
 
 export default async function Academia() {
-  const sesion = await exigirRol("director", "asesor", "socio");
+  const sesion = await exigirRol("director", "asesor", "socio", "campo");
   const ahora = new Date();
   const a = await avanceDe(sesion.usuario.id, ahora);
   const estados = estadosDe(a);
   const faltanAcuses = ACUSES.filter((x) => !a.acuses.has(x.clave));
-  const obligatoria = sesion.usuario.rol === "socio";
+  // Ruta obligatoria: asesores de pensiones y, desde el 20-nov-2026, el gerente de campo (departamento de prospectos).
+  const obligatoria = sesion.usuario.rol === "socio" || sesion.usuario.rol === "campo";
   const yo = { usuario_id: sesion.usuario.id };
   const h = await conUsuario(sesion.claims, async (tx) => ({
     solicitudes: await tx.capSolicitud.findMany({ where: { ...yo, estado: "pendiente" }, select: { tipo: true, referencia: true } }),
@@ -46,12 +47,12 @@ export default async function Academia() {
   return (
     <>
       <Encabezado titulo="Academia" descripcion={obligatoria
-        ? "Tu ruta de capacitación como asesor de pensiones: lecciones, exámenes y certificaciones."
+        ? sesion.usuario.rol === "campo" ? "Tu ruta de capacitación (la misma de los asesores de pensiones): lecciones, exámenes y certificaciones." : "Tu ruta de capacitación como asesor de pensiones: lecciones, exámenes y certificaciones."
         : "Las rutas de capacitación del equipo. Para ti son de repaso: no cambian tus permisos."}>
         {sesion.usuario.rol === "director" && (
           <Link href="/academia/equipo" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><Users className="size-4" aria-hidden /> Avance del equipo</Link>
         )}
-        {obligatoria && (
+        {sesion.usuario.rol === "socio" && (
           <Link href="/academia/desempeno" className="inline-flex items-center gap-1.5 text-sm text-brand underline"><TrendingUp className="size-4" aria-hidden /> Mi desempeño</Link>
         )}
       </Encabezado>

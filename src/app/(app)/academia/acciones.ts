@@ -13,7 +13,7 @@ import { sumarDias } from "@/lib/reglas/fechas";
 import { hoyCDMX } from "@/lib/tiempo";
 import type { Resultado } from "../casos/[id]/acciones";
 
-const ROLES = new Set(["director", "asesor", "socio"]);
+const ROLES = new Set(["director", "asesor", "socio", "campo"]);
 
 export async function firmarAcuses(_p: Resultado, form: FormData): Promise<Resultado> {
   const { claims, ip, usuario } = await obtenerSesion();

@@ -15,7 +15,7 @@ const fecha = (d: Date) => new Intl.DateTimeFormat("es-MX", { dateStyle: "long",
 
 // Microlección de actualización (CAPACITACION.md 9.5): se lee y se aprueba con un quiz de 5 preguntas.
 export default async function Actualizacion({ params }: { params: Promise<{ id: string }> }) {
-  const sesion = await exigirRol("director", "asesor", "socio");
+  const sesion = await exigirRol("director", "asesor", "socio", "campo");
   const { id } = await params;
   if (!/^[0-9a-f-]{36}$/i.test(id)) notFound();
   const d = await conUsuario(sesion.claims, async (tx) => ({

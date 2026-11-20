@@ -12,7 +12,7 @@ import { Simulador } from "./simulador";
 export const metadata: Metadata = { title: "Simulador · Academia" };
 
 export default async function CasoPagina({ params }: { params: Promise<{ clave: string }> }) {
-  const sesion = await exigirRol("director", "asesor", "socio");
+  const sesion = await exigirRol("director", "asesor", "socio", "campo");
   const { clave } = await params;
   const caso = CASOS.find((c) => c.clave === clave);
   if (!caso) notFound();

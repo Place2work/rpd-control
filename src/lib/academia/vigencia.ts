@@ -14,7 +14,7 @@ import { avanceDesdeFilas, estadosDe, VIVAS } from "./motor";
 const db = prismaSistema;
 const dia = (iso: string) => new Date(`${iso}T00:00:00Z`);
 const isoDia = (d: Date) => d.toISOString().slice(0, 10);
-const ROLES_OBLIGADOS = ["socio", "vendedor"] as const;
+const ROLES_OBLIGADOS = ["socio", "vendedor", "campo"] as const;
 
 async function plazos(hoy: string) {
   const p = await parametrosVigentes(["CAP_POR_VENCER_DIAS", "CAP_ACTUALIZACION_DIAS", "CAP_ACTUALIZACION_RECORDATORIOS", "CAP_SIN_AVANCE_DIAS", "CAP_SOLICITUD_DIAS", "CAP_REPASO_DIAS", "CAP_GRAVES_DIAS", "CAP_GRAVES_UMBRAL"], hoy);

@@ -24,7 +24,7 @@ export default async function Equipo() {
   const sesion = await exigirRol("director");
   const ahora = new Date();
   const d = await conUsuario(sesion.claims, async (tx) => ({
-    usuarios: await tx.usuario.findMany({ where: { activo: true, archivado_at: null, rol: { in: ["socio", "asesor"] } }, orderBy: [{ rol: "desc" }, { nombre: "asc" }], select: { id: true, nombre: true, rol: true } }),
+    usuarios: await tx.usuario.findMany({ where: { activo: true, archivado_at: null, rol: { in: ["socio", "campo", "asesor"] } }, orderBy: [{ rol: "desc" }, { nombre: "asc" }], select: { id: true, nombre: true, rol: true } }),
     progreso: await tx.capProgreso.findMany({ where: { estado: "completado" }, select: { usuario_id: true, modulo: true, version: true, updated_at: true } }),
     intentos: await tx.capIntento.findMany({ where: { archivado_at: null }, orderBy: { inicio: "asc" }, select: { usuario_id: true, tipo: true, objetivo: true, inicio: true, fin: true, aprobado: true, calificacion: true } }),
     acuses: await tx.capAcuse.findMany({ select: { usuario_id: true, documento: true, version: true, aceptado_at: true } }),

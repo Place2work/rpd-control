@@ -33,7 +33,7 @@ export const MODULOS: Modulo[] = [
   { href: "/campo/revisar", titulo: "Prospectos de campo", icono: MapPin, roles: ["director", "asesor"] },
   { href: "/asesores", titulo: "Asesores y referidores", icono: Users, roles: ["director", "asesor"] },
   { href: "/equipo", titulo: "Equipo en vivo", icono: Box, roles: ["director"] },
-  { href: "/academia", titulo: "Academia", icono: GraduationCap, roles: ["director", "asesor", "socio"] },
+  { href: "/academia", titulo: "Academia", icono: GraduationCap, roles: ["director", "asesor", "socio", "campo"] },
   { href: "/reportes", titulo: "Reportes", icono: BarChart3, roles: ["director", "asesor"] },
   { href: "/configuracion", titulo: "Configuración", icono: Settings, roles: ["director"] },
 ];

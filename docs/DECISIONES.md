@@ -876,3 +876,15 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - La lectura de la INE necesita la clave `ANTHROPIC_API_KEY` en Vercel (servidor). Sin ella se avisa «captura los
   datos a mano». Costo aproximado: centavos por credencial. El aviso de privacidad debe mencionar que la
   identificación se procesa con un proveedor de IA (Anthropic) para capturar los datos.
+
+## 20-nov-2026 · Academia para el gerente de campo (departamento de prospectos)
+
+- El rol **campo** (Niceforo y los demás gerentes de campo) entra a la Academia con la **misma ruta que los
+  asesores de pensiones**: acuses, lecciones, exámenes, casos prácticos y certificaciones. Le aparece en el menú
+  (en celular, en «Más»).
+- Cuenta como obligatoria igual que para los asesores: entra en la tarea diaria de la Academia (avisos de pendientes,
+  microlecciones, repasos y el reconocimiento al terminar). Igual que con ellos, solo se avisa; no se bloquea su
+  trabajo de campo.
+- «Mi desempeño» no se le muestra: mide casos de un asesor de pensiones ligado a su ficha, y el gerente de campo no
+  lleva casos. El Director lo ve en Academia → Equipo junto con los asesores y el analista.
+- Sin cambios en la base: las políticas de la Academia ya eran por usuario, no por rol.
