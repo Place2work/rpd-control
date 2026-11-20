@@ -932,6 +932,10 @@ model Comision {
   metodo_pago       MetodoPago?
   referencia_pago   String?
   clave             String? // estable dentro del caso: "vendedor:pago:2", "referido"... (conciliación)
+  comprobante_path  String? // transferencia al beneficiario, en expedientes/<caso>/...
+  comprobante_mime  String?
+  comprobante_at    DateTime?        @db.Timestamptz(6)
+  comprobante_por   String?          @db.Uuid
   liquidacion_id    String?          @db.Uuid
   created_at        DateTime         @default(now()) @db.Timestamptz(6)
   updated_at        DateTime         @default(now()) @updatedAt @db.Timestamptz(6)

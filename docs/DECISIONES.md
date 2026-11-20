@@ -847,3 +847,12 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
   con aparador encendido de noche. Postes de luz, parada de camión y calle más larga. Adentro: zona de descanso con
   mesa de ping-pong (la pelota rebota), máquina de botanas, repisa de trofeos, perchero con paragüero y alfombra en
   la sala de espera.
+
+## 20-nov-2026 · Pago de la comisión con fecha y comprobante desde el expediente
+
+- En «Comisiones del caso», cada comisión **devengada** tiene «Registrar pago» (solo Director): fecha de pago (no
+  futura ni antes del devengo), método, referencia y comprobante de la transferencia (PDF o imagen, opcional). Queda
+  pagada como una liquidación de una sola comisión, igual que las del mes en Comisiones, y deja evento en Seguimiento.
+- El comprobante se guarda en la carpeta del caso (bucket expedientes, mismas políticas). Lo ve el Director y el
+  beneficiario que ve el caso (el asesor de pensiones ve el suyo); el Director puede subirlo después o reemplazarlo.
+  La base exige que la ruta sea de la carpeta de ese caso.

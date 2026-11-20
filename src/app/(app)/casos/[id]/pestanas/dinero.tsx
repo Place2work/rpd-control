@@ -16,6 +16,7 @@ import { BotonAccion } from "../../../configuracion/boton-accion";
 import { archivarPagoAfore, cambiarFechaPagoAfore, regresarAPagoEsperado, cancelarCobro, guardarCanal, guardarCostoAlta, guardarHonorarioPactado, guardarPagoEsperado, marcarCobrado, registrarCobro, registrarPagoAfore } from "../acciones-dinero";
 import { Campo, CampoTexto, claseSelect, Seleccion } from "../campos";
 import { Comprobante } from "../comprobante";
+import { ComprobanteComision, PagarComision } from "../pago-comision";
 import { FormularioAccion } from "../formulario-accion";
 import { CanalConProyeccion, type DatosProyeccion } from "../canal-proyeccion";
 import type { Escalon } from "@/lib/reglas/comisiones";
@@ -336,7 +337,13 @@ export async function PestanaDinero({ caso, sesion }: { caso: CasoDetalle; sesio
                     <td className="py-2 pr-3 text-ink-muted">{k.regla_aplicada}</td>
                     <td className="cifra py-2 pr-3 font-medium">{mxn(k.monto)}
                       {k.tipo === "socio" && <span className="block text-xs font-normal text-ink-muted">incluye IVA {mxn(facturaAsesor(Number(k.monto), pDinero.IVA).iva)}</span>}</td>
-                    <td className="py-2"><Badge tono={tono}>{texto}</Badge>{k.fecha_devengo && <span className="ml-1 text-xs text-ink-muted">{corta(k.fecha_devengo)}</span>}</td>
+                    <td className="py-2"><Badge tono={tono}>{texto}</Badge>
+                      {k.estado === "pagada" && k.fecha_pago
+                        ? <span className="ml-1 text-xs text-ink-muted">el {corta(k.fecha_pago)}{k.metodo_pago ? ` · ${k.metodo_pago}` : ""}{k.referencia_pago ? ` · ${k.referencia_pago}` : ""}</span>
+                        : k.fecha_devengo && <span className="ml-1 text-xs text-ink-muted">{corta(k.fecha_devengo)}</span>}
+                      {k.estado === "devengada" && rol === "director" && <PagarComision casoId={caso.id} comisionId={k.id} hoy={hoyCDMX()} desde={k.fecha_devengo ? k.fecha_devengo.toISOString().slice(0, 10) : null} />}
+                      {k.estado === "pagada" && <ComprobanteComision casoId={caso.id} comisionId={k.id} tiene={Boolean(k.comprobante_path)} puedeSubir={rol === "director"} />}
+                    </td>
                   </tr>
                 );
               })}

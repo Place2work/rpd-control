@@ -201,3 +201,18 @@ describe("ver como asesor (Director, solo lectura)", () => {
     }
   });
 });
+
+describe("comprobante del pago de la comisión (20-nov-2026)", () => {
+  it("solo el Director la marca pagada; el comprobante va en la carpeta del caso y el asesor ve el suyo", async () => {
+    const k = id();
+    const [esq] = (await db.query("SELECT esquema_id FROM comisiones WHERE id = $1", [K_S])).rows;
+    await db.query(`INSERT INTO comisiones (id, caso_id, esquema_id, tipo, beneficiario_tipo, beneficiario_id, base, regla_aplicada, monto, estado, fecha_devengo, clave, updated_at)
+      VALUES ($1, $2, $3, 'socio', 'socio', $4, 1000, 'prueba', 400, 'devengada', '2026-11-19', 'socio:prueba:comprobante', now())`, [k, C1, esq.esquema_id, SOCIO]);
+    const ruta = `${C1}/${id()}.pdf`;
+    expect(await como(U.socio, "UPDATE comisiones SET estado = 'pagada', comprobante_path = $2 WHERE id = $1 RETURNING id", [k, ruta])).toHaveLength(0);
+    await expect(como(U.director, "UPDATE comisiones SET comprobante_path = $2 WHERE id = $1", [k, `${C2}/${id()}.pdf`])).rejects.toThrow(/comprobante/);
+    expect(await como(U.director, "UPDATE comisiones SET estado = 'pagada', fecha_pago = '2026-11-20', metodo_pago = 'transferencia', comprobante_path = $2, comprobante_mime = 'application/pdf' WHERE id = $1 RETURNING id", [k, ruta])).toHaveLength(1);
+    expect(await como<{ comprobante_path: string }>(U.socio, "SELECT comprobante_path FROM comisiones WHERE id = $1", [k])).toEqual([{ comprobante_path: ruta }]);
+    expect(await como(U.socio2, "SELECT id FROM comisiones WHERE id = $1", [k])).toHaveLength(0);
+  });
+});
