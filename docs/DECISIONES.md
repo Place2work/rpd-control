@@ -856,3 +856,23 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - El comprobante se guarda en la carpeta del caso (bucket expedientes, mismas políticas). Lo ve el Director y el
   beneficiario que ve el caso (el asesor de pensiones ve el suyo); el Director puede subirlo después o reemplazarlo.
   La base exige que la ruta sea de la carpeta de ese caso.
+
+## 20-nov-2026 · Lectura automática de la INE y de la constancia al subirlas
+
+- **Constancia de semanas (PDF del IMSS):** al subirla se lee sola (como «Leer constancia», sin IA: el texto del PDF).
+  Llena solo los datos de IMSS y Afore que estaban vacíos, y el NSS/CURP del cliente si faltaban. Los datos que ya
+  tenían otro valor se muestran lado a lado y el usuario elige cuáles reemplazar. Si el NSS o la CURP son de otra
+  persona, no se llena nada y se avisa.
+- **INE:** al subir la identificación (JPG, PNG, WEBP o PDF), la IA de Anthropic lee nombre, apellidos, CURP, fecha de
+  nacimiento, sexo, domicilio por partes y vigencia. Una regla pura (`src/lib/reglas/ine.ts`) revisa la lectura: el
+  dígito verificador de la CURP, la fecha y el sexo (manda la CURP), el código postal de 5 dígitos y la vigencia. Se
+  llena lo vacío y se pregunta por lo que difiere, igual que la constancia. El domicilio del contrato se recompone si
+  estaba vacío o venía de las partes. La identificación queda como «Credencial para votar (INE) vigente hasta AAAA».
+- Una CURP ya capturada **no se reemplaza** desde la INE: si no coincide, se avisa y no se llena nada. La CURP se
+  guarda cifrada con su hash y la parcial, y en pantalla solo se ve la parcial. No se guardan la clave de elector, el
+  OCR ni el CIC.
+- Solo se lee sola si el documento se subió hace menos de 15 minutos y no se había leído; así no se leen de golpe las
+  INE viejas ni se cobra dos veces. Después queda el botón «Leer INE» / «Leer constancia». Cada lectura deja un evento.
+- La lectura de la INE necesita la clave `ANTHROPIC_API_KEY` en Vercel (servidor). Sin ella se avisa «captura los
+  datos a mano». Costo aproximado: centavos por credencial. El aviso de privacidad debe mencionar que la
+  identificación se procesa con un proveedor de IA (Anthropic) para capturar los datos.

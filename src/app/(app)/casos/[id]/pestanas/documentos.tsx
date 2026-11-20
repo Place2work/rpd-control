@@ -6,10 +6,11 @@ import type { Sesion } from "@/lib/auth/sesion";
 import { conUsuario } from "@/lib/db/prisma";
 import { avisoArchivo, estadoVisible, type EstadoVisible } from "@/lib/documentos/reglas";
 import type { CasoDetalle } from "@/lib/prospectos/consultas";
-import { hoyCDMX } from "@/lib/tiempo";
+import { haceMinutos, hoyCDMX } from "@/lib/tiempo";
 import { RevisarDocumento } from "../revisar-documento";
 import { SubirDocumento } from "../subir-documento";
 import { LectorConstancia } from "../lector-constancia";
+import { LectorIne } from "../lector-ine";
 import { SolicitudConstancia } from "../solicitud-constancia";
 import { BUZON_CONSTANCIAS } from "@/lib/correo/buzon";
 import { ligasConsulta } from "@/lib/parametros";
@@ -38,6 +39,13 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
       select: { id: true, estado: true, liga_confirmacion: true, created_at: true, updated_at: true } }),
   }), sesion.ip);
   const portalSemanas = (await ligasConsulta()).semanas;
+  // Lectura automática al subir (20-nov-2026): solo documentos recién subidos (15 min) que aún no se leyeron solos.
+  const leidos = await conUsuario(sesion.claims, (tx) => tx.evento.findMany({
+    where: { caso_id: caso.id, OR: ["ine_auto", "ine_leida", "constancia_auto", "constancia_leida"].map((c) => ({ datos: { path: ["campo"], equals: c } })) },
+    select: { datos: true } }), sesion.ip);
+  const yaLeidos = new Set(leidos.map((e) => (e.datos as { documento_id?: string } | null)?.documento_id).filter(Boolean));
+  const reciente = haceMinutos(15);
+  const autoLeer = (d: { id: string; created_at: Date }) => !yaLeidos.has(d.id) && d.created_at > reciente;
 
   const filas = tipos.map(({ tipo_documento: t, obligatorio }) => {
     const ultimo = docs.find((d) => d.tipo_id === t.id);
@@ -101,7 +109,11 @@ export async function PestanaDocumentos({ caso, sesion }: { caso: CasoDetalle; s
                   )}
                   {/* Constancia de semanas en PDF: se lee y se pasa a IMSS y Afore con confirmación. */}
                   {ultimo?.archivo_path && ultimo.archivo_mime === "application/pdf" && /constancia de semanas/i.test(t.nombre) && (
-                    <LectorConstancia casoId={caso.id} documentoId={ultimo.id} />
+                    <LectorConstancia casoId={caso.id} documentoId={ultimo.id} auto={autoLeer(ultimo)} />
+                  )}
+                  {/* INE: la IA lee nombre, CURP y domicilio; llena lo vacío y pregunta por lo que difiere. */}
+                  {ultimo?.archivo_path && /identificaci/i.test(t.nombre) && ["image/jpeg", "image/png", "image/webp", "application/pdf"].includes(ultimo.archivo_mime ?? "") && (
+                    <LectorIne casoId={caso.id} documentoId={ultimo.id} auto={autoLeer(ultimo)} />
                   )}
                   {/* Trámite oficial asistido: pedirla en el portal del IMSS con el buzón de la empresa. */}
                   {/constancia de semanas/i.test(t.nombre) && (

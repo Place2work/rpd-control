@@ -90,11 +90,36 @@ export async function verConstancia(casoId: string, documentoId: string): Promis
 }
 
 export async function aplicarConstancia(casoId: string, documentoId: string, elegidos: string[]): Promise<{ ok?: boolean; error?: string }> {
-  const { claims, ip, usuario } = await obtenerSesion();
+  const { ctx, error } = await contexto(casoId, documentoId);
+  if (!ctx) return { error };
+  return aplicar(ctx, casoId, documentoId, elegidos, "constancia_leida");
+}
+
+/** Al subir la constancia (20-nov-2026): pasa solo los datos que en el caso están vacíos (y el NSS/CURP si faltan) y
+ *  regresa los que difieren para que el usuario decida. Siempre deja el evento, para no volver a leerla sola. */
+export async function autoConstancia(casoId: string, documentoId: string): Promise<VistaConstancia & { llenados?: string[] }> {
   const { ctx, error } = await contexto(casoId, documentoId);
   if (!ctx) return { error };
   const id = identidad(ctx);
-  if (id.nss === "distinto" || id.curp === "distinto") return { error: "El NSS o la CURP de la constancia no son los de este cliente. Revisa que sea el documento correcto." };
+  const filas = campos(ctx);
+  const distinto = id.nss === "distinto" || id.curp === "distinto";
+  const vacios = distinto ? [] : filas.filter((c) => c.caso === "—" && c.constancia !== "—").map((c) => c.clave);
+  if (!distinto && id.nss === "sin_dato") vacios.push("guardar_nss");
+  if (!distinto && id.curp === "sin_dato") vacios.push("guardar_curp");
+  const r = await aplicar(ctx, casoId, documentoId, vacios, "constancia_auto");
+  const { nss, curp, ...resto } = ctx.lectura;
+  const vista = { lectura: { ...resto, nssFin: nss ? nss.slice(-4) : null, curpParcial: curp ? curpParcial(curp) : null }, identidad: id };
+  if (r.error) return { ...vista, error: r.error, campos: filas };
+  const etiquetas = filas.filter((c) => vacios.includes(c.clave)).map((c) => c.etiqueta);
+  if (vacios.includes("guardar_nss")) etiquetas.push("NSS del cliente");
+  if (vacios.includes("guardar_curp")) etiquetas.push("CURP del cliente");
+  return { ...vista, llenados: etiquetas, campos: filas.filter((c) => c.cambia && c.caso !== "—") };
+}
+
+async function aplicar(ctx: Contexto, casoId: string, documentoId: string, elegidos: string[], modo: "constancia_leida" | "constancia_auto"): Promise<{ ok?: boolean; error?: string }> {
+  const { claims, ip, usuario } = await obtenerSesion();
+  const id = identidad(ctx);
+  if (modo === "constancia_leida" && (id.nss === "distinto" || id.curp === "distinto")) return { error: "El NSS o la CURP de la constancia no son los de este cliente. Revisa que sea el documento correcto." };
   const l = ctx.lectura;
   const quiere = (k: string) => elegidos.includes(k);
   const data: Record<string, unknown> = {};
@@ -110,22 +135,23 @@ export async function aplicarConstancia(casoId: string, documentoId: string, ele
   if (quiere("regimen") && l.regimen) { data.regimen = l.regimen; data.regimen_justificacion = null; }
   const guardarNss = quiere("guardar_nss") && id.nss === "sin_dato" && l.nss;
   const guardarCurp = quiere("guardar_curp") && id.curp === "sin_dato" && l.curp;
-  if (!Object.keys(data).length && !guardarNss && !guardarCurp) return { error: "Marca al menos un dato para pasar." };
+  const nada = !Object.keys(data).length && !guardarNss && !guardarCurp;
+  if (nada && modo === "constancia_leida") return { error: "Marca al menos un dato para pasar." };
 
   // Derivados, igual que al guardar IMSS a mano: semanas totales, régimen sugerido y bimestres por fechas.
   const previo = ctx.imss;
   const valor = (k: string, actual: unknown) => (k in data ? data[k] : actual);
   const cot = num(valor("semanas_cotizadas", previo?.semanas_cotizadas));
-  if (cot !== null) data.semanas_totales = cot - (num(valor("semanas_descontadas", previo?.semanas_descontadas)) ?? 0) + (num(valor("semanas_reintegradas", previo?.semanas_reintegradas)) ?? 0);
+  if (!nada && cot !== null) data.semanas_totales = cot - (num(valor("semanas_descontadas", previo?.semanas_descontadas)) ?? 0) + (num(valor("semanas_reintegradas", previo?.semanas_reintegradas)) ?? 0);
   const alta = isoDe(valor("fecha_primera_alta", previo?.fecha_primera_alta) as Date | null);
   const baja = isoDe(valor("fecha_baja", previo?.fecha_baja) as Date | null);
-  if (!("regimen" in data) && alta && (!previo || previo.regimen === "por_definir")) data.regimen = regimenPorPrimeraAlta(alta);
-  if (alta && baja && (previo?.bimestres_cotizados ?? null) === null) data.bimestres_cotizados = bimestresEntre(alta, baja);
+  if (!nada && !("regimen" in data) && alta && (!previo || previo.regimen === "por_definir")) data.regimen = regimenPorPrimeraAlta(alta);
+  if (!nada && alta && baja && (previo?.bimestres_cotizados ?? null) === null) data.bimestres_cotizados = bimestresEntre(alta, baja);
 
   const bajaPrev = isoDe(previo?.fecha_baja);
   try {
     await conUsuario(claims, async (tx) => {
-      await tx.datosImss.upsert({ where: { caso_id: casoId }, update: data, create: { caso_id: casoId, ...data }, select: { id: true } });
+      if (Object.keys(data).length) await tx.datosImss.upsert({ where: { caso_id: casoId }, update: data, create: { caso_id: casoId, ...data }, select: { id: true } });
       if (guardarNss || guardarCurp) {
         const p: Record<string, unknown> = {};
         if (guardarNss && l.nss) Object.assign(p, { nss_cifrado: cifrar(l.nss), nss_hash: hashIdentificador("nss", l.nss), nss_ultimos4: l.nss.slice(-4) });
@@ -143,11 +169,19 @@ export async function aplicarConstancia(casoId: string, documentoId: string, ele
       if (guardarNss) nombres.push("NSS del cliente");
       if (guardarCurp) nombres.push("CURP del cliente");
       await tx.evento.create({ data: { caso_id: casoId, tipo: "documento", usuario_id: usuario.id,
-        datos: { campo: "constancia_leida", documento_id: documentoId, folio: l.folio, campos: elegidos },
-        texto: `Se leyó la constancia de semanas${l.fechaEmision ? ` del ${larga(l.fechaEmision)}` : ""} y se pasó a IMSS y Afore: ${nombres.join("; ")}.` } });
+        datos: { campo: modo, documento_id: documentoId, folio: l.folio, campos: elegidos },
+        texto: `Se leyó la constancia de semanas${l.fechaEmision ? ` del ${larga(l.fechaEmision)}` : ""}` + (nombres.length
+          ? ` y se ${modo === "constancia_auto" ? "llenaron los datos vacíos de" : "pasó a"} IMSS y Afore: ${nombres.join("; ")}.`
+          : id.nss === "distinto" || id.curp === "distinto" ? ", pero su NSS o CURP no son los del cliente: no se llenó nada." : "; no había datos vacíos que llenar.") } });
     }, ip);
   } catch (e) {
-    if ((e as { code?: string }).code === "P2002") return { error: "Ese NSS o esa CURP ya pertenecen a otra persona." };
+    if ((e as { code?: string }).code === "P2002") {
+      // En automático se deja la marca para no volver a leerla sola; el usuario revisa el documento.
+      if (modo === "constancia_auto") await conUsuario(claims, (tx) => tx.evento.create({ data: { caso_id: casoId, tipo: "documento", usuario_id: usuario.id,
+        datos: { campo: modo, documento_id: documentoId, folio: l.folio, campos: [] },
+        texto: "Se leyó la constancia de semanas, pero su NSS o CURP ya pertenecen a otra persona registrada: no se llenó nada." } }), ip).catch(() => null);
+      return { error: "Ese NSS o esa CURP ya pertenecen a otra persona registrada. Revisa que sea el documento de este cliente." };
+    }
     console.error("[constancia]", e);
     return { error: "No se pudo guardar." };
   }

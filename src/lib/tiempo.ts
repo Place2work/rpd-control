@@ -18,3 +18,8 @@ export function inicioDiaCDMX(iso: string): Date {
   const [a, m, d] = iso.split("-").map(Number);
   return new Date(new TZDate(a, m - 1, d, 0, 0, 0, ZONA_NEGOCIO).getTime());
 }
+
+/** Instante de hace `minutos` (para «recién subido» y similares). */
+export function haceMinutos(minutos: number, ahora: Date = new Date()): Date {
+  return new Date(ahora.getTime() - minutos * 60_000);
+}

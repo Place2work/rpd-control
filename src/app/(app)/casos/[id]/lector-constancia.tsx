@@ -1,10 +1,11 @@
 "use client";
 
 // «Leer constancia»: muestra lo que trae el PDF junto a lo que tiene el caso; se eligen los datos a pasar.
+// Con `auto` (recién subida), se lee sola al abrir: llena lo vacío y solo pregunta por lo que ya tenía otro valor.
 import { CheckCircle2, FileSearch, ShieldAlert } from "lucide-react";
 import { useRouter } from "next/navigation";
-import { useState, useTransition } from "react";
-import { aplicarConstancia, verConstancia, type VistaConstancia } from "./acciones-constancia";
+import { useEffect, useRef, useState, useTransition } from "react";
+import { aplicarConstancia, autoConstancia, verConstancia, type VistaConstancia } from "./acciones-constancia";
 
 const IDENTIDAD = {
   coincide: { texto: "coincide con el cliente", clase: "text-exito-texto" },
@@ -13,9 +14,11 @@ const IDENTIDAD = {
   no_viene: { texto: "no viene en el PDF", clase: "text-ink-muted" },
 } as const;
 
-export function LectorConstancia({ casoId, documentoId }: { casoId: string; documentoId: string }) {
+export function LectorConstancia({ casoId, documentoId, auto = false }: { casoId: string; documentoId: string; auto?: boolean }) {
   const router = useRouter();
   const [vista, setVista] = useState<VistaConstancia | null>(null);
+  const [llenados, setLlenados] = useState<string[] | null>(null);
+  const yaCorrio = useRef(false);
   const [elegidos, setElegidos] = useState<string[]>([]);
   const [resultado, setResultado] = useState<{ ok?: boolean; error?: string }>({});
   const [cargando, iniciar] = useTransition();
@@ -30,8 +33,28 @@ export function LectorConstancia({ casoId, documentoId }: { casoId: string; docu
   const pasar = () => iniciar(async () => {
     const r = await aplicarConstancia(casoId, documentoId, elegidos);
     setResultado(r);
-    if (r.ok) { setVista(null); router.refresh(); }
+    if (r.ok) { setVista(null); setLlenados(null); router.refresh(); }
   });
+  useEffect(() => {
+    if (!auto || yaCorrio.current) return;
+    yaCorrio.current = true;
+    iniciar(async () => {
+      const v = await autoConstancia(casoId, documentoId);
+      const sin = (x: string | undefined) => (x === "sin_dato" ? "coincide" : x);
+      if (v.error) { setVista(v); return; }
+      setLlenados(v.llenados ?? []);
+      if (v.identidad) v.identidad = { nss: sin(v.identidad.nss) as never, curp: sin(v.identidad.curp) as never };
+      const bloq = v.identidad?.nss === "distinto" || v.identidad?.curp === "distinto";
+      if (v.campos?.length || bloq) { setVista(v); setElegidos(v.campos!.filter((c) => !c.noMarcar).map((c) => c.clave)); }
+      router.refresh();
+    });
+  }, [auto, casoId, documentoId, router]);
+  const avisoAuto = llenados && (
+    <p role="status" className="flex items-center gap-1 text-xs text-exito-texto">
+      <CheckCircle2 className="size-3.5 shrink-0" aria-hidden />
+      {llenados.length ? `Constancia leída: ${llenados.length === 1 ? "se llenó 1 dato vacío" : `se llenaron ${llenados.length} datos vacíos`} (${llenados.join(", ").toLowerCase()}).` : "Constancia leída: no había datos vacíos que llenar."}
+    </p>
+  );
   const marcar = (clave: string, si: boolean) => setElegidos((e) => (si ? [...new Set([...e, clave])] : e.filter((x) => x !== clave)));
 
   if (!vista) {
@@ -41,6 +64,7 @@ export function LectorConstancia({ casoId, documentoId }: { casoId: string; docu
           className="inline-flex h-11 items-center gap-1.5 rounded-[var(--radius-boton)] bg-brand px-3 text-sm font-medium text-white hover:bg-brand-dark disabled:opacity-50 md:h-9">
           <FileSearch className="size-4" aria-hidden /> {cargando ? "Leyendo…" : "Leer constancia"}
         </button>
+        {avisoAuto}
         {resultado.ok && <p role="status" className="flex items-center gap-1 text-xs text-exito-texto"><CheckCircle2 className="size-3.5" aria-hidden /> Datos pasados a IMSS y Afore</p>}
       </div>
     );
@@ -57,7 +81,9 @@ export function LectorConstancia({ casoId, documentoId }: { casoId: string; docu
   const bloqueado = id.nss === "distinto" || id.curp === "distinto";
   return (
     <div className="w-full rounded-[var(--radius-boton)] border border-borde bg-slate-50 p-4 text-sm md:col-span-2">
-      <p className="font-medium text-ink">Lo que trae la constancia{l.nombre ? ` de ${l.nombre}` : ""}{l.folio ? <span className="font-normal text-ink-muted"> · folio {l.folio}</span> : null}</p>
+      {avisoAuto}
+      {llenados && !bloqueado && <p className="mt-1 text-xs font-medium text-ink">Estos datos ya tenían otro valor en el caso. Elige cuáles reemplazar:</p>}
+      <p className="mt-2 font-medium text-ink">Lo que trae la constancia{l.nombre ? ` de ${l.nombre}` : ""}{l.folio ? <span className="font-normal text-ink-muted"> · folio {l.folio}</span> : null}</p>
       <ul className="mt-2 grid gap-1 text-xs">
         <li>NSS ···{l.nssFin ?? "—"}: <span className={IDENTIDAD[id.nss].clase}>{IDENTIDAD[id.nss].texto}</span></li>
         <li>CURP {l.curpParcial ?? "—"}: <span className={IDENTIDAD[id.curp].clase}>{IDENTIDAD[id.curp].texto}</span></li>

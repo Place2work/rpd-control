@@ -18,6 +18,7 @@
     "academia:contenido": "node scripts/academia-ts.cjs"
   },
   "dependencies": {
+    "@anthropic-ai/sdk": "1.5.0",
     "@date-fns/tz": "^1.5.0",
     "@hookform/resolvers": "^6.0.1",
     "@prisma/adapter-pg": "^7.10.1",
