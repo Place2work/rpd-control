@@ -15,6 +15,7 @@ import { facturaAsesor } from "@/lib/reglas/comisiones";
 import { hoyCDMX } from "@/lib/tiempo";
 import { CampoTexto, Seleccion } from "../casos/[id]/campos";
 import { FormularioAccion } from "../casos/[id]/formulario-accion";
+import { ComprobanteComision } from "../casos/[id]/pago-comision";
 import { liquidar } from "./acciones";
 
 export const metadata: Metadata = { title: "Comisiones" };
@@ -181,7 +182,12 @@ export default async function Comisiones({ searchParams }: { searchParams: Promi
                           <td className="py-2 pr-3 text-ink-muted">{c.regla_aplicada}</td>
                           <td className="py-2 pr-3">{c.fecha_devengo?.toISOString().slice(0, 10) ?? "—"}</td>
                           <td className="cifra py-2 pr-3 font-medium">{mxn(c.monto)}</td>
-                          <td className="py-2"><Badge tono={tono}>{texto}</Badge></td>
+                          <td className="py-2">
+                            <Badge tono={tono}>{texto}</Badge>
+                            {c.estado === "pagada" && c.fecha_pago && <span className="block text-xs text-ink-muted">el {c.fecha_pago.toISOString().slice(0, 10).split("-").reverse().join("/")}</span>}
+                            {/* El asesor ve aquí el comprobante de la transferencia que subió el Director (20-nov-2026). */}
+                            {c.estado === "pagada" && <ComprobanteComision casoId={c.caso.id} comisionId={c.id} tiene={Boolean(c.comprobante_path)} puedeSubir={false} />}
+                          </td>
                         </tr>
                       );
                     })}
