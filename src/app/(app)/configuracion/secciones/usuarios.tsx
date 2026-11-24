@@ -10,7 +10,12 @@ import { verComo } from "../../acciones";
 import { ETIQUETA_ROL } from "@/components/rpd/navegacion";
 
 // Llevan cuenta: Analista de expedientes, Asesor de pensiones y Director. El referidor no entra al sistema.
-const ROLES = [["asesor", "Analista de expedientes"], ["socio", "Asesor de pensiones"], ["campo", "Gerente de campo"], ["director", "Director"]] as const;
+// El Director es uno solo (el dueño): no se ofrece al dar de alta ni al editar a otra persona.
+const ROLES = [["asesor", "Analista de expedientes"], ["socio", "Asesor de pensiones"], ["campo", "Gerente de campo"]] as const;
+const ROLES_DIRECTOR = [...ROLES, ["director", "Director"]] as const;
+// El analista ve y revisa todos los expedientes: se confirma antes de darle el rol.
+const CONFIRMAR_ANALISTA = { campo: "rol", valores: ["asesor"], mensaje:
+  "¿Confirmas que {nombre} será Analista de expedientes de RetiroPorDesempleo.com?\n\nPodrá ver y revisar TODOS los expedientes de los clientes: datos personales, documentos, CURP y NSS (el dato completo queda en bitácora)." };
 const QUE_VE: Record<string, string> = {
   director: "Todo, incluida Configuración, dinero y comisiones de todos.",
   asesor: "Todos los casos y el expediente completo; no ve márgenes ni Configuración.",
@@ -77,11 +82,11 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
                 <details>
                   <summary className="cursor-pointer text-xs font-medium text-brand">Editar</summary>
                   <div className="mt-2 rounded-[var(--radius-boton)] bg-slate-50 p-3">
-                    <FormularioAccion accion={actualizarUsuario.bind(null, u.id)} etiquetas={ETIQUETAS}>
+                    <FormularioAccion accion={actualizarUsuario.bind(null, u.id)} etiquetas={ETIQUETAS} confirmarSi={u.rol === "asesor" ? undefined : CONFIRMAR_ANALISTA}>
                       <div className="grid gap-3 sm:grid-cols-2">
                         <CampoTexto id="nombre" etiqueta="Nombre" valor={u.nombre} />
                         <CampoTexto id="telefono" etiqueta="Teléfono" tipo="tel" valor={u.telefono} />
-                        <Seleccion id="rol" etiqueta="Rol" valor={u.rol} opciones={ROLES} />
+                        <Seleccion id="rol" etiqueta="Rol" valor={u.rol} opciones={u.rol === "director" ? ROLES_DIRECTOR : ROLES} />
                         <Seleccion id="socio_id" etiqueta="Ficha del asesor de pensiones" ayuda={ayudaFicha} valor={u.socio_id} vacia={u.socio_id ? "La suya" : "Nueva con su nombre"} opciones={opcionesFicha} />
                       </div>
                     </FormularioAccion>
@@ -144,7 +149,7 @@ export async function SeccionUsuarios({ sesion }: { sesion: Sesion }) {
         <Card>
           <CardHeader><CardTitle>Dar de alta a alguien</CardTitle></CardHeader>
           <CardContent>
-            <FormularioAccion accion={crearUsuarioConClave} boton="Dar de alta" etiquetas={ETIQUETAS} limpiar>
+            <FormularioAccion accion={crearUsuarioConClave} boton="Dar de alta" etiquetas={ETIQUETAS} limpiar confirmarSi={CONFIRMAR_ANALISTA}>
               <CampoTexto id="nombre" etiqueta="Nombre completo" />
               <CampoTexto id="email" etiqueta="Correo" ayuda="con este entra · asesor de pensiones: puede ir vacío" tipo="email" />
               <CampoTexto id="telefono" etiqueta="Teléfono" ayuda="opcional" tipo="tel" />

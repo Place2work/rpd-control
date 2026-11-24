@@ -888,3 +888,12 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - «Mi desempeño» no se le muestra: mide casos de un asesor de pensiones ligado a su ficha, y el gerente de campo no
   lleva casos. El Director lo ve en Academia → Equipo junto con los asesores y el analista.
 - Sin cambios en la base: las políticas de la Academia ya eran por usuario, no por rol.
+
+## 24-nov-2026 · Un solo Director y confirmación al nombrar analista
+
+- El Director es uno solo (el dueño). En Configuración → Usuarios ya no se ofrece «Director» al dar de alta ni al
+  editar a otra persona; solo aparece en la propia ficha del Director. El servidor también rechaza dar de alta o
+  ascender a otro Director («El puesto de Director ya está ocupado»).
+- Al dar de alta a alguien como **Analista de expedientes**, o al cambiarle el rol a analista, aparece una ventana de
+  confirmación: esa persona podrá ver y revisar todos los expedientes de los clientes (datos personales, documentos,
+  CURP y NSS con bitácora).

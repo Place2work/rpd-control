@@ -14,6 +14,8 @@ type Props = {
   className?: string;
   /** Pregunta antes de enviar (acciones que no se deshacen con un clic). */
   confirmar?: string;
+  /** Pregunta solo si un campo toma ciertos valores; «{nombre}» se cambia por lo escrito en el campo nombre. */
+  confirmarSi?: { campo: string; valores: string[]; mensaje: string };
   /** Altas: vacía los campos al guardar, para no dar de alta dos veces lo mismo. */
   limpiar?: boolean;
 };
@@ -22,7 +24,7 @@ type Props = {
 // servidor) y aquí se muestra el resultado: "Guardado", errores por campo o lo que falta.
 // Se envía con onSubmit (no con action=) porque React 19 vacía los campos después de cada
 // envío por action: si había un error, el usuario perdía lo que acababa de escribir.
-export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className, confirmar, limpiar }: Props) {
+export function FormularioAccion({ accion, children, boton = "Guardar", etiquetas = {}, className, confirmar, confirmarSi, limpiar }: Props) {
   const [estado, enviar, enviando] = useActionState<ConDato, FormData>(accion, {});
   const forma = useRef<HTMLFormElement>(null);
   useEffect(() => { if (limpiar && estado.ok) forma.current?.reset(); }, [estado, limpiar]);
@@ -35,6 +37,10 @@ export function FormularioAccion({ accion, children, boton = "Guardar", etiqueta
         e.preventDefault();
         if (confirmar && !window.confirm(confirmar)) return;
         const datos = new FormData(e.currentTarget);
+        if (confirmarSi && confirmarSi.valores.includes(String(datos.get(confirmarSi.campo) ?? ""))) {
+          const nombre = String(datos.get("nombre") ?? "").trim() || "esta persona";
+          if (!window.confirm(confirmarSi.mensaje.replaceAll("{nombre}", nombre))) return;
+        }
         startTransition(() => enviar(datos));
       }}
     >

@@ -136,10 +136,14 @@ async function ligarFicha(tx: Tx, d: { rol: string; socio_id: string | null; nom
   return nueva.id;
 }
 
+/** Solo hay un Director (el dueño): no se da de alta otro ni se asciende a nadie desde aquí (24-nov-2026). */
+const SIN_OTRO_DIRECTOR = { errores: { rol: "El puesto de Director ya está ocupado. Elige otro rol." } };
+
 export async function invitarUsuario(_p: Resultado, form: FormData): Promise<Resultado> {
   const s = await director();
   if (!s) return { error: "Solo el Director da de alta usuarios." };
   const d = datosDe(form);
+  if (d.rol === "director") return SIN_OTRO_DIRECTOR;
   const r = esquemaUsuario.and(z.object({ email: z.email("Correo no válido").transform((v) => v.toLowerCase()) })).safeParse(d);
   if (!r.success) return { errores: errores(r.error) };
   const ya = await conUsuario(s.claims, (tx) => tx.usuario.findUnique({ where: { email: r.data.email }, select: { id: true } }), s.ip);
@@ -172,6 +176,7 @@ export async function crearUsuarioConClave(_p: Resultado, form: FormData): Promi
   if (String(form.get("acceso") ?? "") === "correo" && String(form.get("email") ?? "").trim()) return invitarUsuario(_p, form);
   // Asesor de pensiones sin correo todavía: solo su ficha (cobra comisiones); la cuenta se crea cuando haya correo.
   const datos = datosDe(form);
+  if (datos.rol === "director") return SIN_OTRO_DIRECTOR;
   if (datos.rol === "socio" && !String(datos.email ?? "").trim()) {
     const f = esquemaUsuario.safeParse(datos);
     if (!f.success) return { errores: errores(f.error) };
@@ -245,6 +250,7 @@ export async function actualizarUsuario(id: string, _p: Resultado, form: FormDat
   // El Director no puede quitarse a sí mismo el rol: se quedaría fuera de Configuración.
   if (id === s.usuario.id && r.data.rol !== "director") return { errores: { rol: "No puedes quitarte el rol de Director a ti mismo" } };
   const res = await conUsuario(s.claims, async (tx) => {
+    if (r.data.rol === "director" && (await tx.usuario.findUnique({ where: { id }, select: { rol: true } }))?.rol !== "director") return SIN_OTRO_DIRECTOR;
     const ocupada = r.data.rol === "socio" ? await fichaLibre(tx, r.data.socio_id, id) : null;
     if (ocupada) return { errores: { socio_id: ocupada } };
     const actual = await tx.usuario.findUnique({ where: { id }, select: { email: true, socio_id: true } });
