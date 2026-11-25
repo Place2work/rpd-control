@@ -62,6 +62,9 @@ export default async function Hoy() {
   const costoAlta = costos ? costoAdministrativo(costos.altas, costos.vigencias, { desde: `${hoy.slice(0, 7)}-01`, hasta: hoy }) : null;
   // Total de todas las altas (cada una con el costo vigente el día de su alta); no baja aunque el cliente pague.
   const costoTotal = costos ? costoAdministrativo(costos.altas, costos.vigencias) : null;
+  // Ganancia proyectada (25-nov-2026): resta solo el costo administrativo de los clientes (ya pagaron, por cobrar o con
+  // honorario proyectado), no el de todos los prospectos. El IVA se queda en cada honorario (cifras con IVA).
+  const costoProyectado = costos ? costoAdministrativo(costos.altasClientesProyectados, costos.vigencias) : null;
 
   // Próximos día 46 (10.1): retiros que aún no se ingresan, con fecha de baja, en los próximos 14 días.
   const proximos = casos
@@ -80,7 +83,7 @@ export default async function Hoy() {
   const honorariosProy = dinero && proy ? (cents(proy.total) + cents(dinero.porCobrar)) / 100 : 0;
   const honorariosTodos = dinero ? (cents(honorariosProy) + cents(dinero.cobradoTotal)) / 100 : 0;
   const comisionesTodas = dinero && comProy ? (cents(comProy.total) + cents(dinero.comisionesPagadas)) / 100 : 0;
-  const ganancia = dinero && comProy && costoTotal ? gananciaProyectada({ honorarios: honorariosTodos, comisiones: comisionesTodas, costoAltas: costoTotal.total, iva: pDinero?.IVA ?? 0,
+  const ganancia = dinero && comProy && costoProyectado ? gananciaProyectada({ honorarios: honorariosTodos, comisiones: comisionesTodas, costoAltas: costoProyectado.total, iva: pDinero?.IVA ?? 0,
     comisionesAsesor: (comProy.filas.filter((f) => f.tipo === "socio").reduce((a, f) => a + cents(f.monto), 0) + cents(dinero.comisionesPagadasAsesor)) / 100 }) : null;
   // Utilidad neta a hoy (25-nov-2026): solo lo ya cobrado, menos comisiones pagadas y por pagar y el costo del alta
   // de cada cliente que ya pagó (no de todos los prospectos).
@@ -93,7 +96,7 @@ export default async function Hoy() {
     cobradoSinAsesor: dinero.cobradoSinAsesor,
   }) : null;
   // Gráficas de finanzas (Director): cascada de la ganancia y honorarios por mes (cobrados y proyectados).
-  const cascada = dinero && ganancia ? cascadaGanancia({ cobrado: dinero.cobradoTotal, proyectado: honorariosProy, comisiones: comisionesTodas, altas: costoTotal?.total ?? 0 }) : null;
+  const cascada = dinero && ganancia ? cascadaGanancia({ cobrado: dinero.cobradoTotal, proyectado: honorariosProy, comisiones: comisionesTodas, altas: costoProyectado?.total ?? 0 }) : null;
   const flujo = dinero && proy ? flujoHonorarios({ hoy, cobradosPorMes: dinero.meses.map((m) => ({ mes: m.mes, total: m.total })), porCobrar: dinero.porCobrar,
     proyectados: proy.filas.map((f) => ({ fecha: f.fechaEstimada, honorario: f.honorario })) }) : null;
   // Tabla por beneficiario: casos por familia de servicio (retiro, pensiones, otros) + montos de los retiros.
@@ -145,12 +148,12 @@ export default async function Hoy() {
         nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · ${mxn(comProy.devengado)} ya devengadas` : "Elige asesor o referidor en el Canal de cada caso" },
       ...(usuario.rol === "director" && utilidad ? [
         { t: "Utilidad neta a hoy", v: mxn(utilidad.utilidad), liga: "/dinero", destacado: true,
-          nota: `Cobrado ${mxn(dinero.cobradoTotal)} − comisiones pagadas ${mxn(dinero.comisionesPagadas)} − por pagar ${mxn(dinero.comisionesPorPagar)} − costo administrativo ${mxn(costoClientes?.total ?? 0)} (${costoClientes?.altas ?? 0} ${costoClientes?.altas === 1 ? "cliente" : "clientes"})${utilidad.margen !== null ? ` · margen ${utilidad.margen}%` : ""} · sin IVA: ${mxn(utilidad.utilidadSinIva)}` },
+          nota: `Cobrado ${mxn(dinero.cobradoTotal)} − comisiones pagadas ${mxn(dinero.comisionesPagadas)} − por pagar ${mxn(dinero.comisionesPorPagar)} − costo administrativo ${mxn(costoClientes?.total ?? 0)} (${costoClientes?.altas ?? 0} ${costoClientes?.altas === 1 ? "cliente" : "clientes"})${utilidad.margen !== null ? ` · margen ${utilidad.margen}%` : ""} · honorarios con IVA` },
         { t: "Cobrado de clientes sin asesor", v: mxn(dinero.cobradoSinAsesor), liga: "/clientes-cerrados",
           nota: `${dinero.casosSinAsesor} ${dinero.casosSinAsesor === 1 ? "caso" : "casos"} sin asesor de pensiones ni referidor: sin esa comisión, queda para la empresa${utilidad.sinAsesorPct !== null ? ` · ${utilidad.sinAsesorPct}% de lo cobrado` : ""}` },
       ] : []),
       ...(usuario.rol === "director" && ganancia ? [{ t: "Ganancia proyectada", v: mxn(ganancia.ganancia), liga: "/dinero", destacado: true,
-        nota: `Cobrado ${mxn(dinero.cobradoTotal)} + por cobrar y proyectado ${mxn(honorariosProy)} − comisiones ${mxn(comisionesTodas)} − altas ${mxn(costoTotal?.total ?? 0)} · sin IVA: ${mxn(ganancia.gananciaSinIva)}` }] : []),
+        nota: `Cobrado ${mxn(dinero.cobradoTotal)} + por cobrar y proyectado ${mxn(honorariosProy)} − comisiones ${mxn(comisionesTodas)} − costo administrativo ${mxn(costoProyectado?.total ?? 0)} (${costoProyectado?.altas ?? 0} ${costoProyectado?.altas === 1 ? "cliente" : "clientes"}) · honorarios con IVA` }] : []),
     ] : []),
   ];
 
@@ -208,7 +211,7 @@ export default async function Hoy() {
             <CardHeader><CardTitle>De dónde sale la ganancia</CardTitle></CardHeader>
             <div className="px-5 pb-5 pt-2">
               <GraficaCascada pasos={cascada} />
-              <p className="mt-2 text-xs text-ink-muted">Azul: lo que entra (cobrado; por cobrar y proyectado) · magenta: comisiones y costo de altas · verde: ganancia proyectada con IVA (sin IVA: {mxn(ganancia!.gananciaSinIva)}).</p>
+              <p className="mt-2 text-xs text-ink-muted">Azul: lo que entra (cobrado; por cobrar y proyectado) · magenta: comisiones y costo administrativo de los clientes ($500 por cliente) · verde: ganancia proyectada (honorarios con IVA).</p>
             </div>
           </Card>
           <Card>
