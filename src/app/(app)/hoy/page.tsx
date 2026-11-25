@@ -82,12 +82,11 @@ export default async function Hoy() {
   const comisionesTodas = dinero && comProy ? (cents(comProy.total) + cents(dinero.comisionesPagadas)) / 100 : 0;
   const ganancia = dinero && comProy && costoTotal ? gananciaProyectada({ honorarios: honorariosTodos, comisiones: comisionesTodas, costoAltas: costoTotal.total, iva: pDinero?.IVA ?? 0,
     comisionesAsesor: (comProy.filas.filter((f) => f.tipo === "socio").reduce((a, f) => a + cents(f.monto), 0) + cents(dinero.comisionesPagadasAsesor)) / 100 }) : null;
-  // Utilidad neta a hoy (25-nov-2026): solo lo ya cobrado, menos comisiones pagadas y por pagar y el costo del alta
-  // de cada cliente que ya pagó (no de todos los prospectos).
+  // Utilidad neta a hoy (25-nov-2026): solo lo ya cobrado, menos comisiones pagadas y por pagar y el costo
+  // administrativo de todas las altas (se paga aunque no se cobre el honorario).
   const iva = pDinero?.IVA ?? 0;
-  const costoClientes = costos ? costoAdministrativo(costos.altasClientes, costos.vigencias) : null;
-  const utilidad = dinero && costoClientes ? utilidadAlMomento({
-    cobrado: dinero.cobradoTotal, comisionesPagadas: dinero.comisionesPagadas, comisionesPorPagar: dinero.comisionesPorPagar, costoAltas: costoClientes.total,
+  const utilidad = dinero && costoTotal ? utilidadAlMomento({
+    cobrado: dinero.cobradoTotal, comisionesPagadas: dinero.comisionesPagadas, comisionesPorPagar: dinero.comisionesPorPagar, costoAltas: costoTotal.total,
     ivaHonorario: (cents(dinero.cobradoTotal) - Math.round(cents(dinero.cobradoTotal) / (1 + iva))) / 100,
     ivaAcreditable: facturaAsesor((cents(dinero.comisionesPagadasAsesor) + cents(dinero.comisionesPorPagarAsesor)) / 100, iva).iva,
     cobradoSinAsesor: dinero.cobradoSinAsesor,
@@ -145,7 +144,7 @@ export default async function Hoy() {
         nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · ${mxn(comProy.devengado)} ya devengadas` : "Elige asesor o referidor en el Canal de cada caso" },
       ...(usuario.rol === "director" && utilidad ? [
         { t: "Utilidad neta a hoy", v: mxn(utilidad.utilidad), liga: "/dinero", destacado: true,
-          nota: `Cobrado ${mxn(dinero.cobradoTotal)} − comisiones pagadas ${mxn(dinero.comisionesPagadas)} − por pagar ${mxn(dinero.comisionesPorPagar)} − costo administrativo ${mxn(costoClientes?.total ?? 0)} (${costoClientes?.altas ?? 0} ${costoClientes?.altas === 1 ? "cliente" : "clientes"})${utilidad.margen !== null ? ` · margen ${utilidad.margen}%` : ""} · honorarios con IVA` },
+          nota: `Cobrado ${mxn(dinero.cobradoTotal)} − comisiones pagadas ${mxn(dinero.comisionesPagadas)} − por pagar ${mxn(dinero.comisionesPorPagar)} − costo administrativo ${mxn(costoTotal?.total ?? 0)} (${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"})${utilidad.margen !== null ? ` · margen ${utilidad.margen}%` : ""} · honorarios con IVA` },
         { t: "Cobrado de clientes sin asesor", v: mxn(dinero.cobradoSinAsesor), liga: "/clientes-cerrados",
           nota: `${dinero.casosSinAsesor} ${dinero.casosSinAsesor === 1 ? "caso" : "casos"} sin asesor de pensiones ni referidor: sin esa comisión, queda para la empresa${utilidad.sinAsesorPct !== null ? ` · ${utilidad.sinAsesorPct}% de lo cobrado` : ""}` },
       ] : []),
