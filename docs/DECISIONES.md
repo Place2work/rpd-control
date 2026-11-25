@@ -908,7 +908,6 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - Tarjeta **«Cobrado de clientes sin asesor»**: lo cobrado de casos sin asesor de pensiones ni referidor; no generan
   esa comisión y queda para la empresa. Con su porcentaje de lo cobrado.
 - La ganancia proyectada no cambia: sigue restando el costo de todas las altas.
-- Actualización (25-nov-2026): la **ganancia proyectada** también resta el costo administrativo solo de los clientes:
-  los que ya pagaron, los que ya se pueden cobrar y los que tienen honorario proyectado (pago de la Afore esperado).
-  Ya no resta el de todos los prospectos. Ambas tarjetas muestran los honorarios **con IVA**: ya no se muestra la cifra
-  sin IVA; solo se restan comisiones y los $500 (o el costo propio) de cada cliente.
+- Actualización (25-nov-2026): la **ganancia proyectada** sigue restando el costo administrativo de **todas** las altas
+  ($500 por alta): se paga aunque al cliente no se le llegue a cobrar el honorario. Ambas tarjetas muestran los
+  honorarios **con IVA**: ya no se muestra la cifra sin IVA.
