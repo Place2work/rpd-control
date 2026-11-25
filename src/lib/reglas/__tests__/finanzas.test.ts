@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { cascadaGanancia, flujoHonorarios } from "../finanzas";
+import { cascadaGanancia, flujoHonorarios, utilidadAlMomento } from "../finanzas";
 
 describe("cascada de la ganancia", () => {
   it("9,150.18 + 95,021.10 − 24,084.62 − 5,500 = 74,586.66, cada paso arranca donde termina el anterior", () => {
@@ -29,5 +29,20 @@ describe("honorarios por mes: cobrados y proyectados", () => {
     expect(r[11].mes).toBe("2027-05");
     expect(r.find((x) => x.mes === "2027-01")!.etiqueta).toBe("ene 27");
     expect(r[12]).toEqual({ mes: "despues", etiqueta: "Después", cobrado: 0, proyectado: 7 });
+  });
+});
+
+describe("utilidad neta a hoy", () => {
+  it("28,858.26 cobrado − 3,000 pagado − 500 por pagar − 9,500 altas = 15,858.26; margen y parte sin asesor", () => {
+    const u = utilidadAlMomento({ cobrado: 28858.26, comisionesPagadas: 3000, comisionesPorPagar: 500, costoAltas: 9500,
+      ivaHonorario: 3980.45, ivaAcreditable: 560, cobradoSinAsesor: 14429.13 });
+    expect(u.utilidad).toBe(15858.26);
+    expect(u.utilidadSinIva).toBe(12437.81);
+    expect(u.margen).toBe(55);
+    expect(u.sinAsesorPct).toBe(50);
+  });
+  it("sin cobros no hay margen y la utilidad puede ser negativa por las altas", () => {
+    const u = utilidadAlMomento({ cobrado: 0, comisionesPagadas: 0, comisionesPorPagar: 0, costoAltas: 500, ivaHonorario: 0, ivaAcreditable: 0, cobradoSinAsesor: 0 });
+    expect(u).toEqual({ utilidad: -500, utilidadSinIva: -500, margen: null, sinAsesorPct: null });
   });
 });

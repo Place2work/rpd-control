@@ -897,3 +897,14 @@ Respuestas del Director: 1A, 2A, 3A, 4A.
 - Al dar de alta a alguien como **Analista de expedientes**, o al cambiarle el rol a analista, aparece una ventana de
   confirmación: esa persona podrá ver y revisar todos los expedientes de los clientes (datos personales, documentos,
   CURP y NSS con bitácora).
+
+## 25-nov-2026 · Utilidad neta a hoy
+
+- En Hoy (solo Director), junto a la ganancia proyectada, la tarjeta **«Utilidad neta a hoy»**: solo lo que ya pasó.
+  Cobrado desde el inicio − comisiones pagadas − comisiones devengadas por pagar (salen de ese mismo dinero) − costo
+  administrativo **solo de los clientes que ya pagaron** (el costo del alta de cada uno, $500 hoy; no el de todos los
+  prospectos). Muestra el margen y la cifra sin IVA (se resta el IVA del honorario y se acredita el de las facturas de
+  los asesores, igual que la ganancia proyectada).
+- Tarjeta **«Cobrado de clientes sin asesor»**: lo cobrado de casos sin asesor de pensiones ni referidor; no generan
+  esa comisión y queda para la empresa. Con su porcentaje de lo cobrado.
+- La ganancia proyectada no cambia: sigue restando el costo de todas las altas.

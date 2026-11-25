@@ -60,3 +60,22 @@ export function flujoHonorarios(e: {
   if (despues > 0) r.push({ mes: "despues", etiqueta: "Después", cobrado: 0, proyectado: pesos(despues) });
   return r;
 }
+
+/**
+ * Utilidad neta a hoy (25-nov-2026): solo lo que ya pasó. Lo cobrado desde el inicio − comisiones pagadas − comisiones
+ * ya devengadas por pagar (salen de ese mismo dinero) − costo administrativo de las altas. Sin IVA: se resta el IVA
+ * del honorario y se acredita el de la factura de los asesores (igual que la ganancia proyectada).
+ */
+export function utilidadAlMomento(e: {
+  cobrado: number; comisionesPagadas: number; comisionesPorPagar: number; costoAltas: number;
+  ivaHonorario: number; ivaAcreditable: number; cobradoSinAsesor: number;
+}) {
+  const c = cent(e.cobrado);
+  const utilidad = c - cent(e.comisionesPagadas) - cent(e.comisionesPorPagar) - cent(e.costoAltas);
+  const sinIva = utilidad - (cent(e.ivaHonorario) - cent(e.ivaAcreditable));
+  return {
+    utilidad: pesos(utilidad), utilidadSinIva: pesos(sinIva),
+    margen: c > 0 ? Math.round((utilidad / c) * 1000) / 10 : null,
+    sinAsesorPct: c > 0 ? Math.round((cent(e.cobradoSinAsesor) / c) * 1000) / 10 : null,
+  };
+}

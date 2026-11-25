@@ -52,7 +52,7 @@ export async function cifrasHoy(s: Sesion, mes: string) {
   const desde = dia(`${mes}-01`);
   const hasta = dia(finDeMes(mes));
   return conUsuario(s.claims, async (tx) => {
-    const [cobrado, depositos, porCobrar, comisiones, meses, cobradoTotal, pagadas, pagadasAsesor] = await Promise.all([
+    const [cobrado, depositos, porCobrar, comisiones, meses, cobradoTotal, pagadas, pagadasAsesor, porPagarAsesor, sinAsesor] = await Promise.all([
       tx.cobro.aggregate({ where: { estado: "cobrado", archivado_at: null, fecha_cobro: { gte: desde, lte: hasta } }, _sum: { honorario_total: true } }),
       tx.pagoAfore.aggregate({ where: { archivado_at: null, fecha_deposito: { gte: desde, lte: hasta } }, _sum: { monto_neto: true } }),
       tx.cobro.aggregate({ where: { estado: "por_cobrar", archivado_at: null }, _sum: { honorario_total: true }, _count: true }),
@@ -62,6 +62,10 @@ export async function cifrasHoy(s: Sesion, mes: string) {
       tx.cobro.aggregate({ where: { estado: "cobrado", archivado_at: null }, _sum: { honorario_total: true }, _count: true }),
       tx.comision.aggregate({ where: { estado: "pagada", archivado_at: null }, _sum: { monto: true } }),
       tx.comision.aggregate({ where: { estado: "pagada", archivado_at: null, tipo: "socio" }, _sum: { monto: true } }),
+      // Utilidad neta a hoy (25-nov-2026): lo devengado por pagar a asesores (IVA acreditable) y lo cobrado de casos
+      // sin asesor de pensiones ni referidor (no generan esa comisión: es para la empresa).
+      tx.comision.aggregate({ where: { estado: "devengada", archivado_at: null, tipo: "socio" }, _sum: { monto: true } }),
+      tx.cobro.findMany({ where: { estado: "cobrado", archivado_at: null, caso: { socio_id: null, referidor_id: null } }, select: { caso_id: true, honorario_total: true } }),
     ]);
     const n = (v: unknown) => Number(v ?? 0);
     return {
@@ -71,6 +75,9 @@ export async function cifrasHoy(s: Sesion, mes: string) {
       comisionesPorPagar: n(comisiones._sum.monto), comisionesPendientes: comisiones._count,
       cobradoTotal: n(cobradoTotal._sum.honorario_total), cobrosCobrados: cobradoTotal._count,
       comisionesPagadas: n(pagadas._sum.monto), comisionesPagadasAsesor: n(pagadasAsesor._sum.monto),
+      comisionesPorPagarAsesor: n(porPagarAsesor._sum.monto),
+      cobradoSinAsesor: sinAsesor.reduce((a, c) => a + Math.round(n(c.honorario_total) * 100), 0) / 100,
+      casosSinAsesor: new Set(sinAsesor.map((c) => c.caso_id)).size,
       meses,
     };
   }, s.ip);
