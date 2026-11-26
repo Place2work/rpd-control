@@ -144,12 +144,12 @@ export default async function Hoy() {
         nota: comProy && comProy.casos ? `${comProy.casos} ${comProy.casos === 1 ? "caso" : "casos"} · ${mxn(comProy.devengado)} ya devengadas` : "Elige asesor o referidor en el Canal de cada caso" },
       ...(usuario.rol === "director" && utilidad ? [
         { t: "Utilidad neta a hoy", v: mxn(utilidad.utilidad), liga: "/dinero", destacado: true,
-          nota: `Cobrado ${mxn(dinero.cobradoTotal)} − comisiones pagadas ${mxn(dinero.comisionesPagadas)} − por pagar ${mxn(dinero.comisionesPorPagar)} − costo administrativo ${mxn(costoTotal?.total ?? 0)} (${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"})${utilidad.margen !== null ? ` · margen ${utilidad.margen}%` : ""} · honorarios con IVA` },
+          nota: `Cobrado total desde el inicio ${mxn(dinero.cobradoTotal)} (${dinero.cobrosCobrados} ${dinero.cobrosCobrados === 1 ? "cobro" : "cobros"}) − comisiones pagadas ${mxn(dinero.comisionesPagadas)} − por pagar ${mxn(dinero.comisionesPorPagar)} − costo administrativo ${mxn(costoTotal?.total ?? 0)} (${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"})${utilidad.margen !== null ? ` · margen ${utilidad.margen}%` : ""} · honorarios con IVA` },
         { t: "Cobrado de clientes sin asesor", v: mxn(dinero.cobradoSinAsesor), liga: "/clientes-cerrados",
           nota: `${dinero.casosSinAsesor} ${dinero.casosSinAsesor === 1 ? "caso" : "casos"} sin asesor de pensiones ni referidor: sin esa comisión, queda para la empresa${utilidad.sinAsesorPct !== null ? ` · ${utilidad.sinAsesorPct}% de lo cobrado` : ""}` },
       ] : []),
       ...(usuario.rol === "director" && ganancia ? [{ t: "Ganancia proyectada", v: mxn(ganancia.ganancia), liga: "/dinero", destacado: true,
-        nota: `Cobrado ${mxn(dinero.cobradoTotal)} + por cobrar y proyectado ${mxn(honorariosProy)} − comisiones ${mxn(comisionesTodas)} − costo administrativo ${mxn(costoTotal?.total ?? 0)} (${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"}, se paga aunque no se cobre) · honorarios con IVA` }] : []),
+        nota: `Cobrado total ${mxn(dinero.cobradoTotal)} + por cobrar y proyectado ${mxn(honorariosProy)} − comisiones ${mxn(comisionesTodas)} − costo administrativo ${mxn(costoTotal?.total ?? 0)} (${costoTotal?.altas ?? 0} ${costoTotal?.altas === 1 ? "alta" : "altas"}, se paga aunque no se cobre) · honorarios con IVA` }] : []),
     ] : []),
   ];
 
